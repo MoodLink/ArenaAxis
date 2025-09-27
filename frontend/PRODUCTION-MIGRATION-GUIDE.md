@@ -1,4 +1,4 @@
-# 🚀 HƯỚNG DẪN TRIỂN KHAI CHI TIẾT - KICKOFF APP
+# 🚀 HƯỚNG DẪN TRIỂN KHAI CHI TIẾT - ARENAAXIS APP
 
 ## 📋 MỤC LỤC
 1. [Chuẩn bị Database và Backend API](#1-chuẩn-bị-database-và-backend-api)
@@ -32,18 +32,18 @@ brew install postgresql
 psql -U postgres
 
 -- Tạo database
-CREATE DATABASE kickoff_app;
-CREATE USER kickoff_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE kickoff_app TO kickoff_user;
+CREATE DATABASE arenaaxis_app;
+CREATE USER arenaaxis_user WITH PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE arenaaxis_app TO arenaaxis_user;
 
 -- Sử dụng database
-\c kickoff_app kickoff_user
+\c arenaaxis_app arenaaxis_user
 ```
 
 #### C. Import Schema
 ```bash
 # Chạy schema đã có sẵn
-psql -U kickoff_user -d kickoff_app -f database/schema.sql
+psql -U arenaaxis_user -d arenaaxis_app -f database/schema.sql
 ```
 
 #### D. Seed Initial Data
@@ -83,8 +83,8 @@ INSERT INTO configurations (key, value) VALUES
 #### A. Khởi tạo Backend Project
 ```bash
 # Tạo thư mục backend
-mkdir kickoff-backend
-cd kickoff-backend
+mkdir arenaaxis-backend
+cd arenaaxis-backend
 
 # Khởi tạo package.json
 npm init -y
@@ -100,7 +100,7 @@ npm install joi express-validator
 
 #### B. Cấu trúc Backend
 ```
-kickoff-backend/
+arenaaxis-backend/
 ├── src/
 │   ├── controllers/
 │   │   ├── authController.js
@@ -253,7 +253,7 @@ module.exports = router;
 ```env
 # .env.local
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
-DATABASE_URL=postgresql://kickoff_user:your_secure_password@localhost:5432/kickoff_app
+DATABASE_URL=postgresql://arenaaxis_user:your_secure_password@localhost:5432/arenaaxis_app
 NEXTAUTH_SECRET=your-super-secret-jwt-key
 NEXTAUTH_URL=http://localhost:3000
 ```
@@ -262,7 +262,7 @@ NEXTAUTH_URL=http://localhost:3000
 ```env
 # .env.production
 NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com/api
-DATABASE_URL=postgresql://user:pass@prod-db:5432/kickoff_prod
+DATABASE_URL=postgresql://user:pass@prod-db:5432/arenaaxis_prod
 NEXTAUTH_SECRET=production-secret-key
 NEXTAUTH_URL=https://yourdomain.com
 ```
@@ -586,13 +586,13 @@ useEffect(() => {
 
 #### A. Start Backend Server
 ```bash
-cd kickoff-backend
+cd arenaaxis-backend
 npm run dev # hoặc node server.js
 ```
 
 #### B. Start Frontend
 ```bash
-cd kickoff-app
+cd arenaaxis-app
 npm run dev
 ```
 
@@ -733,11 +733,11 @@ CMD ["node", "server.js"]
 version: '3.8'
 services:
   backend:
-    build: ./kickoff-backend
+    build: ./arenaaxis-backend
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/kickoff
+      - DATABASE_URL=postgresql://user:pass@db:5432/arenaaxis
       - NODE_ENV=production
     depends_on:
       - db
@@ -745,7 +745,7 @@ services:
   db:
     image: postgres:15
     environment:
-      - POSTGRES_DB=kickoff
+      - POSTGRES_DB=arenaaxis
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
     volumes:
@@ -759,7 +759,7 @@ volumes:
 
 #### A. Backup Development Data
 ```bash
-pg_dump -U kickoff_user kickoff_app > backup.sql
+pg_dump -U arenaaxis_user arenaaxis_app > backup.sql
 ```
 
 #### B. Deploy to Production Database

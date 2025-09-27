@@ -144,7 +144,7 @@ export default function BookingGrid({
                                         <div className="flex items-center justify-between mt-2">
                                             <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
                                                 <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                                                <span className="text-xs font-bold text-yellow-700">{court.rating}</span>
+                                                <span className="text-xs font-bold text-yellow-700">{court.rating.toFixed(1)}</span>
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-emerald-600 font-bold text-sm">

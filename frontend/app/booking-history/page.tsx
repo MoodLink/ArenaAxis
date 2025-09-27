@@ -2,25 +2,54 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import BookingHeader from "@/components/booking/BookingHeader"
-import BookingTabs from "@/components/booking/BookingTabs"
-import BookingCard from "@/components/booking/BookingCard"
-import { getBookingHistory, cancelBooking } from "@/services/api"
-import { Booking } from "@/types"
+import BookingStats from "@/components/booking/BookingStats"
+import BookingFilters from "@/components/booking/BookingFilters"
+import BookingTabsNav from "@/components/booking/BookingTabsNav"
+import BookingItem from "@/components/booking/BookingItem"
+import BookingEmptyState from "@/components/booking/BookingEmptyState"
+import { getBookingHistory, cancelBooking, getBookingTabs, getBookingStatusMap, getSportOptions } from "@/services/api"
+import { Booking, BookingTab } from "@/types"
 
 export default function BookingHistoryPage() {
   // State quản lý tab hiện tại
   const [activeTab, setActiveTab] = useState("Tất cả")
+
+  // State quản lý search và filter
+  const [searchQuery, setSearchQuery] = useState("")
+  const [dateFilter, setDateFilter] = useState("")
+  const [sportFilter, setSportFilter] = useState("")
 
   // State quản lý dữ liệu booking
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Danh sách các tab
-  const tabs = ["Tất cả", "Sắp tới", "Đã xong", "Đã hủy"]
+  // State cho static data
+  const [tabs, setTabs] = useState<BookingTab[]>([])
+  const [statusMap, setStatusMap] = useState<Record<string, string>>({})
+  const [sportOptions, setSportOptions] = useState<{ value: string; label: string }[]>([])
+
+  // Fetch static data
+  useEffect(() => {
+    const fetchStaticData = async () => {
+      try {
+        const [tabsData, statusMapData, sportsData] = await Promise.all([
+          getBookingTabs(),
+          getBookingStatusMap(),
+          getSportOptions()
+        ])
+
+        setTabs(tabsData)
+        setStatusMap(statusMapData)
+        setSportOptions(sportsData)
+      } catch (error) {
+        console.error('Error fetching static data:', error)
+      }
+    }
+
+    fetchStaticData()
+  }, [])
 
   // useEffect để fetch dữ liệu booking khi component mount
   useEffect(() => {
@@ -38,23 +67,52 @@ export default function BookingHistoryPage() {
     fetchBookings()
   }, [])
 
-  // useEffect để lọc booking theo tab đang active
+  // Cập nhật tabs count dựa trên bookings data
   useEffect(() => {
-    if (activeTab === "Tất cả") {
-      setFilteredBookings(bookings)
-    } else {
-      // Map từ tab title sang status values
-      const statusMap: { [key: string]: string } = {
-        "Sắp tới": "confirmed",
-        "Đã xong": "completed",
-        "Đã hủy": "cancelled"
-      }
+    if (tabs.length > 0 && bookings.length > 0) {
+      const updatedTabs = tabs.map(tab => ({
+        ...tab,
+        count: tab.id === "Tất cả"
+          ? bookings.length
+          : tab.id === "Sắp tới"
+            ? bookings.filter(b => b.status === "confirmed").length
+            : tab.id === "Đã xong"
+              ? bookings.filter(b => b.status === "completed").length
+              : tab.id === "Đã hủy"
+                ? bookings.filter(b => b.status === "cancelled").length
+                : 0
+      }))
+      setTabs(updatedTabs)
+    }
+  }, [bookings])
+
+  // useEffect để lọc booking theo tab đang active và search
+  useEffect(() => {
+    let filtered = bookings
+
+    // Lọc theo tab
+    if (activeTab !== "Tất cả") {
       const statusValue = statusMap[activeTab]
       if (statusValue) {
-        setFilteredBookings(bookings.filter(booking => booking.status === statusValue))
+        filtered = filtered.filter(booking => booking.status === statusValue)
       }
     }
-  }, [activeTab, bookings])
+
+    // Lọc theo search query
+    if (searchQuery) {
+      filtered = filtered.filter(booking =>
+        booking.fieldName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        booking.location?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Lọc theo date filter
+    if (dateFilter) {
+      // Logic lọc theo ngày sẽ được implement
+    }
+
+    setFilteredBookings(filtered)
+  }, [activeTab, bookings, searchQuery, dateFilter, sportFilter])
 
   // Xử lý thay đổi tab
   const handleTabChange = (tab: string) => {
@@ -109,71 +167,68 @@ export default function BookingHistoryPage() {
     }
   }
 
-  // Hiển thị loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <BookingHeader />
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <div className="flex items-center justify-center py-12">
+  // Render giao diện chính
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header trang */}
+      <BookingHeader />
+
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header Section với Title và Stats */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Lịch sử đặt sân</h1>
+              <p className="text-gray-600">Quản lý và theo dõi các lần đặt sân của bạn</p>
+            </div>
+            <BookingStats bookings={bookings} />
+          </div>
+
+          {/* Search and Filter Bar */}
+          <BookingFilters
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            sportFilter={sportFilter}
+            setSportFilter={setSportFilter}
+            sportOptions={sportOptions}
+          />
+
+          {/* Modern Tab Navigation */}
+          <BookingTabsNav
+            tabs={tabs}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        </div>
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Đang tải lịch sử đặt sân...</p>
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
-  // Render giao diện chính
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header trang */}
-      <BookingHeader />
+        ) : (
+          <>
+            {/* Enhanced Booking Grid */}
+            <div className="grid gap-6">
+              {filteredBookings.map((booking) => (
+                <BookingItem
+                  key={booking.id}
+                  booking={booking}
+                  onBookingAction={handleBookingAction}
+                />
+              ))}
+            </div>
 
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Tabs lọc theo trạng thái */}
-        <BookingTabs
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          tabs={tabs}
-        />
-
-        {/* Danh sách booking */}
-        <div className="space-y-4">
-          {filteredBookings.map((booking) => (
-            <BookingCard
-              key={booking.id}
-              booking={booking}
-              onAction={handleBookingAction}
-            />
-          ))}
-        </div>
-
-        {/* Hiển thị message khi không có booking */}
-        {filteredBookings.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📅</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {activeTab === "Tất cả"
-                ? "Chưa có lịch đặt sân nào"
-                : `Không có booking nào ở trạng thái "${activeTab}"`
-              }
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {activeTab === "Tất cả"
-                ? "Hãy đặt sân đầu tiên của bạn để bắt đầu chơi thể thao!"
-                : "Thử chuyển sang tab khác để xem các booking khác."
-              }
-            </p>
-            {activeTab === "Tất cả" && (
-              <Link href="/fields">
-                <Button className="bg-green-600 hover:bg-green-700">
-                  Đặt sân ngay
-                </Button>
-              </Link>
+            {/* Empty State */}
+            {filteredBookings.length === 0 && (
+              <BookingEmptyState activeTab={activeTab} />
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

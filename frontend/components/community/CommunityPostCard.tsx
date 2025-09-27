@@ -5,7 +5,19 @@ import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MapPin, Clock, Heart, MessageCircle, Users } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+    MapPin,
+    Clock,
+    Heart,
+    MessageCircle,
+    Users,
+    Calendar,
+    Star,
+    TrendingUp,
+    CheckCircle,
+    Zap
+} from "lucide-react"
 import { CommunityPost } from "@/types"
 
 interface CommunityPostCardProps {
@@ -46,122 +58,157 @@ export default function CommunityPostCard({
         return name.charAt(0).toUpperCase()
     }
 
-    // Derive values từ content hoặc sử dụng mock data
-    const location = "Hà Nội" // Could be derived from content or tags
-    const time = "19:00 - 21:00" // Could be derived from content
-    const level = "Trung bình" // Could be derived from content or tags 
-    const price = "150.000 VNĐ" // Could be derived from content
-    const duration = "Còn 3 ngày" // Could be calculated from createdAt
-    const participants = Math.floor(Math.random() * 10) + 1 // Mock data
+    // Use actual data from CommunityPost interface
+    const location = post.location || "Chưa xác định"
+    const time = post.time || "Chưa xác định"
+    const level = post.level || "Tất cả"
+    const cost = post.cost || "Miễn phí"
+    const participants = post.participants || 0
+    const maxParticipants = post.maxParticipants || 0
+    const isHot = post.status === "hot"
+    const isUrgent = post.urgency === "urgent" || post.urgency === "today"
+
+    // Calculate duration from createdAt
+    const calculateDuration = (createdAt: string) => {
+        const now = new Date()
+        const created = new Date(createdAt)
+        const diffInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
+        if (diffInDays < 1) return "Hôm nay"
+        if (diffInDays === 1) return "1 ngày trước"
+        return `${diffInDays} ngày trước`
+    }
+    const duration = calculateDuration(post.createdAt)
+
     return (
-        <Card className="hover:shadow-md transition-shadow bg-white">
-            <CardContent className="p-6">
-                {/* Thông tin tác giả */}
-                <div className="flex items-center gap-3 mb-4">
-                    {/* Avatar tác giả */}
-                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {getAuthorAvatar(post.author.name)}
+        <Card className="hover:shadow-lg transition-all duration-300 bg-white border border-gray-200 hover:border-green-300 group">
+            <CardContent className="p-0">
+                {/* Modern header with author info */}
+                <div className="p-6 pb-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            {/* Modern Avatar */}
+                            <Avatar className="w-12 h-12 ring-2 ring-green-100">
+                                <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-bold">
+                                    {getAuthorAvatar(post.author.name)}
+                                </AvatarFallback>
+                            </Avatar>
+
+                            {/* Author info */}
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-gray-900 hover:text-green-600 cursor-pointer">
+                                        {post.author.name}
+                                    </h4>
+                                    <CheckCircle className="w-4 h-4 text-blue-500" />
+                                    {isHot && (
+                                        <Badge className="bg-red-500 text-white text-xs px-2 py-0.5">
+                                            <TrendingUp className="w-3 h-3 mr-1" />
+                                            Hot
+                                        </Badge>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-500">{formatTimeAgo(post.createdAt)}</p>
+                            </div>
+                        </div>
+
+                        {/* Status badges */}
+                        <div className="flex items-center gap-2">
+                            {isUrgent && (
+                                <Badge className="bg-orange-500 text-white animate-pulse">
+                                    <Zap className="w-3 h-3 mr-1" />
+                                    Gấp
+                                </Badge>
+                            )}
+                            <Badge className={`${getSportColor(post.sport)} text-white border-0`}>
+                                {post.sport}
+                            </Badge>
+                        </div>
                     </div>
 
-                    {/* Tên và thời gian */}
-                    <div>
-                        <h4 className="font-semibold text-lg">{post.author.name}</h4>
-                        <p className="text-sm text-gray-500">{formatTimeAgo(post.createdAt)}</p>
+                    {/* Post title - clickable */}
+                    <Link href={`/community/${post.id}`}>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900 hover:text-green-600 cursor-pointer transition-colors group-hover:text-green-700 line-clamp-2">
+                            {post.title}
+                        </h3>
+                    </Link>
+
+                    {/* Quick info row */}
+                    <div className="flex items-center gap-4 mb-4 text-sm flex-wrap">
+                        <div className="flex items-center gap-1 text-gray-600">
+                            <Calendar className="w-4 h-4 text-blue-500" />
+                            <span>Hôm nay</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                            <Clock className="w-4 h-4 text-purple-500" />
+                            <span>{time}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                            <MapPin className="w-4 h-4 text-red-500" />
+                            <span className="truncate max-w-[120px]">{location}</span>
+                        </div>
+                    </div>
+
+                    {/* Content preview */}
+                    <p className="text-gray-700 mb-4 leading-relaxed line-clamp-2">{post.content}</p>
+
+                    {/* Activity details card */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                            <div className="text-sm text-gray-500 mb-1">Trình độ</div>
+                            <Badge variant="outline" className="text-xs">{level}</Badge>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-sm text-gray-500 mb-1">Chi phí</div>
+                            <span className="text-green-600 font-medium text-sm">50k</span>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-sm text-gray-500 mb-1">Tham gia</div>
+                            <span className="text-blue-600 font-medium text-sm">{participants}/{maxParticipants || '∞'}</span>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-sm text-gray-500 mb-1">Thời gian</div>
+                            <span className="text-orange-600 font-medium text-sm">{duration}</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Tiêu đề bài viết - có thể click để xem chi tiết */}
-                <Link href={`/community/${post.id}`}>
-                    <h3 className="text-xl font-bold mb-3 hover:text-green-600 cursor-pointer">
-                        {post.title}
-                    </h3>
-                </Link>
+                {/* Modern action bar */}
+                <div className="px-6 py-4 bg-gray-50 border-t">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {/* Like button */}
+                            <button
+                                onClick={() => onLike?.(post.id)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-red-500 hover:bg-red-50 transition-all duration-200 group"
+                            >
+                                <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <span className="font-medium">{post.likes}</span>
+                            </button>
 
-                {/* Thông tin môn thể thao, địa điểm, thời gian */}
-                <div className="flex items-center gap-4 mb-3 text-sm flex-wrap">
-                    {/* Badge môn thể thao */}
-                    <Badge className={`${getSportColor(post.sport)} text-white border-0`}>
-                        {post.sport}
-                    </Badge>
+                            {/* Comment button */}
+                            <button
+                                onClick={() => onComment?.(post.id)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-all duration-200 group"
+                            >
+                                <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <span className="font-medium">{post.comments}</span>
+                            </button>
 
-                    {/* Địa điểm */}
-                    <div className="flex items-center gap-1 text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        <span className="truncate">{location}</span>
-                    </div>
+                            {/* Participants indicator */}
+                            <div className="flex items-center gap-2 px-3 py-2 text-gray-600">
+                                <Users className="w-4 h-4 text-green-500" />
+                                <span className="text-sm font-medium">{participants} tham gia</span>
+                            </div>
+                        </div>
 
-                    {/* Thời gian */}
-                    <div className="flex items-center gap-1 text-gray-600">
-                        <Clock className="w-4 h-4" />
-                        <span>{time}</span>
-                    </div>
-                </div>
-
-                {/* Mô tả bài viết */}
-                <p className="text-gray-700 mb-4 leading-relaxed">{post.content}</p>
-
-                {/* Thông tin chi tiết: level, chi phí, thời hạn */}
-                <div className="flex items-center gap-3 mb-4 text-sm flex-wrap">
-                    <span className="text-gray-600">
-                        Level: <span className="font-medium">{level}</span>
-                    </span>
-                    <span className="text-gray-600">
-                        Chi phí: <span className="font-medium text-green-600">{price}</span>
-                    </span>
-                    <span className="text-red-600 font-medium">{duration}</span>
-                </div>
-
-                {/* Hình ảnh minh họa cho bài viết */}
-                <div className={`${getSportColor(post.sport)} text-white p-8 rounded-lg mb-4 text-center`}>
-                    <h4 className="text-3xl font-bold">
-                        {post.sport === "Tennis"
-                            ? "🎾 Tennis Court"
-                            : post.sport === "Bóng đá"
-                                ? "⚽ Football Field"
-                                : post.sport === "Cầu lông"
-                                    ? "🏸 Badminton Court"
-                                    : "🏆 Sports Court"}
-                    </h4>
-                </div>
-
-                {/* Hành động: like, comment, tham gia */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        {/* Nút Like */}
-                        <button
-                            onClick={() => onLike?.(post.id)}
-                            className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors"
-                        >
-                            <Heart className="w-4 h-4" />
-                            <span>{post.likes}</span>
-                        </button>
-
-                        {/* Nút Comment */}
-                        <button
-                            onClick={() => onComment?.(post.id)}
-                            className="flex items-center gap-2 text-gray-600 hover:text-blue-500 transition-colors"
-                        >
-                            <MessageCircle className="w-4 h-4" />
-                            <span>{post.comments}</span>
-                        </button>
-
-                        {/* Hiển thị số người đã tham gia */}
-                        <span className="text-sm text-gray-600">{participants} đã tham gia</span>
-
-                        {/* Nút Tham gia */}
+                        {/* Join button */}
                         <Button
                             size="sm"
                             onClick={() => onJoin?.(post.id)}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 h-8"
+                            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-6 py-2 font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                         >
-                            Tham gia
+                            Tham gia ngay
                         </Button>
-                    </div>
-
-                    {/* Số lượng thành viên */}
-                    <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm font-medium">{participants}</span>
                     </div>
                 </div>
             </CardContent>

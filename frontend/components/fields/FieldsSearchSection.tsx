@@ -1,18 +1,28 @@
 // Component section tìm kiếm và bộ lọc cho trang fields  
-// Bao gồm search bar, quick filters, view mode toggle
+// Bao gồm search bar, advanced filters, quick filters, view mode toggle
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, Filter, Grid3X3, List } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Search, Filter, Grid3X3, List, X } from "lucide-react"
+import { sports } from "@/data/mockData"
+
+interface FilterState {
+    sports: string[]
+    priceRange: string
+    location: string
+    amenities: string[]
+}
 
 interface FieldsSearchSectionProps {
     searchValue: string
     onSearchChange: (value: string) => void
     viewMode: "grid" | "list"
     onViewModeChange: (mode: "grid" | "list") => void
-    selectedFilters: string[]
-    onFiltersChange: (filters: string[]) => void
+    selectedFilters: FilterState
+    onFiltersChange: (filters: FilterState) => void
     onFilterClick: () => void
     filteredCount: number
 }
@@ -27,14 +37,60 @@ export default function FieldsSearchSection({
     onFilterClick,
     filteredCount
 }: FieldsSearchSectionProps) {
-    const quickFilters = ["Bóng đá", "Tennis", "Bóng rổ", "Cầu lông", "Gần tôi", "Giá rẻ"]
+    const quickSports = ["Bóng đá", "Tennis", "Bóng rổ", "Cầu lông", "Golf"]
+    const priceRanges = [
+        { value: "all", label: "Tất cả giá" },
+        { value: "under-200k", label: "Dưới 200k" },
+        { value: "200k-400k", label: "200k - 400k" },
+        { value: "400k-600k", label: "400k - 600k" },
+        { value: "over-600k", label: "Trên 600k" }
+    ]
+    const locations = [
+        { value: "all", label: "Tất cả khu vực" },
+        { value: "quận 1", label: "Quận 1" },
+        { value: "quận 3", label: "Quận 3" },
+        { value: "quận 7", label: "Quận 7" },
+        { value: "bình thạnh", label: "Bình Thạnh" },
+        { value: "thủ đức", label: "Thủ Đức" }
+    ]
 
-    const toggleFilter = (filter: string) => {
-        const newFilters = selectedFilters.includes(filter)
-            ? selectedFilters.filter(f => f !== filter)
-            : [...selectedFilters, filter]
-        onFiltersChange(newFilters)
+    const toggleQuickSport = (sport: string) => {
+        const newSports = selectedFilters.sports.includes(sport)
+            ? selectedFilters.sports.filter(s => s !== sport)
+            : [...selectedFilters.sports, sport]
+        onFiltersChange({
+            ...selectedFilters,
+            sports: newSports
+        })
     }
+
+    const handlePriceRangeChange = (value: string) => {
+        onFiltersChange({
+            ...selectedFilters,
+            priceRange: value
+        })
+    }
+
+    const handleLocationChange = (value: string) => {
+        onFiltersChange({
+            ...selectedFilters,
+            location: value
+        })
+    }
+
+    const clearFilters = () => {
+        onFiltersChange({
+            sports: [],
+            priceRange: "all",
+            location: "all",
+            amenities: []
+        })
+    }
+
+    const hasActiveFilters = selectedFilters.sports.length > 0 ||
+        selectedFilters.priceRange !== "all" ||
+        selectedFilters.location !== "all" ||
+        selectedFilters.amenities.length > 0
 
     return (
         <Card className="mb-8 shadow-lg border-0 bg-white">
@@ -45,7 +101,7 @@ export default function FieldsSearchSection({
                         <div className="flex-1 relative">
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <Input
-                                placeholder="Tìm kiếm sân thể thao, địa điểm..."
+                                placeholder="Tìm kiếm tên sân, địa điểm, môn thể thao..."
                                 className="pl-12 h-12 text-base border-2 focus:border-emerald-500 rounded-xl"
                                 value={searchValue}
                                 onChange={(e) => onSearchChange(e.target.value)}
@@ -57,30 +113,113 @@ export default function FieldsSearchSection({
                             onClick={onFilterClick}
                         >
                             <Filter className="w-5 h-5 mr-2" />
-                            Bộ lọc
+                            Bộ lọc chi tiết
                         </Button>
                     </div>
 
-                    {/* Quick Filters */}
-                    <div className="space-y-3">
-                        <span className="text-sm font-medium text-gray-600 block">Lọc nhanh:</span>
-                        <div className="flex flex-wrap gap-2">
-                            {quickFilters.map((filter) => (
+                    {/* Advanced Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-600 mb-2 block">Khoảng giá:</label>
+                            <Select value={selectedFilters.priceRange} onValueChange={handlePriceRangeChange}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {priceRanges.map(range => (
+                                        <SelectItem key={range.value} value={range.value}>
+                                            {range.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-600 mb-2 block">Khu vực:</label>
+                            <Select value={selectedFilters.location} onValueChange={handleLocationChange}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {locations.map(location => (
+                                        <SelectItem key={location.value} value={location.value}>
+                                            {location.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex items-end">
+                            {hasActiveFilters && (
                                 <Button
-                                    key={filter}
                                     variant="outline"
                                     size="sm"
-                                    className={`rounded-full transition-all ${selectedFilters.includes(filter)
+                                    onClick={clearFilters}
+                                    className="text-red-600 border-red-200 hover:bg-red-50"
+                                >
+                                    <X className="w-4 h-4 mr-1" />
+                                    Xóa bộ lọc
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Quick Sports Filter */}
+                    <div className="space-y-3">
+                        <span className="text-sm font-medium text-gray-600 block">Môn thể thao phổ biến:</span>
+                        <div className="flex flex-wrap gap-2">
+                            {quickSports.map((sport) => (
+                                <Button
+                                    key={sport}
+                                    variant="outline"
+                                    size="sm"
+                                    className={`rounded-full transition-all ${selectedFilters.sports.includes(sport)
                                         ? "bg-emerald-500 text-white border-emerald-500"
                                         : "hover:bg-emerald-50 hover:border-emerald-300"
                                         }`}
-                                    onClick={() => toggleFilter(filter)}
+                                    onClick={() => toggleQuickSport(sport)}
                                 >
-                                    {filter}
+                                    {sport}
                                 </Button>
                             ))}
                         </div>
                     </div>
+
+                    {/* Active Filter Badges */}
+                    {hasActiveFilters && (
+                        <div className="space-y-2">
+                            <span className="text-sm font-medium text-gray-600 block">Bộ lọc đang áp dụng:</span>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedFilters.sports.map(sport => (
+                                    <Badge key={sport} variant="secondary" className="bg-emerald-100 text-emerald-700">
+                                        {sport}
+                                        <X
+                                            className="w-3 h-3 ml-1 cursor-pointer"
+                                            onClick={() => toggleQuickSport(sport)}
+                                        />
+                                    </Badge>
+                                ))}
+                                {selectedFilters.priceRange !== "all" && (
+                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                        {priceRanges.find(r => r.value === selectedFilters.priceRange)?.label}
+                                        <X
+                                            className="w-3 h-3 ml-1 cursor-pointer"
+                                            onClick={() => handlePriceRangeChange("all")}
+                                        />
+                                    </Badge>
+                                )}
+                                {selectedFilters.location !== "all" && (
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                        {locations.find(l => l.value === selectedFilters.location)?.label}
+                                        <X
+                                            className="w-3 h-3 ml-1 cursor-pointer"
+                                            onClick={() => handleLocationChange("all")}
+                                        />
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Results and View Toggle */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -93,6 +232,7 @@ export default function FieldsSearchSection({
                             {!searchValue && (
                                 <p className="text-gray-600 text-sm sm:text-base">
                                     Hiển thị <span className="font-bold text-emerald-600">{filteredCount}</span> sân thể thao
+                                    {hasActiveFilters && " (đã lọc)"}
                                 </p>
                             )}
                         </div>

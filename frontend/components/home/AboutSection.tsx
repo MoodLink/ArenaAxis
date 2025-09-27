@@ -19,7 +19,7 @@ export default function AboutSection() {
                     <div>
                         <img
                             src="/football-player-in-action-stadium.png"
-                            alt="About SportBooking"
+                            alt="About ArenaAxis"
                             className="rounded-lg shadow-lg w-full h-auto"
                         />
                     </div>
@@ -27,11 +27,11 @@ export default function AboutSection() {
                     {/* Nội dung văn bản */}
                     <div>
                         {/* Tiêu đề */}
-                        <h2 className="text-3xl font-bold mb-6">About SportBooking</h2>
+                        <h2 className="text-3xl font-bold mb-6">About ArenaAxis</h2>
 
                         {/* Mô tả chính */}
                         <p className="text-gray-600 mb-6 leading-relaxed">
-                            SportBooking aims to share the game. Whether it's a 5 a side football match under the lights, a social
+                            ArenaAxis aims to share the game. Whether it's a 5 a side football match under the lights, a social
                             cricket match with your mates or hosting your own tournament, we are passionate about bringing people
                             together through sport.
                         </p>

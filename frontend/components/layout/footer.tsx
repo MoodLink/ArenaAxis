@@ -12,7 +12,7 @@ export default function Footer() {
               <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
                 <MapPin className="w-5 h-5 text-green-800" />
               </div>
-              <span className="text-2xl font-bold">KickOff</span>
+              <span className="text-2xl font-bold">ArenaAxis</span>
             </div>
             <p className="text-green-100 mb-4">Find. Book. Play</p>
           </div>
@@ -45,7 +45,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-green-100">
                 <Mail className="w-4 h-4" />
-                <span>kickoffturf@gmail.com</span>
+                <span>arenaaxis@gmail.com</span>
               </div>
               <div className="flex items-center gap-2 text-green-100">
                 <Phone className="w-4 h-4" />
@@ -78,7 +78,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-green-700 mt-8 pt-8 text-center text-green-100">
-          <p>© 2025 KickOff. All rights reserved</p>
+          <p>© 2025 ArenaAxis. All rights reserved</p>
         </div>
       </div>
     </footer>

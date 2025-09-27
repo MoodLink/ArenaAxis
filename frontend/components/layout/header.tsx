@@ -16,7 +16,7 @@ export default function Header() {
             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold">KickOff</span>
+            <span className="text-xl font-bold">ArenaAxis</span>
           </Link>
 
           {/* Navigation */}

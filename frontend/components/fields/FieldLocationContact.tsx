@@ -32,7 +32,7 @@ export default function FieldLocationContact({ field }: FieldLocationContactProp
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-800 mb-1">Số điện thoại</h3>
-                                <p className="text-gray-600">+84 123 456 789</p>
+                                <p className="text-gray-600">{field.phone}</p>
                             </div>
                         </div>
 
@@ -42,7 +42,7 @@ export default function FieldLocationContact({ field }: FieldLocationContactProp
                             </div>
                             <div>
                                 <h3 className="font-semibold text-gray-800 mb-1">Email</h3>
-                                <p className="text-gray-600">contact@kickoff.com</p>
+                                <p className="text-gray-600">{field.email}</p>
                             </div>
                         </div>
                     </div>

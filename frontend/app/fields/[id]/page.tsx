@@ -37,7 +37,7 @@ export default async function FieldDetailPage({ params }: { params: Promise<{ id
           gradientFrom="emerald-500"
           gradientTo="blue-600"
           backgroundImage={field.image}
-          badge={`⭐ ${field.rating}/5 • 24 đánh giá`}
+          badge={`⭐ ${field.rating}/5 • ${field.reviewCount} đánh giá`}
           actions={
             <div className="flex items-center gap-3">
               <Link href={`/reviews/${id}`}>

@@ -2,11 +2,26 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import ChatSidebar from "@/components/chat/ChatSidebar"
-import ChatHeader from "@/components/chat/ChatHeader"
-import MessageBubble from "@/components/chat/MessageBubble"
-import MessageInput from "@/components/chat/MessageInput"
-import { getChatRooms, getChatMessages, sendMessage } from "@/services/api"
+import {
+  Phone,
+  Video,
+  Users,
+  Settings,
+  Smile,
+  Paperclip,
+  Send,
+  Pin,
+  MoreVertical,
+  Plus
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import ChatSidebarHeader from "@/components/chat/ChatSidebarHeader"
+import ChatRoomsList from "@/components/chat/ChatRoomsList"
+import OnlineUsersSection from "@/components/chat/OnlineUsersSection"
+import UserProfileSection from "@/components/chat/UserProfileSection"
+import { getChatRooms, getChatMessages, sendMessage, getOnlineUsers, getCurrentChatUser } from "@/services/api"
 import { ChatRoom, ChatMessage } from "@/types"
 
 export default function ChatPage() {
@@ -14,37 +29,47 @@ export default function ChatPage() {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([])
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // State quản lý tin nhắn
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([])
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [typingUsers, setTypingUsers] = useState<string[]>([])
 
   // Ref để auto scroll xuống tin nhắn mới nhất
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
 
-  // useEffect để fetch danh sách phòng chat khi component mount
+  // Fetch initial data
   useEffect(() => {
-    const fetchChatRooms = async () => {
+    const fetchInitialData = async () => {
       try {
-        const roomsData = await getChatRooms()
-        setChatRooms(roomsData)
+        const [roomsData, usersData, currentUserData] = await Promise.all([
+          getChatRooms(),
+          getOnlineUsers(),
+          getCurrentChatUser()
+        ])
 
-        // Tự động chọn phòng chat đầu tiên
+        setChatRooms(roomsData)
+        setOnlineUsers(usersData)
+        setCurrentUser(currentUserData)
+
+        // Chọn phòng đầu tiên nếu có
         if (roomsData.length > 0) {
           setSelectedChat(roomsData[0])
         }
       } catch (error) {
-        console.error('Error fetching chat rooms:', error)
+        console.error("Error fetching initial data:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchChatRooms()
-  }, [])
-
-  // useEffect để fetch tin nhắn khi thay đổi phòng chat
+    fetchInitialData()
+  }, [])  // useEffect để fetch tin nhắn khi thay đổi phòng chat
   useEffect(() => {
     const fetchMessages = async () => {
       if (selectedChat) {
@@ -81,16 +106,16 @@ export default function ChatPage() {
 
       if (success) {
         // Thêm tin nhắn mới vào state (giả lập real-time)
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(), // Tạm thời dùng timestamp làm ID
+        const optimisticMessage: ChatMessage = {
+          id: `temp-${Date.now()}`,
           text: content,
-          senderId: "current-user", // Sẽ được thay thế bằng user ID thực
+          senderId: currentUser?.id || "current-user",
           roomId: selectedChat.id,
           timestamp: new Date(),
           type: "text"
         }
 
-        setMessages(prev => [...prev, newMessage])
+        setMessages(prev => [...prev, optimisticMessage])
 
         // Cập nhật last message trong sidebar
         setChatRooms(prev =>
@@ -99,10 +124,10 @@ export default function ChatPage() {
               ? {
                 ...room,
                 lastMessage: {
-                  id: newMessage.id,
-                  text: newMessage.text,
-                  senderId: newMessage.senderId,
-                  timestamp: newMessage.timestamp
+                  id: optimisticMessage.id,
+                  text: optimisticMessage.text,
+                  senderId: optimisticMessage.senderId,
+                  timestamp: optimisticMessage.timestamp
                 }
               }
               : room
@@ -122,72 +147,182 @@ export default function ChatPage() {
     room.lastMessage.text.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Hiển thị loading state
-  if (loading) {
-    return (
-      <div className="h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải tin nhắn...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Render giao diện chat chính
+  // Render giao diện chat hiện đại
   return (
-    <div className="h-screen bg-white flex">
-      {/* Sidebar danh sách phòng chat */}
-      <ChatSidebar
-        chatRooms={filteredChatRooms}
-        selectedChatId={selectedChat?.id || ""}
-        onSelectChat={handleSelectChat}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+    <div className="h-screen bg-gray-900 text-white flex">
+      {/* Modern Sidebar */}
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-gray-800 border-r border-gray-700 flex flex-col transition-all duration-300`}>
+        <ChatSidebarHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+        />
 
-      {/* Khu vực chat chính */}
-      {selectedChat ? (
-        <div className="flex-1 flex flex-col">
-          {/* Header phòng chat */}
-          <ChatHeader
-            selectedChat={selectedChat}
-            memberCount={4}
-            onMembersClick={() => console.log('Show members')}
-            onMoreClick={() => console.log('Show more options')}
+        <ChatRoomsList
+          filteredChatRooms={filteredChatRooms}
+          selectedChat={selectedChat}
+          setSelectedChat={setSelectedChat}
+          sidebarCollapsed={sidebarCollapsed}
+        />
+
+        {!sidebarCollapsed && (
+          <OnlineUsersSection onlineUsers={onlineUsers} />
+        )}
+
+        {!sidebarCollapsed && (
+          <UserProfileSection
+            userName={currentUser?.name}
+            userAvatar={currentUser?.avatar}
           />
+        )}
+      </div>
 
-          {/* Danh sách tin nhắn */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                isMe={message.senderId === "current-user"}
-              />
-            ))}
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col bg-gray-50">
+        {selectedChat ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center font-semibold text-white">
+                    {selectedChat.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{selectedChat.name}</h2>
+                    <p className="text-sm text-gray-500">
+                      {typingUsers.length > 0
+                        ? `${typingUsers.join(', ')} đang nhập...`
+                        : `${selectedChat.memberCount || 4} thành viên • Hoạt động gần đây`
+                      }
+                    </p>
+                  </div>
+                </div>
 
-            {/* Div để auto scroll xuống tin nhắn mới nhất */}
-            <div ref={messagesEndRef} />
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    <Video className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    <Users className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    <Pin className="w-5 h-5" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50"
+            >
+              {messages.map((message, index) => {
+                const showAvatar = index === 0 || messages[index - 1].senderId !== message.senderId
+                const isMe = message.senderId === currentUser?.id
+
+                return (
+                  <div key={message.id} className="flex items-start gap-3 group">
+                    {showAvatar ? (
+                      <Avatar className="w-10 h-10 flex-shrink-0">
+                        <AvatarImage src={isMe ? currentUser?.avatar : "/placeholder-user.jpg"} />
+                        <AvatarFallback>
+                          {isMe ? (currentUser?.name?.charAt(0).toUpperCase() || 'U') : message.senderId.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className="w-10 h-10 flex-shrink-0"></div>
+                    )}
+
+                    <div className="flex-1">
+                      {showAvatar && (
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="font-semibold text-gray-900">
+                            {isMe ? 'Bạn' : `Người dùng ${message.senderId}`}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(message.timestamp).toLocaleTimeString('vi-VN', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="bg-white rounded-lg p-4 shadow-sm border max-w-2xl">
+                        <p className="text-gray-800 leading-relaxed">{message.text}</p>
+                      </div>
+                    </div>
+
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="bg-white border-t border-gray-200 p-4">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder={`Nhắn tin trong ${selectedChat.name}...`}
+                    className="pr-12 h-12 bg-gray-100 border-gray-200 focus:bg-white focus:border-green-500 focus:ring-green-500"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                <Button
+                  className="bg-green-600 hover:bg-green-700 h-12 px-6"
+                  disabled={sendingMessage}
+                >
+                  <Send className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          // Empty state
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center max-w-md">
+              <div className="text-6xl mb-6">💬</div>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">
+                Chào mừng đến với ArenaAxis Chat
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Chọn một cuộc trò chuyện để bắt đầu nhắn tin với cộng đồng thể thao
+              </p>
+              <Button className="bg-green-600 hover:bg-green-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Tạo phòng chat mới
+              </Button>
+            </div>
           </div>
-
-          {/* Thanh nhập tin nhắn */}
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            placeholder="Nhập tin nhắn..."
-            disabled={sendingMessage}
-          />
-        </div>
-      ) : (
-        // Hiển thị khi chưa chọn phòng chat nào
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center text-gray-500">
-            <div className="text-6xl mb-4">💬</div>
-            <h3 className="text-lg font-medium mb-2">Chọn một cuộc trò chuyện</h3>
-            <p>Chọn một phòng chat để bắt đầu nhắn tin</p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

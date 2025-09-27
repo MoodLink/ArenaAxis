@@ -12,6 +12,15 @@ export interface Field {
     sport: string // Bắt buộc
     amenities: string[] // Bắt buộc
     description: string // Thêm description
+    status: "available" | "unavailable" | "maintenance" // Trạng thái hoạt động
+    openingHours: string // Giờ mở cửa
+    closingHours: string // Giờ đóng cửa
+    surfaceType: string // Loại bề mặt (cỏ nhân tạo, cỏ tự nhiên, etc.)
+    capacity: string // Sức chứa (11vs11, 7vs7, etc.)
+    phone: string // Số điện thoại liên hệ
+    email: string // Email liên hệ
+    reviewCount: number // Số lượng đánh giá
+    isVerified: boolean // Trạng thái xác minh
 }
 
 // Interface cho các môn thể thao
@@ -70,6 +79,8 @@ export interface ChatRoom {
         timestamp: Date
     } // Thay đổi structure
     unreadCount: number // Thay đổi từ unread sang unreadCount
+    hasUnread: boolean // Thêm hasUnread
+    memberCount: number // Thêm memberCount
 }
 
 // Interface cho author trong community
@@ -85,11 +96,20 @@ export interface CommunityPost {
     title: string
     content: string // Thêm content
     author: CommunityAuthor // Sửa structure
-    createdAt: string // Thay đổi từ timeAgo
-    tags: string[] // Thêm tags
+    sport: string
+    location?: string // Thêm location
+    date?: Date // Thêm date
+    time?: string // Thêm time
+    level?: string // Thêm level
+    participants?: number // Thêm participants
+    maxParticipants?: number // Thêm maxParticipants
+    cost?: string // Thêm cost
     likes: number
     comments: number
-    sport: string
+    tags: string[] // Thêm tags
+    createdAt: string // Thay đổi từ timeAgo
+    status?: string // Thêm status (active, hot, urgent)
+    urgency?: string // Thêm urgency (today, regular, deadline, urgent, weekend, upcoming)
 }
 
 // Interface cho lịch sử đặt sân
@@ -176,4 +196,116 @@ export interface UpdateUserData {
     location?: string
     favoriteSports?: string[]
     notifications?: Partial<User['notifications']>
+}
+
+// Interface cho online user trong chat
+export interface OnlineUser {
+    id: string
+    name: string
+    avatar: string
+    status: "online" | "away" | "busy"
+}
+
+// Interface cho booking tab
+export interface BookingTab {
+    id: string
+    label: string
+    icon: any
+    count: number
+}
+
+// Interface cho booking stats
+export interface BookingStats {
+    totalBookings: number
+    completedBookings: number
+}
+
+// Interface cho Contact Information
+export interface ContactInfo {
+    id: string
+    title: string
+    description: string
+    address: string
+    phone: string[]
+    email: string[]
+    workingHours: {
+        weekdays: string
+        weekends: string
+    }
+    socialMedia: {
+        facebook: string
+        instagram: string
+        twitter: string
+        youtube: string
+    }
+}
+
+// Interface cho Contact Form Data
+export interface ContactFormData {
+    name: string
+    email: string
+    phone: string
+    subject: string
+    message: string
+    category: "general" | "booking" | "support" | "partnership" | "complaint"
+}
+
+// Interface cho FAQ
+export interface FAQ {
+    id: string
+    question: string
+    answer: string
+    category: "booking" | "payment" | "general" | "tournament" | "account"
+    isPopular: boolean
+}
+
+// Interface cho Office Location
+export interface OfficeLocation {
+    id: string
+    name: string
+    address: string
+    coordinates: {
+        lat: number
+        lng: number
+    }
+    phone: string
+    email: string
+    type: "main" | "branch" | "partner"
+    workingHours?: string[]
+    isMain?: boolean
+}
+
+// Interface cho User Settings
+export interface UserSettings {
+    theme: "light" | "dark" | "auto"
+    language: "vi" | "en"
+    emailNotifications: boolean
+    pushNotifications: boolean
+    smsNotifications: boolean
+    marketingEmails: boolean
+    eventReminders: boolean
+    weeklyDigest: boolean
+}
+
+// Interface cho Profile Activity
+export interface ProfileActivity {
+    id: string
+    type: "booking" | "tournament" | "community" | "review" | "achievement"
+    title: string
+    description: string
+    date: string
+    icon: string
+    status?: "completed" | "pending" | "cancelled"
+}
+
+// Interface cho User Achievement
+export interface UserAchievement {
+    id: string
+    title: string
+    description: string
+    icon: string
+    unlockedAt: string
+    progress: number
+    maxProgress: number
+    category: "booking" | "social" | "tournament" | "loyalty"
 }

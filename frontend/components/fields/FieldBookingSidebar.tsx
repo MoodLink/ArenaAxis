@@ -1,10 +1,14 @@
 // Component sidebar đặt sân
-// Hiển thị form đặt sân với khung giờ và các action buttons
+// Hiển thị form đặt sân với khung giờ thực tế từ API
+
+"use client"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "lucide-react"
 import Link from "next/link"
+import { useState, useEffect } from "react"
+import { getFieldBookingSlots } from "@/services/api"
 
 interface FieldBookingSidebarProps {
     fieldId: string
@@ -12,26 +16,49 @@ interface FieldBookingSidebarProps {
 
 interface TimeSlot {
     time: string
-    price: string
+    price: number
     available: boolean
+    date?: string
 }
 
 export default function FieldBookingSidebar({ fieldId }: FieldBookingSidebarProps) {
-    const timeSlots: TimeSlot[] = [
-        { time: "05:00", price: "₫ 300.000", available: true },
-        { time: "07:00", price: "₫ 350.000", available: true },
-        { time: "09:00", price: "₫ 400.000", available: false },
-        { time: "11:00", price: "₫ 400.000", available: true },
-        { time: "13:00", price: "₫ 450.000", available: true },
-        { time: "15:00", price: "₫ 450.000", available: true },
-        { time: "17:00", price: "₫ 500.000", available: true },
-        { time: "19:00", price: "₫ 500.000", available: false },
-        { time: "21:00", price: "₫ 450.000", available: true },
-    ]
+    const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
+    const [selectedDate, setSelectedDate] = useState(() => {
+        // Default to today's date
+        const today = new Date()
+        return today.toISOString().split('T')[0]
+    })
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const loadBookingSlots = async () => {
+            try {
+                setLoading(true)
+                const slots = await getFieldBookingSlots(fieldId, selectedDate)
+                setTimeSlots(slots)
+            } catch (error) {
+                console.error('Failed to load booking slots:', error)
+                setTimeSlots([])
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        loadBookingSlots()
+    }, [fieldId, selectedDate])
+
+    const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedDate(event.target.value)
+    }
+
+    const formatPrice = (price: number) => {
+        return `₫ ${price.toLocaleString('vi-VN')}`
+    }
 
     const getEndTime = (startTime: string) => {
-        const hour = Number.parseInt(startTime.split(":")[0])
-        return hour === 23 ? "00:00" : `${hour + 1}:00`
+        const [hours, minutes] = startTime.split(":").map(Number)
+        const endHour = hours === 23 ? 0 : hours + 1
+        return `${endHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
     }
 
     return (
@@ -51,40 +78,53 @@ export default function FieldBookingSidebar({ fieldId }: FieldBookingSidebarProp
                         <input
                             type="date"
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                            defaultValue="2024-01-15"
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            min={new Date().toISOString().split('T')[0]} // Prevent past dates
                         />
                     </div>
 
                     <div>
                         <label className="block text-sm font-semibold mb-3 text-gray-700">Khung giờ có sẵn</label>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {timeSlots.map((slot, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition-all"
-                                >
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-gray-800">{slot.time}</span>
-                                            <span className="text-gray-500">- {getEndTime(slot.time)}</span>
+                            {loading ? (
+                                <div className="text-center py-4">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+                                    <p className="text-gray-500 mt-2">Đang tải...</p>
+                                </div>
+                            ) : timeSlots.length === 0 ? (
+                                <div className="text-center py-4">
+                                    <p className="text-gray-500">Không có khung giờ nào khả dụng</p>
+                                </div>
+                            ) : (
+                                timeSlots.map((slot, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-white hover:shadow-md transition-all"
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-gray-800">{slot.time}</span>
+                                                <span className="text-gray-500">- {getEndTime(slot.time)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-bold text-emerald-600 text-lg">{formatPrice(slot.price)}</span>
+                                            {slot.available ? (
+                                                <Link href={`/booking/${fieldId}`}>
+                                                    <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white font-medium px-4">
+                                                        ĐẶT NGAY
+                                                    </Button>
+                                                </Link>
+                                            ) : (
+                                                <Button size="sm" disabled className="bg-gray-400 text-gray-600">
+                                                    Đã đặt
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-bold text-emerald-600 text-lg">{slot.price}</span>
-                                        {slot.available ? (
-                                            <Link href={`/booking/${fieldId}`}>
-                                                <Button size="sm" className="bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white font-medium px-4">
-                                                    ĐẶT NGAY
-                                                </Button>
-                                            </Link>
-                                        ) : (
-                                            <Button size="sm" disabled className="bg-gray-400 text-gray-600">
-                                                Đã đặt
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 

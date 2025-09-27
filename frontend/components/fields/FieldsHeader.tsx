@@ -12,15 +12,6 @@ export default function FieldsHeader({ totalFields }: FieldsHeaderProps) {
     return (
         <div className="bg-gradient-to-r from-emerald-500 to-blue-600 text-white">
             <div className="container mx-auto px-4 py-8">
-                {/* Breadcrumb */}
-                <nav className="flex items-center gap-2 text-sm mb-6 text-emerald-100">
-                    <Link href="/" className="hover:text-white transition-colors">
-                        Trang chủ
-                    </Link>
-                    <span>/</span>
-                    <span className="text-white font-medium">Sân thể thao</span>
-                </nav>
-
                 {/* Header Content */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div className="flex-1">

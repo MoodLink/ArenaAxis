@@ -82,9 +82,52 @@ export async function getPopularFields(): Promise<Field[]> {
 }
 
 // Lấy tất cả sân theo filter
-export async function getFields(filters?: { sport?: string, location?: string }): Promise<Field[]> {
+export async function getFields(filters?: {
+    sport?: string,
+    location?: string,
+    priceRange?: string,
+    amenities?: string[]
+}): Promise<Field[]> {
     const { popularFields } = await import('@/data/mockData')
-    return popularFields
+
+    if (!filters) return popularFields
+
+    return popularFields.filter(field => {
+        // Lọc theo môn thể thao
+        if (filters.sport && field.sport !== filters.sport) {
+            return false
+        }
+
+        // Lọc theo khu vực
+        if (filters.location && filters.location !== "all") {
+            const matchesLocation = field.location.toLowerCase().includes(filters.location.toLowerCase())
+            if (!matchesLocation) return false
+        }
+
+        // Lọc theo khoảng giá  
+        if (filters.priceRange && filters.priceRange !== "all") {
+            const price = field.price
+            const matchesPrice =
+                (filters.priceRange === "under-200k" && price < 200000) ||
+                (filters.priceRange === "200k-400k" && price >= 200000 && price <= 400000) ||
+                (filters.priceRange === "400k-600k" && price > 400000 && price <= 600000) ||
+                (filters.priceRange === "over-600k" && price > 600000)
+
+            if (!matchesPrice) return false
+        }
+
+        // Lọc theo tiện ích
+        if (filters.amenities && filters.amenities.length > 0) {
+            const hasAmenities = filters.amenities.every(amenity =>
+                field.amenities.some(fieldAmenity =>
+                    fieldAmenity.toLowerCase().includes(amenity.toLowerCase())
+                )
+            )
+            if (!hasAmenities) return false
+        }
+
+        return true
+    })
 
     // API call version:
     // const queryParams = new URLSearchParams(filters as any).toString()
@@ -150,10 +193,37 @@ export async function getTournaments(): Promise<Tournament[]> {
 // COMMUNITY SERVICES
 // =================
 
-// Lấy bài viết cộng đồng
+// Lấy bài viết cộng đồng với filtering
 export async function getCommunityPosts(filters?: { sport?: string, distance?: string }): Promise<CommunityPost[]> {
     const { communityPosts } = await import('@/data/mockData')
-    return communityPosts
+
+    let filteredPosts = [...communityPosts]
+
+    // Apply sport filter
+    if (filters?.sport && filters.sport !== "Tất cả") {
+        filteredPosts = filteredPosts.filter(post =>
+            post.sport.toLowerCase().includes(filters.sport!.toLowerCase())
+        )
+    }
+
+    // Apply distance filter (based on location)
+    if (filters?.distance && filters.distance !== "Tất cả") {
+        // Simple location-based filtering
+        if (filters.distance === "< 5km") {
+            filteredPosts = filteredPosts.filter(post =>
+                post.location?.toLowerCase().includes("q7") ||
+                post.location?.toLowerCase().includes("quận 7")
+            )
+        } else if (filters.distance === "< 10km") {
+            filteredPosts = filteredPosts.filter(post =>
+                post.location?.toLowerCase().includes("quận") ||
+                post.location?.toLowerCase().includes("q")
+            )
+        }
+        // "Tất cả" returns all posts without distance filtering
+    }
+
+    return filteredPosts
 
     // API call version:
     // const queryParams = new URLSearchParams(filters as any).toString()
@@ -164,12 +234,76 @@ export async function getCommunityPosts(filters?: { sport?: string, distance?: s
 // Lấy bài viết cộng đồng theo ID
 export async function getCommunityPostById(id: string): Promise<CommunityPost | null> {
     try {
+        const { communityPosts } = await import('@/data/mockData')
         const post = communityPosts.find(p => p.id === id) || null
         return post
     } catch (error) {
         console.error('Error fetching community post:', error)
         return null
     }
+}
+
+// Lấy featured communities
+export async function getFeaturedCommunities() {
+    const { featuredCommunities } = await import('@/data/mockData')
+    return featuredCommunities
+
+    // API call version:
+    // const result = await apiCall<any[]>('/community/featured')
+    // return result.success ? result.data! : []
+}
+
+// Lấy trending topics  
+export async function getTrendingTopics() {
+    const { trendingTopics } = await import('@/data/mockData')
+    return trendingTopics
+
+    // API call version:
+    // const result = await apiCall<any[]>('/community/trending')
+    // return result.success ? result.data! : []
+}
+
+// Lấy chi tiết bài viết cộng đồng (participants, comments, related posts)
+export async function getCommunityPostDetail(postId: string, authorName?: string, createdAt?: string) {
+    const { getPostDetailMockData } = await import('@/data/mockData')
+    return getPostDetailMockData(authorName || "Unknown", createdAt || "")
+
+    // API call version:
+    // const result = await apiCall<any>(`/community/posts/${postId}/detail`)
+    // return result.success ? result.data! : null
+}
+
+// Lấy comments cho bài viết
+export async function getCommunityPostComments(postId: string) {
+    const detailData = await getCommunityPostDetail(postId)
+    return detailData.comments
+
+    // API call version:
+    // const result = await apiCall<any[]>(`/community/posts/${postId}/comments`)
+    // return result.success ? result.data! : []
+}
+
+// Lấy participants cho bài viết  
+export async function getCommunityPostParticipants(postId: string) {
+    const detailData = await getCommunityPostDetail(postId)
+    return {
+        participants: detailData.postDetail.participants,
+        joinedUsers: detailData.joinedUsers
+    }
+
+    // API call version:
+    // const result = await apiCall<any>(`/community/posts/${postId}/participants`)
+    // return result.success ? result.data! : { participants: [], joinedUsers: [] }
+}
+
+// Lấy bài viết liên quan
+export async function getRelatedCommunityPosts(postId: string) {
+    const detailData = await getCommunityPostDetail(postId)
+    return detailData.relatedPosts
+
+    // API call version:
+    // const result = await apiCall<any[]>(`/community/posts/${postId}/related`)
+    // return result.success ? result.data! : []
 }
 
 // Tạo bài viết mới
@@ -188,6 +322,83 @@ export async function createCommunityPost(post: Omit<CommunityPost, 'id'>): Prom
 // =================
 // BOOKING SERVICES
 // =================
+
+// Get sub-courts for a field
+export async function getFieldSubCourts(fieldId: string): Promise<Array<{
+    id: string;
+    name: string;
+    type: string;
+    color: string;
+    rating: number;
+    price: number;
+}>> {
+    // Generate consistent sub-courts based on fieldId
+    const courtCount = parseInt(fieldId) <= 3 ? 4 : 6; // Smaller fields have 4 courts, larger have 6
+    const colors = ["bg-emerald-500", "bg-blue-500", "bg-orange-500", "bg-purple-500", "bg-rose-500", "bg-indigo-500"];
+    const basePrice = 300000 + (parseInt(fieldId) * 20000); // Price varies by field
+
+    const subCourts = [];
+    for (let i = 0; i < courtCount; i++) {
+        subCourts.push({
+            id: `court-${i + 1}`,
+            name: `Sân ${String.fromCharCode(65 + i)}`, // A, B, C, D, E, F
+            type: String.fromCharCode(65 + i),
+            color: colors[i % colors.length],
+            rating: 4.5 + (Math.sin(parseInt(fieldId) + i) * 0.4), // Consistent ratings
+            price: basePrice + (i * 40000) // Each court priced differently
+        });
+    }
+
+    return subCourts;
+
+    // API call version:
+    // const result = await apiCall<Array<any>>(`/fields/${fieldId}/sub-courts`)
+    // return result.success ? result.data! : []
+}
+
+// Get booking grid data for a field on specific date
+export async function getFieldBookingGrid(fieldId: string, date: string): Promise<{
+    [courtId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" }
+}> {
+    const subCourts = await getFieldSubCourts(fieldId);
+    const bookingGrid: any = {};
+
+    // Generate time slots from 5:00 to 22:00
+    const timeSlots: string[] = [];
+    for (let hour = 5; hour <= 22; hour++) {
+        timeSlots.push(`${hour.toString().padStart(2, "0")}:00`);
+        if (hour < 22) {
+            timeSlots.push(`${hour.toString().padStart(2, "0")}:30`);
+        }
+    }
+
+    subCourts.forEach((court) => {
+        bookingGrid[court.id] = {};
+        timeSlots.forEach((slot, index) => {
+            // Create deterministic patterns based on fieldId, courtId, date, and time
+            const dateNum = new Date(date).getDate();
+            const courtNum = parseInt(court.id.split('-')[1]);
+            const seed = parseInt(fieldId) + courtNum + dateNum + index;
+
+            const isBooked = (seed % 3) === 0;
+            const isLocked = (seed % 11) === 0;
+
+            if (isLocked) {
+                bookingGrid[court.id][slot] = "locked";
+            } else if (isBooked) {
+                bookingGrid[court.id][slot] = "booked";
+            } else {
+                bookingGrid[court.id][slot] = "available";
+            }
+        });
+    });
+
+    return bookingGrid;
+
+    // API call version:
+    // const result = await apiCall<any>(`/fields/${fieldId}/booking-grid?date=${date}`)
+    // return result.success ? result.data! : {}
+}
 
 // Lấy lịch sử đặt sân
 export async function getBookingHistory(status?: string): Promise<Booking[]> {
@@ -263,6 +474,30 @@ export async function getChatMessages(roomId: string): Promise<ChatMessage[]> {
     // API call version:
     // const result = await apiCall<ChatMessage[]>(`/chat/rooms/${roomId}/messages`)
     // return result.success ? result.data! : []
+}
+
+// Lấy danh sách người dùng online
+export async function getOnlineUsers(): Promise<Array<{ id: string; name: string; avatar: string; status: string }>> {
+    const { onlineUsers } = await import('@/data/mockData')
+    return onlineUsers
+
+    // API call version:
+    // const result = await apiCall<Array<any>>('/chat/online-users')
+    // return result.success ? result.data! : []
+}
+
+// Lấy thông tin user hiện tại cho chat
+export async function getCurrentChatUser(): Promise<{ id: string; name: string; avatar: string }> {
+    // Mock current user - in real app this would come from auth context
+    return {
+        id: "current-user",
+        name: "Bạn",
+        avatar: "YU"
+    }
+
+    // API call version:
+    // const result = await apiCall<any>('/auth/me')
+    // return result.success ? result.data! : { id: "anonymous", name: "Anonymous", avatar: "?" }
 }
 
 // Gửi tin nhắn
@@ -473,4 +708,25 @@ export async function uploadAvatar(file: File): Promise<string | null> {
         console.error('Error uploading avatar:', error)
         return null
     }
+}
+
+// ===== STATIC DATA SERVICES =====
+// Services cung cấp các data tĩnh để tránh import trực tiếp mockData
+
+// Lấy danh sách tabs booking
+export const getBookingTabs = async (): Promise<{ id: string; label: string; icon: any; count: number }[]> => {
+    const { bookingTabs } = await import("@/data/mockData")
+    return bookingTabs
+}
+
+// Lấy danh sách sport options
+export const getSportOptions = async (): Promise<{ value: string; label: string }[]> => {
+    const { sportOptions } = await import("@/data/mockData")
+    return sportOptions
+}
+
+// Lấy booking status mapping
+export const getBookingStatusMap = async (): Promise<Record<string, string>> => {
+    const { bookingStatusMap } = await import("@/data/mockData")
+    return bookingStatusMap
 }

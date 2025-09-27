@@ -19,7 +19,7 @@ export default function HeroSection() {
             {/* Nội dung chính */}
             <div className="relative container mx-auto px-4 text-center">
                 {/* Tiêu đề chính */}
-                <h1 className="text-5xl font-bold mb-4">SportBooking</h1>
+                <h1 className="text-5xl font-bold mb-4">ArenaAxis</h1>
 
                 {/* Mô tả */}
                 <p className="text-xl mb-8">Choose the ideal court according to your playing style and budget</p>

@@ -19,7 +19,7 @@ interface ContactInfoProps {
 const defaultContactInfo: ContactInfo = {
     address: "123 Đường Nguyễn Văn Cừ, Quận 1, TP.HCM",
     phone: "+84 123 456 789",
-    email: "kickoffturf@gmail.com",
+    email: "arenaaxis@gmail.com",
     workingHours: "Thứ 2 - Chủ nhật: 6:00 - 22:00"
 }
 

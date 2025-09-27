@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Calendar, MapPin, Star } from "lucide-react"
-import { getFieldById } from "@/services/api"
+import { getFieldById, getFieldSubCourts, getFieldBookingGrid } from "@/services/api"
 import { Field } from "@/types"
 import PageHeader from "@/components/layout/PageHeader"
 import {
@@ -24,30 +24,77 @@ interface SubCourt {
 }
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
-  const [selectedDate, setSelectedDate] = useState("2024-01-15")
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Set to today's date by default
+    return new Date().toISOString().split('T')[0]
+  })
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
   const [field, setField] = useState<Field | null>(null)
+  const [subCourts, setSubCourts] = useState<SubCourt[]>([])
+  const [bookingData, setBookingData] = useState<{ [key: string]: { [key: string]: "available" | "booked" | "locked" | "selected" } }>({})
+  const [timeSlots, setTimeSlots] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [fieldId, setFieldId] = useState<string>("")
 
-  // Fetch field data on component mount
+  // Fetch field data and initial booking data on component mount
   useEffect(() => {
-    const fetchField = async () => {
+    const fetchInitialData = async () => {
       try {
+        setLoading(true)
         const resolvedParams = await params
         const id = resolvedParams.id
         setFieldId(id)
-        const fieldData = await getFieldById(id)
+
+        // Fetch field data and sub-courts
+        const [fieldData, subCourtsData] = await Promise.all([
+          getFieldById(id),
+          getFieldSubCourts(id)
+        ])
+
         setField(fieldData)
+        setSubCourts(subCourtsData)
+
+        // Generate time slots
+        const slots: string[] = []
+        for (let hour = 5; hour <= 22; hour++) {
+          slots.push(`${hour.toString().padStart(2, "0")}:00`)
+          if (hour < 22) {
+            slots.push(`${hour.toString().padStart(2, "0")}:30`)
+          }
+        }
+        setTimeSlots(slots)
+
+        // Fetch booking grid for selected date
+        const bookingGridData = await getFieldBookingGrid(id, selectedDate)
+        setBookingData(bookingGridData)
+
       } catch (error) {
-        console.error('Error fetching field:', error)
+        console.error('Error fetching data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchField()
-  }, [])
+    fetchInitialData()
+  }, [params, selectedDate])
+
+  // Update booking data when date changes
+  useEffect(() => {
+    const updateBookingData = async () => {
+      if (fieldId && selectedDate) {
+        try {
+          const bookingGridData = await getFieldBookingGrid(fieldId, selectedDate)
+          setBookingData(bookingGridData)
+        } catch (error) {
+          console.error('Error updating booking data:', error)
+        }
+      }
+    }
+
+    if (fieldId) {
+      updateBookingData()
+    }
+  }, [fieldId, selectedDate])
 
   if (loading) {
     return <BookingLoadingState />
@@ -57,125 +104,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     return <BookingNotFound />
   }
 
-  // Generate time slots from 5:00 to 22:00
-  const timeSlots: string[] = []
-  for (let hour = 5; hour <= 22; hour++) {
-    timeSlots.push(`${hour.toString().padStart(2, "0")}:00`)
-    if (hour < 22) {
-      timeSlots.push(`${hour.toString().padStart(2, "0")}:30`)
-    }
-  }
-
-  // Mock booking data
-  const bookingData: { [key: string]: { [key: string]: "available" | "booked" | "locked" | "selected" } } = {
-    "court-1": {
-      "05:00": "available",
-      "05:30": "available",
-      "06:00": "booked",
-      "06:30": "booked",
-      "07:00": "available",
-      "07:30": "available",
-      "08:00": "available",
-      "08:30": "booked",
-      "09:00": "booked",
-      "09:30": "available",
-      "10:00": "available",
-      "10:30": "available",
-      "11:00": "available",
-      "11:30": "booked",
-      "12:00": "available",
-      "12:30": "available",
-      "13:00": "booked",
-      "13:30": "booked",
-      "14:00": "available",
-      "14:30": "available",
-      "15:00": "available",
-      "15:30": "available",
-      "16:00": "booked",
-      "16:30": "booked",
-      "17:00": "available",
-      "17:30": "available",
-      "18:00": "booked",
-      "18:30": "available",
-      "19:00": "booked",
-      "19:30": "booked",
-      "20:00": "available",
-      "20:30": "available",
-      "21:00": "available",
-      "21:30": "available",
-      "22:00": "available",
-    },
-    "court-2": {
-      "05:00": "available",
-      "05:30": "locked",
-      "06:00": "available",
-      "06:30": "available",
-      "07:00": "booked",
-      "07:30": "available",
-      "08:00": "booked",
-      "08:30": "booked",
-      "09:00": "available",
-      "09:30": "booked",
-      "10:00": "booked",
-      "10:30": "available",
-      "11:00": "booked",
-      "11:30": "available",
-      "12:00": "booked",
-      "12:30": "booked",
-      "13:00": "available",
-      "13:30": "available",
-      "14:00": "booked",
-      "14:30": "available",
-      "15:00": "booked",
-      "15:30": "booked",
-      "16:00": "available",
-      "16:30": "available",
-      "17:00": "booked",
-      "17:30": "booked",
-      "18:00": "available",
-      "18:30": "booked",
-      "19:00": "available",
-      "19:30": "available",
-      "20:00": "booked",
-      "20:30": "booked",
-      "21:00": "booked",
-      "21:30": "available",
-      "22:00": "available",
-    },
-  }
-
-  // Generate sub-courts cho field
-  const subCourts: SubCourt[] = [
-    { id: "court-1", name: "Sân A", type: "A", color: "bg-emerald-500", rating: 4.7, price: 400000 },
-    { id: "court-2", name: "Sân B", type: "B", color: "bg-blue-500", rating: 4.8, price: 450000 },
-    { id: "court-3", name: "Sân C", type: "C", color: "bg-orange-500", rating: 4.6, price: 380000 },
-    { id: "court-4", name: "Sân D", type: "D", color: "bg-purple-500", rating: 4.7, price: 420000 },
-    { id: "court-5", name: "Sân E", type: "E", color: "bg-rose-500", rating: 4.5, price: 360000 },
-    { id: "court-6", name: "Sân F", type: "F", color: "bg-indigo-500", rating: 4.9, price: 480000 },
-  ]
-
-  // Fill in booking data cho sub-courts
-  subCourts.forEach((court) => {
-    if (!bookingData[court.id]) {
-      bookingData[court.id] = {}
-      timeSlots.forEach((slot, index) => {
-        // Tạo pattern ổn định thay vì random
-        const isBooked = (index + court.id.charCodeAt(court.id.length - 1)) % 3 === 0
-        const isLocked = (index + court.id.charCodeAt(court.id.length - 1)) % 11 === 0
-
-        if (isLocked) {
-          bookingData[court.id][slot] = "locked"
-        } else if (isBooked) {
-          bookingData[court.id][slot] = "booked"
-        } else {
-          bookingData[court.id][slot] = "available"
-        }
-      })
-    }
-  })
-
   const handleSlotClick = (courtId: string, timeSlot: string) => {
-    const status = bookingData[courtId][timeSlot]
+    const status = bookingData[courtId]?.[timeSlot]
     if (status === "available") {
       const slotKey = `${courtId}:${timeSlot}`
       setSelectedSlots((prev) => {

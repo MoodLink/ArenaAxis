@@ -31,7 +31,7 @@ export default function FieldImageGallery({ field }: FieldImageGalleryProps) {
                             <div className="flex items-center gap-2">
                                 <Star className="w-5 h-5 text-yellow-400 fill-current" />
                                 <span className="font-semibold text-gray-800">{field.rating}/5</span>
-                                <span className="text-gray-600">(24 đánh giá)</span>
+                                <span className="text-gray-600">({field.reviewCount} đánh giá)</span>
                             </div>
                         </div>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -40,8 +40,7 @@ export default function FieldImageGallery({ field }: FieldImageGalleryProps) {
                     </div>
 
                     <p className="text-gray-700 leading-relaxed">
-                        Sân bóng đá chất lượng cao với cỏ nhân tạo, hệ thống chiếu sáng hiện đại và đầy đủ tiện nghi.
-                        Thích hợp cho các trận đấu thi đấu, tập luyện và giải trí.
+                        {field.description}
                     </p>
                 </div>
             </CardContent>
