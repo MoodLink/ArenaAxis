@@ -21,20 +21,24 @@ import static org.springdoc.core.utils.Constants.DEFAULT_API_DOCS_URL;
 @EnableDiscoveryClient
 public class GatewayServiceApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(GatewayServiceApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(GatewayServiceApplication.class, args);
+  }
 
-    @Bean
-    @Lazy(value = false)
-    public Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> apis(RouteDefinitionLocator locator, SwaggerUiConfigProperties properties) {
-        Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = new HashSet<>();
-        List<RouteDefinition> definitions = locator.getRouteDefinitions().collectList().block();
-        Objects.requireNonNull(definitions).stream().filter(routeDefinition -> routeDefinition.getId().matches(".*-service")).forEach(routeDefinition -> {
-            String name = routeDefinition.getId().split("-service")[0];
-            AbstractSwaggerUiConfigProperties.SwaggerUrl url = new AbstractSwaggerUiConfigProperties.SwaggerUrl(name, DEFAULT_API_DOCS_URL+"/" + name, null);
-            urls.add(url);
-        });
-        return urls;
-    }
+  @Bean
+  @Lazy(value = false)
+  public Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> apis(
+    RouteDefinitionLocator locator,
+    SwaggerUiConfigProperties properties) {
+    Set<AbstractSwaggerUiConfigProperties.SwaggerUrl> urls = new HashSet<>();
+    List<RouteDefinition> definitions = locator.getRouteDefinitions().collectList().block();
+    Objects.requireNonNull(definitions).stream().filter(routeDefinition -> routeDefinition.getId()
+      .matches(".*-service")).forEach(routeDefinition -> {
+      String name = routeDefinition.getId().split("-service")[0];
+      AbstractSwaggerUiConfigProperties.SwaggerUrl url = new AbstractSwaggerUiConfigProperties
+        .SwaggerUrl(name, DEFAULT_API_DOCS_URL+"/" + name, null);
+      urls.add(url);
+    });
+    return urls;
+  }
 }
