@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import ClientOnly from "../../common/ClientOnly";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -86,7 +87,7 @@ export default function DataSection() {
                                     </div>
                                     <div className="text-sm text-gray-600 space-y-1">
                                         <div>{booking.field} • {booking.time}</div>
-                                        <div>{booking.date} • {booking.price.toLocaleString()}đ</div>
+                                        <div>{booking.date} • <ClientOnly>{booking.price.toLocaleString()}đ</ClientOnly></div>
                                     </div>
                                     <div className="mt-2">
                                         {getStatusBadge(booking.status)}
