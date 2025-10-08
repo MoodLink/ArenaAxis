@@ -1,0 +1,95 @@
+services:
+  config-service:
+    build:
+      context: ./config-service
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./config-service:/app/config-service/current
+      - /app/config-service/target
+      - C:/Users/ACER/.m2:/root/.m2
+    ports:
+      - "8088:8088"
+    healthcheck:
+      test: curl --fail http://localhost:8088/actuator/health || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./eureka-server:/app/eureka-server/current
+      - /app/eureka-server/target
+      - C:/Users/ACER/.m2:/root/.m2
+    environment:
+      CONFIG_SERVER_URL: http://config-service:8088
+      EUREKA_HOSTNAME: eureka-server
+    ports:
+      - "8061:8061"
+    depends_on:
+      config-service:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:8061/actuator/health || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./gateway-service:/app/gateway-service/current
+      - /app/gateway-service/target
+      - C:/Users/ACER/.m2:/root/.m2
+    environment:
+      CONFIG_SERVER_URL: http://config-service:8088
+      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+  auth-db:
+    image: mysql:8.0
+    container_name: auth-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: auth_db
+      MYSQL_USER: authuser
+      MYSQL_PASSWORD: authpass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - auth-db-data:/var/lib/mysql
+    healthcheck:
+      test: mysqladmin ping -h localhost
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./gateway-service:/app/auth-service/current
+      - /app/auth-service/target
+      - C:/Users/ACER/.m2:/root/.m2
+    environment:
+      CONFIG_SERVER_URL: http://config-service:8088
+      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
+      MYSQL_URL: jdbc:mysql://auth-db:3306/auth_db
+      MYSQL_USERNAME: authuser
+      MYSQL_PASSWORD: authpass
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+volumes:
+  auth-db-data:

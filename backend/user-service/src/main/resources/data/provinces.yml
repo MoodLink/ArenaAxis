@@ -1,0 +1,136 @@
+provinces:
+  - id: '01'
+    name: Hà Nội
+    nameEn: Ha Noi
+
+  - id: '04'
+    name: Cao Bằng
+    nameEn: Cao Bang
+
+  - id: '08'
+    name: Tuyên Quang
+    nameEn: Tuyen Quang
+
+  - id: '11'
+    name: Điện Biên
+    nameEn: Dien Bien
+
+  - id: '12'
+    name: Lai Châu
+    nameEn: Lai Chau
+
+  - id: '14'
+    name: Sơn La
+    nameEn: Son La
+
+  - id: '15'
+    name: Lào Cai
+    nameEn: Lao Cai
+
+  - id: '19'
+    name: Thái Nguyên
+    nameEn: Thai Nguyen
+
+  - id: '20'
+    name: Lạng Sơn
+    nameEn: Lang Son
+
+  - id: '22'
+    name: Quảng Ninh
+    nameEn: Quang Ninh
+
+  - id: '24'
+    name: Bắc Ninh
+    nameEn: Bac Ninh
+
+  - id: '25'
+    name: Phú Thọ
+    nameEn: Phu Tho
+
+  - id: '31'
+    name: Hải Phòng
+    nameEn: Hai Phong
+
+  - id: '33'
+    name: Hưng Yên
+    nameEn: Hung Yen
+
+  - id: '37'
+    name: Ninh Bình
+    nameEn: Ninh Binh
+
+  - id: '38'
+    name: Thanh Hóa
+    nameEn: Thanh Hoa
+
+  - id: '40'
+    name: Nghệ An
+    nameEn: Nghe An
+
+  - id: '42'
+    name: Hà Tĩnh
+    nameEn: Ha Tinh
+
+  - id: '44'
+    name: Quảng Trị
+    nameEn: Quang Tri
+
+  - id: '46'
+    name: Huế
+    nameEn: Hue
+
+  - id: '48'
+    name: Đà Nẵng
+    nameEn: Da Nang
+
+  - id: '51'
+    name: Quảng Ngãi
+    nameEn: Quang Ngai
+
+  - id: '52'
+    name: Gia Lai
+    nameEn: Gia Lai
+
+  - id: '56'
+    name: Khánh Hòa
+    nameEn: Khanh Hoa
+
+  - id: '66'
+    name: Đắk Lắk
+    nameEn: Dak Lak
+
+  - id: '68'
+    name: Lâm Đồng
+    nameEn: Lam Dong
+
+  - id: '75'
+    name: Đồng Nai
+    nameEn: Dong Nai
+
+  - id: '79'
+    name: Hồ Chí Minh
+    nameEn: Ho Chi Minh
+
+  - id: '80'
+    name: Tây Ninh
+    nameEn: Tay Ninh
+
+  - id: '82'
+    name: Đồng Tháp
+    nameEn: Dong Thap
+
+  - id: '86'
+    name: Vĩnh Long
+    nameEn: Vinh Long
+
+  - id: '91'
+    name: An Giang
+    nameEn: An Giang
+
+  - id: '92'
+    name: Cần Thơ
+    nameEn: Can Tho
+
+  - id: '96'
+    name: Cà Mau
+    nameEn: Ca Mau
