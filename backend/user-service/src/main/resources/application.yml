@@ -1,0 +1,70 @@
+server:
+  port: 8081
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_DEFAULT_ZONE_URL:http://localhost:8061/eureka}
+    instance:
+      instanceId: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
+
+springdoc:
+  packageToScan: com.arenaaxis
+  cache:
+    disabled: true
+  version: '@springdoc.version'
+  api-docs:
+    version: openapi_3_1
+
+spring:
+  application:
+    name: user-service
+
+  jackson:
+    default-property-inclusion: non_null
+
+  cloud:
+    config:
+      enabled: false
+
+  output:
+    ansi:
+      enabled: always
+
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/arena_db}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  signer_key: ${SIGNER_KEY:IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT}
+  token_valid_duration: 3600
+  token_refreshable_duration: 360000
+  password_valid_duration: 300
+
+cloudinary:
+  url: ${CLOUDINARY_URL:cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix}
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: "*"

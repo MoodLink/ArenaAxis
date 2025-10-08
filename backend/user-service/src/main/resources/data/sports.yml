@@ -1,0 +1,28 @@
+sports:
+  - id: football
+    name: "Bóng đá"
+    nameEn: "Football"
+
+  - id: badminton
+    name: "Cầu lông"
+    nameEn: "Badminton"
+
+  - id: pickleball
+    name: "Pickle Ball"
+    nameEn: "Pickle Ball"
+
+  - id: tennis
+    name: "Quần vợt"
+    nameEn: "Tennis"
+
+  - id: pingpong
+    name: "Bóng bàn"
+    nameEn: "Ping Pong"
+
+  - id: volleyball
+    name: "Bóng chuyền"
+    nameEn: "Volleyball"
+
+  - id: basketball
+    name: "Bóng rổ"
+    nameEn: "Basketball"
