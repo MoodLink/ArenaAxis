@@ -26,10 +26,10 @@ public class BankAccount {
   String name;
   String number;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   Bank bank;
 
-  @OneToOne(cascade = CascadeType.ALL)
+  @OneToOne
   @JoinColumn(name = "user_id", unique = true)
   User user;
 

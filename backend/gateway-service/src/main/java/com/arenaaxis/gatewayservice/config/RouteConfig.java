@@ -14,6 +14,8 @@ public class RouteConfig {
       .route("user-service", r -> r
           .path(
             "/users/**",
+            "/banks/**",
+            "/bank-accounts/**",
             "/provinces/**",
             "/wards/**",
             "/auth/**",
