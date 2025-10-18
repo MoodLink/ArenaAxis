@@ -62,4 +62,9 @@ public class StoreController {
 
     return ResponseEntity.ok(storeService.updateImage(id, images));
   }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<StoreAdminDetailResponse> getFullInfo(@PathVariable("id") String id) {
+    return ResponseEntity.ok(storeService.fullInfo(id));
+  }
 }

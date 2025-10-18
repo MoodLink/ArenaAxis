@@ -125,6 +125,14 @@ public class StoreServiceImpl implements StoreService {
     return List.of();
   }
 
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
+  public StoreAdminDetailResponse fullInfo(String storeId) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+    return storeMapper.toAdminDetailResponse(store);
+  }
+
   private Ward getWard(String wardId) {
     return wardRepository.findById(wardId)
                          .orElseThrow(() -> new AppException(ErrorCode.WARD_NOT_FOUND));
