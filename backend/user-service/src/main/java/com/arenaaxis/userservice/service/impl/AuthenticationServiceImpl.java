@@ -125,15 +125,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   public String buildTokenWhenUpgradeUser(User user) throws ParseException, JOSEException {
     if (user.getRole() != Role.USER) return null;
 
+    User managedUser = userRepository.findById(user.getId())
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication.getCredentials() instanceof Jwt jwt) {
       var claimsSet = verify(jwt.getTokenValue(), false).getJWTClaimsSet();
       saveInvalidatedToken(claimsSet.getJWTID(), claimsSet.getExpirationTime());
     }
 
-    user.setRole(Role.CLIENT);
-    user = userRepository.save(user);
-    return generateToken(user);
+    managedUser.setRole(Role.CLIENT);
+    managedUser = userRepository.save(managedUser);
+    return generateToken(managedUser);
   }
 
   private SignedJWT verify (String token, boolean isRefresh)

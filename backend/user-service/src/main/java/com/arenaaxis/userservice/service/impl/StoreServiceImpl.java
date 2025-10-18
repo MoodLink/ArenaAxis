@@ -10,23 +10,29 @@ import com.arenaaxis.userservice.entity.StoreViewHistory;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.Ward;
 import com.arenaaxis.userservice.entity.enums.Role;
+import com.arenaaxis.userservice.entity.enums.StoreImageType;
 import com.arenaaxis.userservice.exception.AppException;
 import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
+import com.arenaaxis.userservice.repository.UserRepository;
 import com.arenaaxis.userservice.service.AuthenticationService;
+import com.arenaaxis.userservice.service.MediaService;
 import com.arenaaxis.userservice.service.StoreService;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -34,25 +40,50 @@ import java.util.Objects;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StoreServiceImpl implements StoreService {
   StoreRepository storeRepository;
+  UserRepository userRepository;
   WardRepository wardRepository;
   StoreMapper storeMapper;
+  MediaService mediaService;
   StoreViewHistoryRepository storeViewHistoryRepository;
   AuthenticationService authenticationService;
 
   @Override
-  @PreAuthorize("hasRole('ROLE_USER')")
+  @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse create(StoreCreateRequest request, User owner)
     throws ParseException, JOSEException {
     Ward ward = getWard(request.getWardId());
 
     Store store = storeMapper.fromCreateRequest(request);
-    store.setOwner(owner);
+    String newToken = authenticationService.buildTokenWhenUpgradeUser(owner);
+
+    store.setOwner(userRepository.findById(owner.getId())
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     store.setWard(ward);
     store.setProvince(ward.getProvince());
     store = storeRepository.save(store);
 
-    String newToken = authenticationService.buildTokenWhenUpgradeUser(owner);
     return storeMapper.toAdminDetailResponse(store, newToken);
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_CLIENT')")
+  @PostAuthorize("returnObject.owner.email == authentication.name")
+  public StoreAdminDetailResponse updateImage(String storeId, Map<StoreImageType, List<MultipartFile>> images) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+
+    images.forEach((type, files) -> {
+      if (files == null) return;
+
+      if (type == StoreImageType.MEDIAS) {
+        mediaService.uploadMultipleMedias(store, files);
+      } else {
+        MultipartFile file = files.get(0);
+        mediaService.uploadImagesStore(store, type, file);
+      }
+    });
+
+    return storeMapper.toAdminDetailResponse(store);
   }
 
   @Override

@@ -37,7 +37,7 @@ public class Store {
   LocalTime startTime;
   LocalTime endTime;
 
-  @OneToOne(cascade = CascadeType.ALL)
+  @ManyToOne
   @JoinColumn(name = "owner_id", nullable = false, unique = true)
   User owner;
 
