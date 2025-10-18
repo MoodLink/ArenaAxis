@@ -2,6 +2,8 @@ package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.UserCreateRequest;
 import com.arenaaxis.userservice.dto.response.UserResponse;
+import com.arenaaxis.userservice.mapper.UserMapper;
+import com.arenaaxis.userservice.service.CurrentUserService;
 import com.arenaaxis.userservice.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,8 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
   UserService userService;
+  CurrentUserService currentUserService;
+  UserMapper userMapper;
 
   @PostMapping
   public ResponseEntity<UserResponse> create(@RequestBody @Validated UserCreateRequest request) {
@@ -27,6 +31,11 @@ public class UserController {
   @GetMapping("/{id}")
   public ResponseEntity<UserResponse> show(@PathVariable String id) {
     return ResponseEntity.ok(userService.getUserById(id));
+  }
+
+  @GetMapping("/myself")
+  public ResponseEntity<UserResponse> showMyProfile() {
+    return ResponseEntity.ok(userMapper.toUserResponse(currentUserService.getCurrentUser()));
   }
 
   @GetMapping
