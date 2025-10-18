@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +53,13 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  public UserResponse getUserByEmail(String email) {
+    return userMapper.toUserResponse(userRepository.findByEmail(email)
+      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
   public List<UserResponse> getUserPagination(int page, int pageSize) {
     Pageable pageable = PageRequest.of(page, pageSize, Sort.by("createdAt").descending());
     Page<User> users = userRepository.findAll(pageable);
@@ -63,11 +71,13 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
   public void deleteUser(String id) {
     userRepository.deleteById(id);
   }
 
   @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
   public UserResponse toggleActiveUser(String id) {
     User user = userRepository
       .findById(id)

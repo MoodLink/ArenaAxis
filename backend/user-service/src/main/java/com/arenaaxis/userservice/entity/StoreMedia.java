@@ -37,4 +37,15 @@ public class StoreMedia {
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "store_id", nullable = false)
   Store store;
+
+  @PrePersist
+  public void onCreate() {
+    createdAt = LocalDateTime.now();
+    updatedAt = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  public void onUpdate() {
+    updatedAt = LocalDateTime.now();
+  }
 }
