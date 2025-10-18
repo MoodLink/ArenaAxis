@@ -14,6 +14,7 @@ import java.time.LocalTime;
 public class StoreCreateRequest {
   String name;
   String address;
+  String introduction;
   String linkGoogleMap;
 
   String wardId;

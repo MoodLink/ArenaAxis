@@ -35,7 +35,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
       "/provinces/**",
       "/wards",
       "/wards/**",
-      "/stores"
+      "/stores",
+      "/banks",
+      "/banks/**"
     ),
     HttpMethod.POST, List.of(
       "/users",
