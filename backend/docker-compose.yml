@@ -1,0 +1,79 @@
+services:
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./eureka-server:/app/eureka-server/current
+      - /app/eureka-server/target
+      - C:/Users/Acer predator/.m2:/root/.m2
+    environment:
+      CONFIG_SERVER_URL: http://config-service:8088
+      EUREKA_HOSTNAME: eureka-server
+    ports:
+      - "8061:8061"
+    healthcheck:
+      test: curl --fail http://localhost:8061/actuator/health || exit 1
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./gateway-service:/app/gateway-service/current
+      - /app/gateway-service/target
+      - C:/Users/Acer predator/.m2:/root/.m2
+    environment:
+      CONFIG_SERVER_URL: http://config-service:8088
+      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
+    ports:
+      - "8088:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+  arena-db:
+    image: mysql:8.0
+    container_name: arena-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: arena_db
+      MYSQL_USER: authuser
+      MYSQL_PASSWORD: authpass
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - arena-db-data:/var/lib/mysql
+    healthcheck:
+      test: mysqladmin ping -h localhost
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile_dev
+    volumes:
+      - ./gateway-service:/app/user-service/current
+      - /app/user-service/target
+      - C:/Users/Acer predator/.m2:/root/.m2
+    environment:
+      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
+      MYSQL_URL: jdbc:mysql://arena-db:3306/arena_db
+      MYSQL_USERNAME: authuser
+      MYSQL_PASSWORD: authpass
+    ports:
+      - "8082:8082"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      arena-db:
+        condition: service_healthy
+
+volumes:
+  arena-db-data:
