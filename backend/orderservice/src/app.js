@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { connect } from "./config/database.js";
 import route from "./routes/index.route.js";
+import bodyParser from 'body-parser';
 
 // Initialize dotenv
 dotenv.config();
@@ -20,6 +21,9 @@ app.use(express.static(`${__dirname}/public`));
 
 // Connect to database
 connect();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Initialize routes
 route(app);

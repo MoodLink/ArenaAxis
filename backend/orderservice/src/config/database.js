@@ -5,6 +5,6 @@ export const connect = async () => {
     await mongoose.connect(process.env.MONGO_URL);
     console.log("Connect successful");
   } catch (error) {
-    console.log("Connect error");
+    console.log("Connect error: ", error.message);
   }
 };
