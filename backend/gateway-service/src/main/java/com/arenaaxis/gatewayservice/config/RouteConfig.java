@@ -20,7 +20,9 @@ public class RouteConfig {
             "/wards/**",
             "/auth/**",
             "/stores/**",
-            "/sports/**")
+            "/sports/**",
+            "/main-plans/**",
+            "/subscriptions/**")
           .uri("lb://user-service")
       )
       .build();

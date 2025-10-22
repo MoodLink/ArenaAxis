@@ -16,7 +16,6 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MainPlan {
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
   String id;
   String name;
   String description;

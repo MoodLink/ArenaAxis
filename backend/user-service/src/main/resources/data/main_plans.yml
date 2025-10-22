@@ -1,0 +1,8 @@
+main_plans:
+  - id: apply_plan
+    name: "APPLY PLAN"
+    description: "Tính tiền gói cước theo số lượng đặt sân tùy theo môn thể thao trong th"
+
+  - id: posting_plan
+    name: "POST PLAN"
+    description:  "Tính tiền gói cước theo số lượng sân tùy theo môn thể thao của sân"

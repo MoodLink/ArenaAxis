@@ -5,9 +5,14 @@ import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.Store;
+import com.arenaaxis.userservice.entity.StoreMedia;
+import java.util.Collections;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValueCheckStrategy;
+
+import java.util.List;
+import java.util.Set;
 
 @Mapper(
   componentModel = "spring",
@@ -50,6 +55,10 @@ public interface StoreMapper {
     source = "businessLicenseImage.url",
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
   )
+  @Mapping(
+    target = "mediaUrls",
+    expression = "java(mapMediaUrls(store.getMedias()))"
+  )
   @Mapping(target = "newToken", ignore = true)
   StoreAdminDetailResponse toAdminDetailResponse(Store store);
 
@@ -67,6 +76,10 @@ public interface StoreMapper {
     target = "businessLicenceImageUrl",
     source = "store.businessLicenseImage.url",
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
+  )
+  @Mapping(
+    target = "mediaUrls",
+    expression = "java(mapMediaUrls(store.getMedias()))"
   )
   @Mapping(target = "newToken", expression = "java(newToken)")
   StoreAdminDetailResponse toAdminDetailResponse(Store store, String newToken);
@@ -94,4 +107,10 @@ public interface StoreMapper {
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
   )
   StoreSearchItemResponse toStoreSearchItemResponse(Store store);
+
+  default List<String> mapMediaUrls(Set<StoreMedia> medias) {
+    if (medias == null) return Collections.emptyList();
+
+    return medias.stream().map(media -> media.getMedia().getUrl()).toList();
+  }
 }

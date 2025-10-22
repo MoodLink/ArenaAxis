@@ -24,7 +24,10 @@ public enum ErrorCode {
   INVALID_PHONE(4008, "Phone number can only contain number and has 10 characters", HttpStatus.BAD_REQUEST),
   INVALID_BANK_ACCOUNT_NUMBER(4009, "Invalid Bank Account Number", HttpStatus.BAD_REQUEST),
   INVALID_BANK_ACCOUNT_NAME(4010, "Invalid Bank Account Name", HttpStatus.BAD_REQUEST),
-  BANK_ACCOUNT_ALREADY_EXISTED(4011, "Bank account of this user already exists", HttpStatus.BAD_REQUEST);
+  BANK_ACCOUNT_ALREADY_EXISTED(4011, "Bank account of this user already exists", HttpStatus.BAD_REQUEST),
+  STORE_MEDIA_NOT_FOUND(4012, "Store media not found", HttpStatus.BAD_REQUEST),
+  MAIN_PLAN_NOT_FOUND(4013, "Main Plan not found", HttpStatus.BAD_REQUEST)
+  ;
 
   private final int code;
   private final String message;
