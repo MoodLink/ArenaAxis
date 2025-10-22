@@ -25,6 +25,9 @@ import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -114,7 +117,12 @@ public class StoreServiceImpl implements StoreService {
 
   @Override
   public List<StoreSearchItemResponse> getInPagination(int page, int perPage) {
-    return List.of();
+    Pageable pageable = PageRequest.of(page - 1, perPage);
+    Page<Store> storePage = storeRepository.findAll(pageable);
+
+    return storePage.getContent().stream()
+      .map(storeMapper::toStoreSearchItemResponse)
+      .toList();
   }
 
   @Override

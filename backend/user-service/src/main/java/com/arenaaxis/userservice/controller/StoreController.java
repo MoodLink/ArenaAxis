@@ -33,10 +33,10 @@ public class StoreController {
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
-    @RequestBody SearchStoreRequest searchRequest,
-    @RequestParam("page") int page,
-    @RequestParam("perPage") int perPage) {
-      return null;
+//    @RequestBody SearchStoreRequest searchRequest,
+    @RequestParam(value = "page", defaultValue = "1") int page,
+    @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+      return ResponseEntity.ok(storeService.getInPagination(page, perPage));
   }
 
   @PostMapping
