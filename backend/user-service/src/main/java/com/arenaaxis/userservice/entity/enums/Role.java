@@ -4,10 +4,12 @@ import lombok.Getter;
 
 @Getter
 public enum Role {
-    ADMIN(1), CLIENT(2), USER(3);
+    ADMIN(1, true), CLIENT(2, false), USER(3, false);
 
     final int code;
-    Role(int code) {
+    final boolean isAdmin;
+    Role(int code, boolean isAdmin) {
         this.code = code;
+        this.isAdmin = isAdmin;
     }
 }

@@ -36,13 +36,13 @@ public class LocationInitializer implements CommandLineRunner {
   }
 
   void initialProvinces() {
-    if (!provinceRepository.findAll().isEmpty()) return;
+    if (provinceRepository.count() > 0) return;
 
     provinceRepository.saveAll(provinceConfig.getProvinces());
   }
 
   void initialWards() {
-    if (!wardRepository.findAll().isEmpty()) return;
+    if (wardRepository.count() > 0) return;
 
     List<Province> provinces = provinceRepository.findAll();
     Map<String, Province> provinceMap = new HashMap<>();

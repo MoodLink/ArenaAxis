@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -48,15 +49,10 @@ public class MediaServiceImpl implements MediaService {
   public void deleteBankLogo(Bank bank) {
     if (bank.getLogo() == null) return;
 
-    delete(bank.getLogo());
-  }
-
-  @Override
-  public void delete(Media media) {
-    if (media == null) return;
-
-    mediaRepository.delete(media);
-    mediaUtility.delete(media);
+    Media logo = bank.getLogo();
+    bank.setLogo(null);
+    mediaRepository.delete(logo);
+    mediaUtility.delete(logo);
   }
 
   @Async
@@ -65,27 +61,11 @@ public class MediaServiceImpl implements MediaService {
     if (file == null) return;
 
     Media media = createMedia(file);
-    switch (type) {
-      case AVATAR -> {
-        if (store.getAvatar() != null) delete(store.getAvatar());
-        store.setAvatar(media);
-      }
-      case COVER -> {
-        if (store.getCoverImage() != null) delete(store.getCoverImage());
-        store.setCoverImage(media);
-      }
-      case LICENSE -> {
-        if (store.getBusinessLicenseImage() != null)
-          delete(store.getBusinessLicenseImage());
-        store.setBusinessLicenseImage(media);
-      }
-      case MEDIAS -> {
-        createStoreMedia(store, media);
-        return;
-      }
+    if (Objects.requireNonNull(type) == StoreImageType.MEDIAS) {
+      createStoreMedia(store, media);
+    } else {
+      handleSingleStoreMedia(store, type, media);
     }
-
-    storeRepository.save(store);
   }
 
   @Async
@@ -101,7 +81,8 @@ public class MediaServiceImpl implements MediaService {
   @Async
   @Override
   public void deleteStoreMedia(StoreMedia storeMedia) {
-    delete(storeMedia.getMedia());
+    mediaUtility.delete(storeMedia.getMedia());
+    mediaRepository.delete(storeMedia.getMedia());
     storeMediaRepository.delete(storeMedia);
   }
 
@@ -118,5 +99,37 @@ public class MediaServiceImpl implements MediaService {
 
     Media media = mediaUtility.upload(file);
     return mediaRepository.save(media);
+  }
+
+  private void handleSingleStoreMedia(Store store, StoreImageType type, Media newMedia) {
+    Media currentMedia = getCurrentMedia(store, type);
+    if (currentMedia != null) removeCurrentMedia(store, type, currentMedia);
+
+    setNewMedia(store, type, newMedia);
+  }
+
+  private Media getCurrentMedia(Store store, StoreImageType type) {
+    return switch (type) {
+      case AVATAR -> store.getAvatar();
+      case COVER -> store.getCoverImage();
+      case LICENSE -> store.getBusinessLicenseImage();
+      default -> null;
+    };
+  }
+
+  private void removeCurrentMedia(Store store, StoreImageType type, Media media) {
+    setNewMedia(store, type, null);
+    mediaUtility.delete(media);
+    mediaRepository.delete(media);
+  }
+
+  private void setNewMedia(Store store, StoreImageType type, Media media) {
+    switch (type) {
+      case AVATAR -> store.setAvatar(media);
+      case COVER -> store.setCoverImage(media);
+      case LICENSE -> store.setBusinessLicenseImage(media);
+    }
+
+    storeRepository.save(store);
   }
 }

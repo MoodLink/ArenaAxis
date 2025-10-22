@@ -30,7 +30,9 @@ public class SecurityConfig {
       "/provinces/**",
       "/wards",
       "/wards/**",
-      "/stores"
+      "/stores",
+      "/main-plans",
+      "/main-plans/**"
     ),
     HttpMethod.POST, List.of(
       "/users",
