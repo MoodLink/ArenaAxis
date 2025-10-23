@@ -2,6 +2,7 @@ import { mongoose } from "mongoose";
 
 const fieldSchema = new mongoose.Schema(
   {
+    name: { type: String },
     sportId: { type: String },
     storeId: { type: String, required: true },
     defaultPrice: { type: String, required: true },

@@ -48,6 +48,7 @@ export const getFieldDetail = async (req, res) => {
 export const create = async (req, res) => {
   try {
     const body = {
+      name: req.body.name,
       sportId: req.body.sport_id,
       storeId: req.body.store_id,
       defaultPrice: req.body.default_price,
@@ -67,6 +68,7 @@ export const update = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
     let updateData = {};
+    if (req.body.name !== undefined) updateData.name = req.body.name;
     if (req.body.sport_id !== undefined) updateData.sportId = req.body.sport_id;
     if (req.body.store_id !== undefined) updateData.storeId = req.body.store_id;
     if (req.body.default_price !== undefined)
