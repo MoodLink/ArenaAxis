@@ -67,4 +67,10 @@ public class StoreController {
   public ResponseEntity<StoreAdminDetailResponse> getFullInfo(@PathVariable("id") String id) {
     return ResponseEntity.ok(storeService.fullInfo(id));
   }
+
+  @GetMapping("/owner/{owner-id}")
+  public ResponseEntity<List<StoreAdminDetailResponse>> getMyStores(@PathVariable("owner-id") String id) {
+    User user = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.getStoresByOwnerId(id, user));
+  }
 }
