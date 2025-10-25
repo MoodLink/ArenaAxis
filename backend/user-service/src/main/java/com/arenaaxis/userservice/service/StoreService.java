@@ -23,4 +23,5 @@ public interface StoreService {
   StoreAdminDetailResponse toggleActiveStatus(String storeId);
   List<StoreSearchItemResponse> getInPagination(int page, int perPage);
   List<StoreSearchItemResponse> searchInPagination(SearchStoreRequest request, int page, int perPage);
+  List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser);
 }
