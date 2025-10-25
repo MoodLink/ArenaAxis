@@ -103,7 +103,7 @@ public class StoreServiceImpl implements StoreService {
       increaseViewCount(store);
     }
 
-    if (shouldSaveHistory(currentUser)) {
+    if (shouldSaveHistory(currentUser, storeId)) {
       saveStoreViewHistory(store, currentUser);
     }
 
@@ -163,8 +163,10 @@ public class StoreServiceImpl implements StoreService {
     return currentUser == null || currentUser.getRole() == Role.USER;
   }
 
-  private boolean shouldSaveHistory(User currentUser) {
-    return Objects.requireNonNull(currentUser).getRole() == Role.USER;
+  private boolean shouldSaveHistory(User currentUser, String storeId) {
+    if (Objects.requireNonNull(currentUser).getRole() != Role.USER) return false;
+
+    return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
   }
 
   private void increaseViewCount(Store store) {

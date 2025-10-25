@@ -26,7 +26,8 @@ public enum ErrorCode {
   INVALID_BANK_ACCOUNT_NAME(4010, "Invalid Bank Account Name", HttpStatus.BAD_REQUEST),
   BANK_ACCOUNT_ALREADY_EXISTED(4011, "Bank account of this user already exists", HttpStatus.BAD_REQUEST),
   STORE_MEDIA_NOT_FOUND(4012, "Store media not found", HttpStatus.BAD_REQUEST),
-  MAIN_PLAN_NOT_FOUND(4013, "Main Plan not found", HttpStatus.BAD_REQUEST)
+  MAIN_PLAN_NOT_FOUND(4013, "Main Plan not found", HttpStatus.BAD_REQUEST),
+  FAVOURITE_ALREADY_EXISTED(4014, "Favourite already exists", HttpStatus.BAD_REQUEST),
   ;
 
   private final int code;
