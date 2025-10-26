@@ -1,4 +1,5 @@
 import { Field } from "../models/field.model.js";
+import { handleUpdateSportForStore } from "./store.service.js";
 
 export const getFields = async (filter) => {
   const data = await Field.find(filter).sort({ updatedAt: -1 }).lean();
@@ -28,13 +29,22 @@ export const getFieldById = async (fieldId) => {
 export const create = async (body) => {
   const field = new Field(body);
   const data = await field.save();
+  await handleUpdateSportForStore(data.storeId, data.sportId, true);
   return data;
 };
 
 export const update = async (fieldId, updateData) => {
-  const data = await Field.findByIdAndUpdate(fieldId, updateData, {
-    new: true,
-  });
+  const existingField = await Field.findById(fieldId);
+  const oldSportId = existingField.sportId;
+
+  Object.assign(existingField, updateData);
+  const data = await existingField.save();
+
+  if (oldSportId !== data.sportId) {
+    await handleUpdateSportForStore(data.storeId, oldSportId, false);
+    await handleUpdateSportForStore(data.storeId, data.sportId, true);
+  }
+
   return data;
 };
 
@@ -43,5 +53,6 @@ export const remove = async (fieldId) => {
     activeStatus: false,
     updatedAt: new Date(),
   }, { new: true });
+  await handleUpdateSportForStore(data.storeId, data.sportId, false);
   return data;
 };

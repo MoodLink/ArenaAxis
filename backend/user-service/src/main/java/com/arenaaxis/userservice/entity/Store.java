@@ -38,7 +38,7 @@ public class Store {
   LocalTime endTime;
 
   @ManyToOne
-  @JoinColumn(name = "owner_id", nullable = false, unique = true)
+  @JoinColumn(name = "owner_id", nullable = false)
   User owner;
 
   @Builder.Default
@@ -59,9 +59,6 @@ public class Store {
   @Builder.Default
   LocalDateTime updatedAt = LocalDateTime.now();
   LocalDateTime deletedAt;
-
-  @OneToMany(mappedBy = "store")
-  Set<Field> fields;
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "province_id", nullable = false)
@@ -95,4 +92,7 @@ public class Store {
 
   @Builder.Default
   Float averageRating = 0F;
+
+  @OneToMany
+  Set<StoreHasSport> sports;
 }
