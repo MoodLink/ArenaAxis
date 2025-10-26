@@ -22,7 +22,9 @@ public class RouteConfig {
             "/stores/**",
             "/sports/**",
             "/main-plans/**",
-            "/subscriptions/**")
+            "/subscriptions/**",
+            "/favourites/**",
+            "/store-view-histories")
           .uri("lb://user-service")
       )
       .build();
