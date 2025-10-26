@@ -14,11 +14,17 @@ public class RouteConfig {
       .route("user-service", r -> r
           .path(
             "/users/**",
+            "/banks/**",
+            "/bank-accounts/**",
             "/provinces/**",
             "/wards/**",
             "/auth/**",
             "/stores/**",
-            "/sports/**")
+            "/sports/**",
+            "/main-plans/**",
+            "/subscriptions/**",
+            "/favourites/**",
+            "/store-view-histories")
           .uri("lb://user-service")
       )
       .build();

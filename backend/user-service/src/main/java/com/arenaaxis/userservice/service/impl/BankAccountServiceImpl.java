@@ -14,6 +14,7 @@ import com.arenaaxis.userservice.service.BankAccountService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,6 +29,10 @@ public class BankAccountServiceImpl implements BankAccountService {
 
   @Override
   public BankAccountResponse createBankAccount(BankAccountRequest request, User user) {
+    if (user.getBankAccount() != null) {
+      throw new AppException(ErrorCode.BANK_ACCOUNT_ALREADY_EXISTED);
+    }
+
     Bank bank = getBank(request.getBankId());
     BankAccount account = bankAccountMapper.toBankAccount(request);
     account.setUser(user);
@@ -37,6 +42,7 @@ public class BankAccountServiceImpl implements BankAccountService {
   }
 
   @Override
+  @PostAuthorize("returnObject.user.id == user.id")
   public BankAccountResponse updateBankAccount(BankAccountRequest request, User user) {
     BankAccount account = bankAccountMapper.toBankAccount(request);
     Bank bank = getBank(request.getBankId());

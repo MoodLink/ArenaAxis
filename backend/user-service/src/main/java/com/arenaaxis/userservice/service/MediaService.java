@@ -13,7 +13,6 @@ import java.util.List;
 public interface MediaService {
   void uploadAndUpdateLogoToBank(Bank bank, MultipartFile logo);
   void deleteBankLogo(Bank bank);
-  void delete(Media media);
   void uploadImagesStore(Store store, StoreImageType type, MultipartFile file);
 
   @Async

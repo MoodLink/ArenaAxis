@@ -19,7 +19,9 @@ public interface StoreService {
   StoreAdminDetailResponse updateImage(String storeId, Map<StoreImageType, List<MultipartFile>> images);
   StoreAdminDetailResponse update(StoreCreateRequest request, User owner);
   StoreClientDetailResponse detail(String storeId, User currentUser);
+  StoreAdminDetailResponse fullInfo(String storeId);
   StoreAdminDetailResponse toggleActiveStatus(String storeId);
   List<StoreSearchItemResponse> getInPagination(int page, int perPage);
   List<StoreSearchItemResponse> searchInPagination(SearchStoreRequest request, int page, int perPage);
+  List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser);
 }

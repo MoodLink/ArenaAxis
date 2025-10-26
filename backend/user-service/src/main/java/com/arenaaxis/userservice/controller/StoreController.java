@@ -33,10 +33,10 @@ public class StoreController {
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
-    @RequestBody SearchStoreRequest searchRequest,
-    @RequestParam("page") int page,
-    @RequestParam("perPage") int perPage) {
-      return null;
+//    @RequestBody SearchStoreRequest searchRequest,
+    @RequestParam(value = "page", defaultValue = "1") int page,
+    @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+      return ResponseEntity.ok(storeService.getInPagination(page, perPage));
   }
 
   @PostMapping
@@ -61,5 +61,16 @@ public class StoreController {
     if (medias != null) images.put(StoreImageType.MEDIAS, medias);
 
     return ResponseEntity.ok(storeService.updateImage(id, images));
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<StoreAdminDetailResponse> getFullInfo(@PathVariable("id") String id) {
+    return ResponseEntity.ok(storeService.fullInfo(id));
+  }
+
+  @GetMapping("/owner/{owner-id}")
+  public ResponseEntity<List<StoreAdminDetailResponse>> getMyStores(@PathVariable("owner-id") String id) {
+    User user = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.getStoresByOwnerId(id, user));
   }
 }

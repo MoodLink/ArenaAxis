@@ -35,7 +35,11 @@ public class JwtAuthenticationFilter implements GlobalFilter {
       "/provinces/**",
       "/wards",
       "/wards/**",
-      "/stores"
+      "/stores",
+      "/banks",
+      "/banks/**",
+      "/main-plans",
+      "/main-plans/**"
     ),
     HttpMethod.POST, List.of(
       "/users",
@@ -47,6 +51,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
   @Override
   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     if (isPublic(exchange)) {
+      log.info("Access public endpoint: {}", exchange.getRequest().getURI());
       return chain.filter(exchange);
     }
 

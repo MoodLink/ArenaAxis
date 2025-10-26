@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OptionalPlan {
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
   String id;
   String name;
   Long price;

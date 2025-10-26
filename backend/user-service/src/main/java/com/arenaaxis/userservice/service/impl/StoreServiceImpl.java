@@ -25,6 +25,9 @@ import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -100,7 +103,7 @@ public class StoreServiceImpl implements StoreService {
       increaseViewCount(store);
     }
 
-    if (shouldSaveHistory(currentUser)) {
+    if (shouldSaveHistory(currentUser, storeId)) {
       saveStoreViewHistory(store, currentUser);
     }
 
@@ -114,7 +117,12 @@ public class StoreServiceImpl implements StoreService {
 
   @Override
   public List<StoreSearchItemResponse> getInPagination(int page, int perPage) {
-    return List.of();
+    Pageable pageable = PageRequest.of(page - 1, perPage);
+    Page<Store> storePage = storeRepository.findAll(pageable);
+
+    return storePage.getContent().stream()
+      .map(storeMapper::toStoreSearchItemResponse)
+      .toList();
   }
 
   @Override
@@ -123,6 +131,27 @@ public class StoreServiceImpl implements StoreService {
   ) {
 
     return List.of();
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
+  public List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser) {
+    if (!currentUser.getId().equals(ownerId) && !currentUser.getRole().isAdmin()) {
+      throw  new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    return storeRepository.findByOwner_Id(ownerId)
+      .stream()
+      .map(storeMapper::toAdminDetailResponse)
+      .toList();
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
+  public StoreAdminDetailResponse fullInfo(String storeId) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+    return storeMapper.toAdminDetailResponse(store);
   }
 
   private Ward getWard(String wardId) {
@@ -134,8 +163,10 @@ public class StoreServiceImpl implements StoreService {
     return currentUser == null || currentUser.getRole() == Role.USER;
   }
 
-  private boolean shouldSaveHistory(User currentUser) {
-    return Objects.requireNonNull(currentUser).getRole() == Role.USER;
+  private boolean shouldSaveHistory(User currentUser, String storeId) {
+    if (Objects.requireNonNull(currentUser).getRole() != Role.USER) return false;
+
+    return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
   }
 
   private void increaseViewCount(Store store) {
