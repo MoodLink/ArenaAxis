@@ -9,10 +9,10 @@ import { remove } from "../controllers/field.controller.js";
 import { getStore } from "../controllers/field.controller.js";
 
 router.get("/", getFields);
-router.get("/detail/:field_id", getFieldDetail);
-router.post("/create", create);
-router.patch("/update/:field_id", update);
-router.delete("/delete/:field_id", remove);
 router.get("/store", getStore);
+router.get("/:field_id", getFieldDetail);
+router.post("/", create);
+router.patch("/:field_id", update);
+router.delete("/:field_id", remove);
 
 export default router;
