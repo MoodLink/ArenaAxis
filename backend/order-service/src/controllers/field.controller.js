@@ -101,3 +101,21 @@ export const remove = async (req, res) => {
     res.status(500).send({ message: error.message });
   }
 };
+
+// [GET] /fields/store-id
+export const getStore = async (req, res) => {
+  try {
+    const sportId = req.query.sport_id;
+    const filter = {};
+    if (sportId) filter.sportId = sportId;
+
+    const data = await getFieldsService(filter);
+    const storeIds = [...new Set(data.map((field) => field.storeId))];
+
+    res
+      .status(200)
+      .send({ message: "Store IDs retrieved successfully", data: storeIds });
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
+};
