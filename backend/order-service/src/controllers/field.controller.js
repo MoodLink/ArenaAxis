@@ -28,7 +28,7 @@ export const getFields = async (req, res) => {
   }
 };
 
-// [GET] /fields/detail/:field_id
+// [GET] /fields/:field_id
 export const getFieldDetail = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
@@ -44,7 +44,7 @@ export const getFieldDetail = async (req, res) => {
   }
 };
 
-// [POST] /fields/create
+// [POST] /fields
 export const create = async (req, res) => {
   try {
     const body = {
@@ -63,7 +63,7 @@ export const create = async (req, res) => {
   }
 };
 
-// [PATCH] /fields/update/:field_id
+// [PATCH] /fields/:field_id
 export const update = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
@@ -88,7 +88,7 @@ export const update = async (req, res) => {
   }
 };
 
-// [DELETE] /fields/delete/:field_id
+// [DELETE] /fields/:field_id
 export const remove = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
@@ -102,7 +102,7 @@ export const remove = async (req, res) => {
   }
 };
 
-// [GET] /fields/store-id
+// [GET] /fields/store
 export const getStore = async (req, res) => {
   try {
     const sportId = req.query.sport_id;
