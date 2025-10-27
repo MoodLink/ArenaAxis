@@ -11,13 +11,28 @@ const daysOfWeekEnum = {
   SUNDAY: "sunday",
 };
 
+const timeSchema = new mongoose.Schema({
+  hour: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 23
+  },
+  minute: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 59
+  }
+}, { _id: false });
+
 const fieldPricingSchema = new mongoose.Schema(
   {
     fieldId: { type: String, required: true },
     deletedAt: { type: Date, default: null },
     specialPrice: { type: Number, required: true },
-    startAt: { type: Date, required: true },
-    endAt: { type: Date, required: true },
+    startAt: { type: timeSchema, required: true },
+    endAt: { type: timeSchema, required: true },
     dayOfWeek: {
       type: String,
       enum: Object.values(daysOfWeekEnum),

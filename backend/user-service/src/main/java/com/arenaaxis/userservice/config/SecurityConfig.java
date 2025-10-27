@@ -22,35 +22,11 @@ public class SecurityConfig {
 
   private final HeaderAuthenticationFilter headerAuthenticationFilter;
 
-  private static final Map<HttpMethod, List<String>> PUBLIC_ENDPOINTS = Map.of(
-    HttpMethod.GET, List.of(
-      "/sports",
-      "/sports/**",
-      "/provinces",
-      "/provinces/**",
-      "/wards",
-      "/wards/**",
-      "/stores",
-      "/main-plans",
-      "/main-plans/**"
-    ),
-    HttpMethod.POST, List.of(
-      "/users",
-      "/auth",
-      "/auth/**"
-    )
-  );
-
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .csrf(AbstractHttpConfigurer::disable)
-      .authorizeHttpRequests(auth -> {
-        PUBLIC_ENDPOINTS.forEach((method, endpoints) ->
-          auth.requestMatchers(method, endpoints.toArray(String[]::new)).permitAll()
-        );
-        auth.anyRequest().authenticated();
-      })
+      .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
       .addFilterBefore(headerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
