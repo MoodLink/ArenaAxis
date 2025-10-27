@@ -2,11 +2,13 @@ package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
+import com.arenaaxis.userservice.dto.request.UpdateSportForStoreRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
 import com.arenaaxis.userservice.service.CurrentUserService;
+import com.arenaaxis.userservice.service.StoreHasSportService;
 import com.arenaaxis.userservice.service.StoreService;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
@@ -30,13 +32,21 @@ import java.util.Map;
 public class StoreController {
   StoreService storeService;
   CurrentUserService currentUserService;
+  StoreHasSportService storeHasSportService;
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
-//    @RequestBody SearchStoreRequest searchRequest,
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
       return ResponseEntity.ok(storeService.getInPagination(page, perPage));
+  }
+
+  @PostMapping("/search")
+  public ResponseEntity<List<StoreSearchItemResponse>> searchPageStores(
+    @RequestBody SearchStoreRequest request,
+    @RequestParam(value = "page", defaultValue = "1") int page,
+    @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+    return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
   }
 
   @PostMapping
@@ -72,5 +82,13 @@ public class StoreController {
   public ResponseEntity<List<StoreAdminDetailResponse>> getMyStores(@PathVariable("owner-id") String id) {
     User user = currentUserService.getCurrentUser();
     return ResponseEntity.ok(storeService.getStoresByOwnerId(id, user));
+  }
+
+  @PostMapping("/update-sport/{id}")
+  public ResponseEntity<Void> updateSport(@RequestBody UpdateSportForStoreRequest request,
+                                          @PathVariable("id") String storeId) {
+    request.setStoreId(storeId);
+    storeHasSportService.updateSportForStore(request);
+    return ResponseEntity.noContent().build();
   }
 }

@@ -29,7 +29,6 @@ public interface StoreMapper {
   @Mapping(target = "deletedAt", ignore = true)
   @Mapping(target = "viewCount", ignore = true)
   @Mapping(target = "orderCount", ignore = true)
-  @Mapping(target = "fields", ignore = true)
   @Mapping(target = "avatar", ignore = true)
   @Mapping(target = "coverImage", ignore = true)
   @Mapping(target = "businessLicenseImage", ignore = true)
