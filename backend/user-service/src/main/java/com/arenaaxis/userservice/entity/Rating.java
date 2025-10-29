@@ -15,7 +15,10 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(
-  indexes = @Index(name = "index_rating_user_id", columnList = "user_id")
+  indexes = {
+    @Index(name = "index_rating_user_id", columnList = "user_id"),
+    @Index(name = "index_rating_store_id", columnList = "store_id")
+  }
 )
 public class Rating {
   @Id
@@ -36,7 +39,10 @@ public class Rating {
   @Builder.Default
   LocalDateTime updatedAt = LocalDateTime.now();
 
-  Float star;
+  @ManyToOne(fetch = FetchType.EAGER)
+  Sport sport;
+
+  Integer star;
   String comment;
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "rating")

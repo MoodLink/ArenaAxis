@@ -21,6 +21,7 @@ import com.arenaaxis.userservice.repository.UserRepository;
 import com.arenaaxis.userservice.service.AuthenticationService;
 import com.arenaaxis.userservice.service.MediaService;
 import com.arenaaxis.userservice.service.StoreService;
+import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -37,6 +40,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -129,8 +133,11 @@ public class StoreServiceImpl implements StoreService {
   public List<StoreSearchItemResponse> searchInPagination(
     SearchStoreRequest request, int page, int perPage
   ) {
-
-    return List.of();
+    Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Specification<Store> spec = StoreSpecification.searchStores(request);
+    Page<Store> storePage = storeRepository.findAll(spec, pageable);
+    return storePage.getContent().stream()
+      .map(storeMapper::toStoreSearchItemResponse).toList();
   }
 
   @Override

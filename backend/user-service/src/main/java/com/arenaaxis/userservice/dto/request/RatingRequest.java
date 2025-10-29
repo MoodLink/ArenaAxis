@@ -9,9 +9,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SearchStoreRequest {
-  String name;
-  String wardId;
-  String provinceId;
+public class RatingRequest {
+  String comment;
+  String storeId;
   String sportId;
+  Integer star;
 }

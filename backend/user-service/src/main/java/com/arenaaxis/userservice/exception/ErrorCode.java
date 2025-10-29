@@ -28,6 +28,7 @@ public enum ErrorCode {
   STORE_MEDIA_NOT_FOUND(4012, "Store media not found", HttpStatus.BAD_REQUEST),
   MAIN_PLAN_NOT_FOUND(4013, "Main Plan not found", HttpStatus.BAD_REQUEST),
   FAVOURITE_ALREADY_EXISTED(4014, "Favourite already exists", HttpStatus.BAD_REQUEST),
+  CANNOT_REQUEST_TO_ORDER_SERVICE(4015, "Can't request to order service", HttpStatus.BAD_REQUEST),
   ;
 
   private final int code;

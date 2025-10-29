@@ -44,7 +44,8 @@ public class JwtAuthenticationFilter implements GlobalFilter {
     HttpMethod.POST, List.of(
       "/users",
       "/auth",
-      "/auth/**"
+      "/auth/**",
+      "/stores/search"
     )
   );
 
