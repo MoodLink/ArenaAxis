@@ -93,6 +93,6 @@ public class Store {
   @Builder.Default
   Float averageRating = 0F;
 
-  @OneToMany
+  @OneToMany(mappedBy = "store")
   Set<StoreHasSport> sports;
 }
