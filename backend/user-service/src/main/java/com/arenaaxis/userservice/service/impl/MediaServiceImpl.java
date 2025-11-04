@@ -94,7 +94,9 @@ public class MediaServiceImpl implements MediaService {
     storeMediaRepository.save(storeMedia);
   }
 
-  private Media createMedia(MultipartFile file) {
+  @Async
+  @Override
+  public Media createMedia(MultipartFile file) {
     if (file == null) return null;
 
     Media media = mediaUtility.upload(file);
@@ -128,6 +130,7 @@ public class MediaServiceImpl implements MediaService {
       case AVATAR -> store.setAvatar(media);
       case COVER -> store.setCoverImage(media);
       case LICENSE -> store.setBusinessLicenseImage(media);
+      default -> throw new IllegalArgumentException("Unexpected value: " + type);
     }
 
     storeRepository.save(store);

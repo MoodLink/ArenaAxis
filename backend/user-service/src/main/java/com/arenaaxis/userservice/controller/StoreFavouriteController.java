@@ -34,10 +34,10 @@ public class StoreFavouriteController {
     return ResponseEntity.ok(storeFavouriteService.createFavourite(request.getStoreId(), current));
   }
 
-  @DeleteMapping("/store-id")
-  public ResponseEntity<Void> delete(@RequestBody FavouriteRequest request) {
+  @DeleteMapping("/store/{storeId}")
+  public ResponseEntity<Void> delete(@PathVariable String storeId) {
     User current = currentUserService.getCurrentUser();
-    storeFavouriteService.deleteFavouriteByStoreIdAndUser(request.getStoreId(), current);
+    storeFavouriteService.deleteFavouriteByStoreIdAndUser(storeId, current);
     return ResponseEntity.noContent().build();
   }
 

@@ -7,8 +7,10 @@ import com.arenaaxis.userservice.entity.User;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public interface RatingService {
-  RatingResponse create(RatingRequest request, User current);
+  RatingResponse create(RatingRequest request, List<MultipartFile> medias, User current);
   RatingRequest update(RatingRequest request, User current);
   List<RatingResponse> getPageRatingForStore(SearchRatingRequest request, int page, int perPage);
   void delete(String ratingId, User current);

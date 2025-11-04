@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface StoreHasSportRepository extends JpaRepository<StoreHasSport, String> {
   Optional<StoreHasSport> findBySportIdAndStoreId(String sportId, String storeId);
+  boolean existsBySportIdAndStoreId(String sportId, String storeId);
 }

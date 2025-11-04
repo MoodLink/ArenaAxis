@@ -29,6 +29,8 @@ public enum ErrorCode {
   MAIN_PLAN_NOT_FOUND(4013, "Main Plan not found", HttpStatus.BAD_REQUEST),
   FAVOURITE_ALREADY_EXISTED(4014, "Favourite already exists", HttpStatus.BAD_REQUEST),
   CANNOT_REQUEST_TO_ORDER_SERVICE(4015, "Can't request to order service", HttpStatus.BAD_REQUEST),
+  STORE_NOT_HAS_SPORT(4016, "This store doesn't has this sport", HttpStatus.BAD_REQUEST),
+  RATING_NOT_EXISTS(4017, "This rating doesn't exist", HttpStatus.BAD_REQUEST),
   ;
 
   private final int code;

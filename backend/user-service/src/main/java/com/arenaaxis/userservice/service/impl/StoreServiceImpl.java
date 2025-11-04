@@ -103,7 +103,8 @@ public class StoreServiceImpl implements StoreService {
       .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     if (shouldIncreaseView(currentUser)) {
-      increaseViewCount(store);
+      store.increaseViewCount();
+      store = storeRepository.save(store);
     }
 
     if (shouldSaveHistory(currentUser, storeId)) {
@@ -173,11 +174,6 @@ public class StoreServiceImpl implements StoreService {
     if (Objects.requireNonNull(currentUser).getRole() != Role.USER) return false;
 
     return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
-  }
-
-  private void increaseViewCount(Store store) {
-    store.setViewCount(store.getViewCount() + 1);
-    storeRepository.save(store);
   }
 
   private void saveStoreViewHistory(Store store, User currentUser) {

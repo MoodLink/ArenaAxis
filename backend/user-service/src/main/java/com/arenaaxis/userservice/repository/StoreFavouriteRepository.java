@@ -10,7 +10,9 @@ import java.util.List;
 
 @Repository
 public interface StoreFavouriteRepository extends JpaRepository<StoreFavourite, String> {
+  @Modifying(clearAutomatically = true)
   boolean existsByStoreIdAndUserId(String storeId, String userId);
+
   List<StoreFavourite> findByUserId(String userId);
 
   void deleteByUserId(String userId);

@@ -10,5 +10,6 @@ import org.mapstruct.Named;
 public interface UserShallowMapper {
   @Named("toShallowBankAccountResponse")
   @Mapping(target = "bankAccount", ignore = true)
+  @Mapping(target = "avatarUrl", ignore = true)
   UserResponse toShallowBankAccountResponse(User user);
 }
