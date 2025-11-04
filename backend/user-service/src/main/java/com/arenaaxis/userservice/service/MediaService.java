@@ -16,6 +16,9 @@ public interface MediaService {
   void uploadImagesStore(Store store, StoreImageType type, MultipartFile file);
 
   @Async
+  Media createMedia(MultipartFile file);
+
+  @Async
   void uploadMultipleMedias(Store store, List<MultipartFile> files);
 
   @Async

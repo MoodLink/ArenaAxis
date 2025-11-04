@@ -2,9 +2,7 @@ package com.arenaaxis.userservice.specification;
 
 import com.arenaaxis.userservice.dto.request.SearchRatingRequest;
 import com.arenaaxis.userservice.entity.Rating;
-import com.arenaaxis.userservice.entity.Sport;
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
@@ -39,10 +37,5 @@ public class RatingSpecification {
     if (request.getStoreId() != null) {
       predicates.add(cb.equal(root.get("store").get("id"), request.getSportId()));
     }
-  }
-
-  private static void settingUser(List<Predicate> predicates, SearchRatingRequest request,
-                                  Root<Rating> root, CriteriaBuilder cb) {
-
   }
 }

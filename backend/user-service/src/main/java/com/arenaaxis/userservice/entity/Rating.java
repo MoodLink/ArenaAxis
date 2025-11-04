@@ -25,11 +25,11 @@ public class Rating {
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "user_id", nullable = false)
   User user;
 
-  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "store_id", nullable = false)
   Store store;
 
