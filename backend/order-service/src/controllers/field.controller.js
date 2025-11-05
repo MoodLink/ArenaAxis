@@ -3,7 +3,7 @@ import { getFields as getFieldsService } from "../services/field.service.js";
 import { getFieldById as getFieldByIdService } from "../services/field.service.js";
 import { update as updateField } from "../services/field.service.js";
 import { remove as removeField } from "../services/field.service.js";
-import { fieldSearch } from "../utils/search.js";
+import { fieldSearch } from "../utils/search.util.js";
 
 // [GET] /fields?sport_id=&store_id=&active_status=&keyword
 export const getFields = async (req, res) => {
