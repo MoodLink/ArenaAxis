@@ -6,39 +6,77 @@ import ProfileHeader from "@/components/profile/ProfileHeader"
 import ProfileTabs from "@/components/profile/ProfileTabs"
 import ProfileOverview from "@/components/profile/ProfileOverview"
 import ProfileActivities from "@/components/profile/ProfileActivities"
+import ProfileStores from "@/components/profile/ProfileStores"
 import ProfileAchievements from "@/components/profile/ProfileAchievements"
 import ProfileSettings from "@/components/profile/ProfileSettings"
-import { getCurrentUser } from "@/services/api"
+import { getMyProfile } from "@/services/api-new"
 import { User as UserType } from "@/types"
-import { currentUser } from "@/data/mockData"
+import { useRouter } from "next/navigation"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>("overview")
+  const router = useRouter()
 
-  // Lấy dữ liệu user từ API hoặc mockData
+  // ✅ Lấy dữ liệu user từ API thật - SỬ DỤNG ĐÚNG ENDPOINT
   useEffect(() => {
     async function fetchUser() {
       try {
-        // Thử lấy từ API trước, nếu lỗi thì dùng mockData
-        try {
-          const userData = await getCurrentUser()
-          setUser(userData)
-        } catch {
-          // Fallback to mockData if API fails
-          setUser(currentUser)
+        console.log("🔍 Fetching current user profile with getMyProfile() - GET /users/myself")
+
+        // ✅ ĐÚNG: Sử dụng getMyProfile() -> GET /users/myself
+        // Endpoint này tự động lấy thông tin user từ JWT token
+        const userData = await getMyProfile()
+        console.log("✅ User data from API:", userData)
+
+        // Kiểm tra xem userData có tồn tại không
+        if (!userData) {
+          console.error("❌ API trả về null, không có dữ liệu user")
+          router.push("/login")
+          return
         }
+
+        // Map UserResponse sang User type với các field mặc định
+        const mappedUser: UserType = {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          avatarUrl: localStorage.getItem('userAvatar') || userData.avatarUrl,
+          bankAccount: userData.bankAccount,
+          // Thêm các field optional với giá trị mặc định
+          avatar: localStorage.getItem('userAvatar') || userData.avatarUrl,
+          bio: undefined,
+          location: undefined,
+          favoriteSports: [],
+          notifications: {
+            booking: true,
+            tournament: true,
+            community: true,
+            email: true,
+            push: false
+          },
+          stats: {
+            totalBookings: 0,
+            totalTournaments: 0,
+            totalPosts: 0
+          }
+        }
+
+        console.log("✅ Mapped user:", mappedUser)
+        setUser(mappedUser)
       } catch (error) {
-        console.error("Error fetching user:", error)
-        setUser(currentUser) // Fallback to mockData
+        console.error("❌ Error fetching user:", error)
+        // Nếu lỗi, redirect về login
+        router.push("/login")
       } finally {
         setLoading(false)
       }
     }
 
     fetchUser()
-  }, [])
+  }, [router])
 
   if (loading) {
     return (
@@ -68,6 +106,10 @@ export default function ProfilePage() {
 
           <TabsContent value="activities" className="space-y-6">
             <ProfileActivities />
+          </TabsContent>
+
+          <TabsContent value="stores" className="space-y-6">
+            <ProfileStores userId={user?.id} />
           </TabsContent>
 
           <TabsContent value="achievements" className="space-y-6">

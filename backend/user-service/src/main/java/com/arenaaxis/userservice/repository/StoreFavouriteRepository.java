@@ -15,7 +15,11 @@ public interface StoreFavouriteRepository extends JpaRepository<StoreFavourite, 
 
   List<StoreFavourite> findByUserId(String userId);
 
+  @Modifying
   void deleteByUserId(String userId);
+
+  @Modifying
+  @Query("DELETE FROM StoreFavourite s WHERE s.store.id = :storeId AND s.user.id = :userId")
   void deleteByStoreIdAndUserId(String storeId, String userId);
 
   @Modifying

@@ -1,3 +1,184 @@
+// =================
+// AUTH SERVICES
+// =================
+
+// Đăng nhập user
+export async function loginUser(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/auth/user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { error: data.message || data.error || `Lỗi ${response.status}: ${response.statusText}` };
+        }
+        return { token: data.token, user: data.user };
+    } catch (err: any) {
+        return { error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+// Đăng nhập admin
+export async function loginAdmin(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/auth/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { error: data.message || data.error || `Lỗi ${response.status}: ${response.statusText}` };
+        }
+        return { token: data.token, user: data.user };
+    } catch (err: any) {
+        return { error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+
+// Đăng nhập Client
+export async function loginClient(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/auth/client', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { error: data.message || data.error || `Lỗi ${response.status}: ${response.statusText}` };
+        }
+        return { token: data.token, user: data.user };
+    } catch (err: any) {
+        return { error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+
+// Đăng ký user
+export async function signupUser({ name, email, password, phone }: { name: string; email: string; password: string; phone?: string }): Promise<{ success: boolean; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password, phone })
+        });
+        if (!response.ok) {
+            let errorMessage = 'Đăng ký thất bại';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch {
+                errorMessage = `Lỗi ${response.status}: ${response.statusText}`;
+            }
+            return { success: false, error: errorMessage };
+        }
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+// Refresh token
+export async function refreshToken(token: string): Promise<{ token?: string; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            return { error: data.message || data.error || `Lỗi ${response.status}: ${response.statusText}` };
+        }
+        return { token: data.token };
+    } catch (err: any) {
+        return { error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+// Logout
+export async function logout(token: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const response = await fetch('http://localhost:8088/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            return { success: false, error: error.message || 'Đăng xuất thất bại' };
+        }
+        return { success: true };
+    } catch (err: any) {
+        return { success: false, error: 'Không thể kết nối đến server. Vui lòng thử lại.' };
+    }
+}
+
+// =================
+// USER SERVICES
+// =================
+
+// Lấy thông tin user theo ID
+export async function getUserById(id: string): Promise<User | null> {
+    try {
+        const response = await fetch(`http://localhost:8088/users/${id}`);
+        if (!response.ok) {
+            return null;
+        }
+        return await response.json();
+    } catch (err: any) {
+        console.error('Error fetching user:', err);
+        return null;
+    }
+}
+
+// Lấy danh sách users với phân trang
+export async function getUsers(page: number = 0, pageSize: number = 30): Promise<User[]> {
+    try {
+        const response = await fetch(`http://localhost:8088/users?page=${page}&pageSize=${pageSize}`);
+        if (!response.ok) {
+            return [];
+        }
+        return await response.json();
+    } catch (err: any) {
+        console.error('Error fetching users:', err);
+        return [];
+    }
+}
+
+// Toggle active status của user (Admin only)
+export async function toggleUserActive(id: string): Promise<User | null> {
+    try {
+        const response = await fetch(`http://localhost:8088/users/${id}/toggle_active`, {
+            method: 'PUT'
+        });
+        if (!response.ok) {
+            return null;
+        }
+        return await response.json();
+    } catch (err: any) {
+        console.error('Error toggling user active status:', err);
+        return null;
+    }
+}
+
+// Xóa user (Admin only)
+export async function deleteUser(id: string): Promise<boolean> {
+    try {
+        const response = await fetch(`http://localhost:8088/users/${id}`, {
+            method: 'DELETE'
+        });
+        return response.ok;
+    } catch (err: any) {
+        console.error('Error deleting user:', err);
+        return false;
+    }
+}
+
 // API Service layer - nơi tập trung tất cả các API calls
 // Giúp dễ dàng quản lý và thay đổi API endpoints
 
@@ -88,61 +269,209 @@ export async function getFields(filters?: {
     priceRange?: string,
     amenities?: string[]
 }): Promise<Field[]> {
-    const { popularFields } = await import('@/data/mockData')
+    try {
+        // Gọi proxy route thay vì backend trực tiếp (avoid CORS)
+        const response = await fetch('/api/fields', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        })
 
-    if (!filters) return popularFields
-
-    return popularFields.filter(field => {
-        // Lọc theo môn thể thao
-        if (filters.sport && field.sport !== filters.sport) {
-            return false
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`)
         }
 
-        // Lọc theo khu vực
-        if (filters.location && filters.location !== "all") {
-            const matchesLocation = field.location.toLowerCase().includes(filters.location.toLowerCase())
-            if (!matchesLocation) return false
+        const data = await response.json()
+        let allFields = Array.isArray(data) ? data : data.data || []
+
+        console.log('Raw fields from API:', allFields) // Debug - check status field name
+
+        // Fetch Store data để lấy introduction, start_time, end_time cho mỗi field
+        const storeIds = [...new Set(allFields.map((f: any) => f.storeId).filter(Boolean))]
+        const storeMap = new Map()
+
+        for (const storeId of storeIds) {
+            try {
+                const storeResponse = await fetch(`http://localhost:8088/stores/${storeId}`)
+                if (storeResponse.ok) {
+                    const storeData = await storeResponse.json()
+                    const store = storeData.data || storeData
+                    console.log(`Store ${storeId} data:`, store) // Debug
+                    storeMap.set(storeId, store)
+                }
+            } catch (error) {
+                console.warn(`Could not fetch store ${storeId}:`, error)
+            }
         }
 
-        // Lọc theo khoảng giá  
-        if (filters.priceRange && filters.priceRange !== "all") {
-            const price = field.price
-            const matchesPrice =
-                (filters.priceRange === "under-200k" && price < 200000) ||
-                (filters.priceRange === "200k-400k" && price >= 200000 && price <= 400000) ||
-                (filters.priceRange === "400k-600k" && price > 400000 && price <= 600000) ||
-                (filters.priceRange === "over-600k" && price > 600000)
+        // Map Store data to fields
+        allFields = allFields.map((field: any) => {
+            const mappedField = { ...field }
 
-            if (!matchesPrice) return false
+            // Backend trả về "activeStatus" (boolean) - cần convert sang string
+            if (typeof field.activeStatus === 'boolean') {
+                // Backend: activeStatus = true → 'available', false → 'unavailable'
+                const statusString = field.activeStatus === true ? 'available' : 'unavailable'
+                mappedField.activeStatus = statusString
+                console.log(`✅ Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
+            }
+
+            // Fetch và map Store data
+            if (field.storeId && storeMap.has(field.storeId)) {
+                const store = storeMap.get(field.storeId)
+
+                // Map introduction
+                if (store.introduction) {
+                    mappedField.description = store.introduction
+                }
+
+                // Map startTime - backend trả về string "HH:mm:ss"
+                if (store.startTime && typeof store.startTime === 'string') {
+                    mappedField.openingHours = store.startTime.substring(0, 5) // "07:00:00" → "07:00"
+                }
+
+                // Map endTime - backend trả về string "HH:mm:ss"
+                if (store.endTime && typeof store.endTime === 'string') {
+                    mappedField.closingHours = store.endTime.substring(0, 5) // "21:00:00" → "21:00"
+                }
+
+                console.log(`✅ Store data mapped for "${field.name}": times="${mappedField.openingHours} - ${mappedField.closingHours}"`)
+            }
+            return mappedField
+        })
+
+        if (!filters) return allFields
+
+        return allFields.filter((field: any) => {
+            // Lọc theo môn thể thao
+            if (filters.sport && field.sport_name !== filters.sport) {
+                return false
+            }
+
+            // Lọc theo khu vực
+            if (filters.location && filters.location !== "all") {
+                const matchesLocation = field.address?.toLowerCase().includes(filters.location.toLowerCase()) || false
+                if (!matchesLocation) return false
+            }
+
+            // Lọc theo khoảng giá
+            if (filters.priceRange && filters.priceRange !== "all") {
+                const price = (field.defaultPrice || 0) as number
+                const matchesPrice =
+                    (filters.priceRange === "under-200k" && price < 200000) ||
+                    (filters.priceRange === "200k-400k" && price >= 200000 && price <= 400000) ||
+                    (filters.priceRange === "400k-600k" && price > 400000 && price <= 600000) ||
+                    (filters.priceRange === "over-600k" && price > 600000)
+
+                if (!matchesPrice) return false
+            }
+
+            return true
+        })
+    } catch (error) {
+        console.error('Error fetching fields:', error)
+        // Fallback để mock data nếu backend fail
+        try {
+            const { popularFields } = await import('@/data/mockData')
+            return popularFields
+        } catch {
+            return []
         }
-
-        // Lọc theo tiện ích
-        if (filters.amenities && filters.amenities.length > 0) {
-            const hasAmenities = filters.amenities.every(amenity =>
-                field.amenities.some(fieldAmenity =>
-                    fieldAmenity.toLowerCase().includes(amenity.toLowerCase())
-                )
-            )
-            if (!hasAmenities) return false
-        }
-
-        return true
-    })
-
-    // API call version:
-    // const queryParams = new URLSearchParams(filters as any).toString()
-    // const result = await apiCall<Field[]>(`/fields?${queryParams}`)
-    // return result.success ? result.data! : []
+    }
 }
 
 // Lấy chi tiết một sân
 export async function getFieldById(id: string): Promise<Field | null> {
-    const { popularFields } = await import('@/data/mockData')
-    return popularFields.find((field: Field) => field.id === id) || null
+    try {
+        // Gọi proxy route thay vì backend trực tiếp
+        // Trong Server Component, cần URL đầy đủ
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+        const response = await fetch(`${baseUrl}/api/fields/${id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            next: { revalidate: 60 } // Revalidate mỗi 60 giây
+        })
 
-    // API call version:
-    // const result = await apiCall<Field>(`/fields/${id}`)
-    // return result.success ? result.data! : null
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`)
+        }
+
+        const data = await response.json()
+        let field = Array.isArray(data) ? data[0] : data.data || data
+
+        console.log('Field detail from API:', field) // Debug
+
+        // Backend trả về "activeStatus" (boolean) - convert sang string
+        if (typeof field.activeStatus === 'boolean') {
+            const statusString = field.activeStatus === true ? 'available' : 'unavailable'
+            field.activeStatus = statusString
+            console.log(`✅ Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
+        }
+
+        // Fetch Store data để lấy introduction, startTime, endTime, owner info
+        if (field.storeId) {
+            try {
+                const storeResponse = await fetch(`http://localhost:8088/stores/${field.storeId}`)
+                if (storeResponse.ok) {
+                    const storeData = await storeResponse.json()
+                    const store = storeData.data || storeData
+
+                    // Map introduction
+                    if (store.introduction) {
+                        field.description = store.introduction
+                    }
+
+                    // Map startTime - backend trả về string "HH:mm:ss"
+                    if (store.startTime && typeof store.startTime === 'string') {
+                        field.openingHours = store.startTime.substring(0, 5) // "07:00:00" → "07:00"
+                    }
+
+                    // Map endTime - backend trả về string "HH:mm:ss"
+                    if (store.endTime && typeof store.endTime === 'string') {
+                        field.closingHours = store.endTime.substring(0, 5) // "21:00:00" → "21:00"
+                    }
+
+                    // Map owner contact info (if available)
+                    if (store.owner) {
+                        field.phone = store.owner.phone || field.phone
+                        field.email = store.owner.email || field.email
+                    }
+
+                    // Map store location
+                    if (store.address) {
+                        field.address = store.address
+                    }
+
+                    console.log(`✅ Store data mapped for "${field.name}": times="${field.openingHours} - ${field.closingHours}", contact="${field.phone}"`)
+                }
+            } catch (error) {
+                console.warn(`Could not fetch store ${field.storeId}:`, error)
+            }
+        }
+
+        // Add default values for missing fields
+        if (!field.capacity) {
+            field.capacity = "22 người" // Default capacity
+        }
+        if (!field.surfaceType) {
+            // Random surface type based on sport
+            const surfaceTypes = ["Cỏ nhân tạo", "Cỏ tự nhiên", "Sân xi măng", "Sàn gỗ", "Sân đất nện"]
+            field.surfaceType = surfaceTypes[Math.floor(Math.random() * surfaceTypes.length)]
+        }
+        if (!field.reviewCount) {
+            field.reviewCount = Math.floor(Math.random() * 100) + 10 // Random 10-110
+        }
+
+        return field
+    } catch (error) {
+        console.error('Error fetching field by ID:', error)
+        // Fallback để mock data
+        try {
+            const { popularFields } = await import('@/data/mockData')
+            return popularFields.find((field: Field) => field.id === id || field._id === id) || null
+        } catch {
+            return null
+        }
+    }
 }
 
 // Lấy các slot booking cho một sân cụ thể
@@ -165,14 +494,17 @@ export async function getFieldBookingSlots(fieldId: string, date?: string): Prom
 // SPORT SERVICES
 // =================
 
-// Lấy danh sách môn thể thao
+// Lấy danh sách môn thể thao từ API backend
 export async function getSports(): Promise<Sport[]> {
-    const { sports } = await import('@/data/mockData')
-    return sports
-
-    // API call version:
-    // const result = await apiCall<Sport[]>('/sports')
-    // return result.success ? result.data! : []
+    try {
+        // Gọi trực tiếp API backend (bỏ qua apiCall để lấy dữ liệu thật)
+        const response = await fetch('http://localhost:8088/sports');
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
 }
 
 // =================
@@ -374,28 +706,15 @@ export async function getFieldBookingGrid(fieldId: string, date: string): Promis
 
     subCourts.forEach((court) => {
         bookingGrid[court.id] = {};
-        timeSlots.forEach((slot, index) => {
-            // Create deterministic patterns based on fieldId, courtId, date, and time
-            const dateNum = new Date(date).getDate();
-            const courtNum = parseInt(court.id.split('-')[1]);
-            const seed = parseInt(fieldId) + courtNum + dateNum + index;
-
-            const isBooked = (seed % 3) === 0;
-            const isLocked = (seed % 11) === 0;
-
-            if (isLocked) {
-                bookingGrid[court.id][slot] = "locked";
-            } else if (isBooked) {
-                bookingGrid[court.id][slot] = "booked";
-            } else {
-                bookingGrid[court.id][slot] = "available";
-            }
+        timeSlots.forEach((slot) => {
+            // TODO: All slots are available for now - waiting for real booking API
+            bookingGrid[court.id][slot] = "available";
         });
     });
 
     return bookingGrid;
 
-    // API call version:
+    // API call version (when real API is ready):
     // const result = await apiCall<any>(`/fields/${fieldId}/booking-grid?date=${date}`)
     // return result.success ? result.data! : {}
 }

@@ -35,10 +35,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const sidebarItems = [
     {
-        title: 'Dashboard',
+        title: 'Quản lý cửa hàng',
         icon: LayoutDashboard,
         href: '/store',
-        badge: null
+        badge: null,
+        // children: [
+        //     {
+        //         title: 'Chi tiết',
+        //         icon: BarChart3,
+        //         href: '/store/detail',
+        //         badge: null
+        //     }
+        // ]
     },
     {
         title: 'Sân của tôi',
@@ -115,24 +123,25 @@ function Sidebar({ className = '' }: { className?: string }) {
                     const Icon = item.icon
 
                     return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                        >
-                            <div className="flex items-center space-x-3">
-                                <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                                <span>{item.title}</span>
-                            </div>
-                            {item.badge && (
-                                <Badge variant="secondary" className="text-xs">
-                                    {item.badge}
-                                </Badge>
-                            )}
-                        </Link>
+                        <div key={item.href}>
+                            <Link
+                                href={item.href}
+                                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                                    }`}
+                            >
+                                <div className="flex items-center space-x-3">
+                                    <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                                    <span>{item.title}</span>
+                                </div>
+                                {item.badge && (
+                                    <Badge variant="secondary" className="text-xs">
+                                        {item.badge}
+                                    </Badge>
+                                )}
+                            </Link>
+                        </div>
                     )
                 })}
             </nav>
@@ -235,7 +244,7 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 overflow-x-hidden">
             <div className="flex min-h-screen">
                 {/* Desktop Sidebar */}
                 <Sidebar className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:h-full" />
@@ -249,10 +258,10 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
                 )}
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col lg:ml-64">
+                <div className="flex-1 flex flex-col lg:ml-64 w-full max-w-full overflow-x-hidden">
                     <Header onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-                    <main className="flex-1 bg-gray-50 pb-20">
-                        <div className="p-6">
+                    <main className="flex-1 bg-gray-50 pb-20 overflow-x-hidden">
+                        <div className="p-4 md:p-6 w-full max-w-full">
                             {children}
                         </div>
                     </main>

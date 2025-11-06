@@ -1,12 +1,42 @@
 "use client"
 
+
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MapPin, User, LogOut, Settings, Users, History, MessageCircle } from "lucide-react"
 
 export default function Header() {
+  // State để lưu trạng thái đăng nhập và thông tin user
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    // Giả sử token và user info lưu ở localStorage
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const userInfo = typeof window !== 'undefined' ? localStorage.getItem('user') : null
+    if (token && userInfo) {
+      try {
+        setUser(JSON.parse(userInfo))
+      } catch {
+        setUser(null)
+      }
+    } else {
+      setUser(null)
+    }
+  }, [])
+
+  // Hàm đăng xuất
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+      window.location.href = '/login'
+    }
+  }
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -24,14 +54,14 @@ export default function Header() {
             <Link href="/" className="text-gray-700 hover:text-green-600 transition-colors">
               Home
             </Link>
-            <Link href="/fields" className="text-gray-700 hover:text-green-600 transition-colors">
-              Book
+            <Link href="/list-store" className="text-gray-700 hover:text-green-600 transition-colors">
+              List Store
             </Link>
             <Link href="/community" className="text-gray-700 hover:text-green-600 transition-colors">
               Community
             </Link>
             <Link href="/tournaments" className="text-gray-700 hover:text-green-600 transition-colors">
-              Tournaments
+              Sports News
             </Link>
             <Link href="/contact" className="text-gray-700 hover:text-green-600 transition-colors">
               Contact
@@ -39,28 +69,38 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            {/* Auth buttons for non-logged in users */}
-            <div className="hidden md:flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
+            {/* Nếu chưa đăng nhập thì hiện nút đăng nhập/đăng ký */}
+            {!user && (
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/login">
+                  <Button variant="outline" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            )}
 
-            <div className="">
+            {/* Nếu đã đăng nhập thì hiện thông tin user */}
+            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-green-500 text-white">NA</AvatarFallback>
+                      {/* Nếu có avatar thì hiện, không thì hiện tên viết tắt */}
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name || "User"} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <AvatarFallback className="bg-green-500 text-white">
+                          {user.name ? user.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
-                    <span className="hidden md:inline">Nguyễn Văn An</span>
+                    <span className="hidden md:inline">{user.name || 'User'}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -92,13 +132,13 @@ export default function Header() {
                     <Settings className="w-4 h-4 mr-2" />
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
+            )}
           </div>
         </div>
       </div>

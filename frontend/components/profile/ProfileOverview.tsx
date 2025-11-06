@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { User, Trophy } from "lucide-react"
 import { User as UserType } from "@/types"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import ProfileStats from "./ProfileStats"
 
 interface ProfileOverviewProps {
@@ -44,10 +45,7 @@ export default function ProfileOverview({ user }: ProfileOverviewProps) {
                                 <label className="text-sm font-medium text-gray-700">Số điện thoại</label>
                                 <p className="text-gray-900 mt-1">{user.phone}</p>
                             </div>
-                            <div>
-                                <label className="text-sm font-medium text-gray-700">Ngày tham gia</label>
-                                <p className="text-gray-900 mt-1">{formatDate(user.createdAt)}</p>
-                            </div>
+
                         </div>
                     </CardContent>
                 </Card>
@@ -62,14 +60,18 @@ export default function ProfileOverview({ user }: ProfileOverviewProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-3">
-                            {user.favoriteSports.map((sport, index) => (
-                                <span
-                                    key={index}
-                                    className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer"
-                                >
-                                    {sport}
-                                </span>
-                            ))}
+                            {user.favoriteSports && user.favoriteSports.length > 0 ? (
+                                user.favoriteSports.map((sport, index) => (
+                                    <span
+                                        key={index}
+                                        className="px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors cursor-pointer"
+                                    >
+                                        {sport}
+                                    </span>
+                                ))
+                            ) : (
+                                <p className="text-gray-500 text-sm">Chưa có môn thể thao yêu thích</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -90,20 +92,20 @@ export default function ProfileOverview({ user }: ProfileOverviewProps) {
                     <CardContent className="space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-700">Nhắc nhở đặt sân</span>
-                            <div className={`w-10 h-6 rounded-full ${user.notifications.booking ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
-                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications.booking ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                            <div className={`w-10 h-6 rounded-full ${user.notifications?.booking ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications?.booking ? 'translate-x-5' : 'translate-x-1'}`}></div>
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-700">Cập nhật giải đấu</span>
-                            <div className={`w-10 h-6 rounded-full ${user.notifications.tournament ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
-                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications.tournament ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                            <div className={`w-10 h-6 rounded-full ${user.notifications?.tournament ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications?.tournament ? 'translate-x-5' : 'translate-x-1'}`}></div>
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-700">Tin nhắn cộng đồng</span>
-                            <div className={`w-10 h-6 rounded-full ${user.notifications.community ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
-                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications.community ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                            <div className={`w-10 h-6 rounded-full ${user.notifications?.community ? 'bg-green-500' : 'bg-gray-300'} relative transition-colors`}>
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${user.notifications?.community ? 'translate-x-5' : 'translate-x-1'}`}></div>
                             </div>
                         </div>
                     </CardContent>

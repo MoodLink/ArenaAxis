@@ -15,6 +15,7 @@ public class UserResponse {
   String name;
   String phone;
   String avatarUrl;
+  boolean active; // ✅ Thêm field active
 
   BankAccountResponse bankAccount;
 }

@@ -60,6 +60,10 @@ jwt:
 cloudinary:
   url: ${CLOUDINARY_URL:cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix}
 
+service:
+  order:
+    url: ${ORDER_SERVICE_URL:http://localhost:3001}
+
 management:
   tracing:
     sampling:

@@ -38,9 +38,9 @@ export default function FieldsContent({
         <div className="mb-8">
             {viewMode === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-                    {fields.map((field) => (
+                    {fields.map((field, index) => (
                         <FieldGridCard
-                            key={field.id}
+                            key={field._id || field.id || `field-${index}`}
                             field={field}
                             onFavoriteClick={onFavoriteClick}
                             onMenuClick={onMenuClick}
@@ -51,9 +51,9 @@ export default function FieldsContent({
 
             {viewMode === "list" && (
                 <div className="space-y-3">
-                    {fields.map((field) => (
+                    {fields.map((field, index) => (
                         <FieldListItem
-                            key={field.id}
+                            key={field._id || field.id || `field-${index}`}
                             field={field}
                             onFavoriteClick={onFavoriteClick}
                         />

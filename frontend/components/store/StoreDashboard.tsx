@@ -6,6 +6,7 @@ import StatsOverview from '@/components/store/dashboard/StatsOverview'
 import ChartsSection from '@/components/store/dashboard/ChartsSection'
 import DataSection from '@/components/store/dashboard/DataSection'
 import QuickActions from '@/components/store/dashboard/QuickActions'
+import OwnerStoresList from '@/components/store/OwnerStoresList'
 
 export default function StoreDashboard() {
     return (
@@ -13,7 +14,7 @@ export default function StoreDashboard() {
             <div className="space-y-6">
                 {/* Page Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Quản lý cửa hàng</h1>
                     <p className="text-gray-600">Tổng quan hoạt động kinh doanh sân thể thao</p>
                 </div>
 
@@ -21,10 +22,13 @@ export default function StoreDashboard() {
                 <StatsOverview />
 
                 {/* Charts */}
-                <ChartsSection />
+                {/* <ChartsSection /> */}
 
                 {/* Data Section */}
-                <DataSection />
+                {/* <DataSection /> */}
+
+                {/* Owner Stores List */}
+                <OwnerStoresList />
 
                 {/* Quick Actions */}
                 <QuickActions />

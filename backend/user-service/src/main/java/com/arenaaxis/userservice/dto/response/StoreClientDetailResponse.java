@@ -33,7 +33,7 @@ public class StoreClientDetailResponse {
   String avatarUrl;
   String coverImageUrl;
 
-  List<String> mediaUrls;
+  List<String> mediaUrls; // slide anh 
 
   Float latitude;
   Float longitude;

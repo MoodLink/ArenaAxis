@@ -13,8 +13,8 @@ import java.time.LocalTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StoreCreateRequest {
   String name;
-  String address;
   String introduction;
+  String address;
   String linkGoogleMap;
 
   String wardId;

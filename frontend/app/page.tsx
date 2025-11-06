@@ -7,15 +7,17 @@ import PopularFieldsSection from "@/components/home/PopularFieldsSection"
 import SportsCategoriesSection from "@/components/home/SportsCategoriesSection"
 import TournamentsSection from "@/components/home/TournamentsSection"
 import AboutSection from "@/components/home/AboutSection"
-import { getPopularFields, getSports, getTournaments } from "@/services/api"
-import { Field, Sport, Tournament } from "@/types"
+import { getPopularFields } from "@/services/api"
+import { getSports } from "@/services/api-new"
+import { getSportsNews } from "@/services/sports-news"
+import { Field, Sport, SportsNews } from "@/types"
 
 // Component trang chủ - sử dụng client-side data fetching
 export default function HomePage() {
   // State để lưu trữ dữ liệu từ API
   const [popularFields, setPopularFields] = useState<Field[]>([])
   const [sports, setSports] = useState<Sport[]>([])
-  const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [sportsNews, setSportsNews] = useState<SportsNews[]>([])
   const [loading, setLoading] = useState(true)
 
   // useEffect để fetch dữ liệu khi component mount
@@ -23,16 +25,16 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         // Gọi các API song song để tăng hiệu suất
-        const [fieldsData, sportsData, tournamentsData] = await Promise.all([
+        const [fieldsData, sportsData, newsResponse] = await Promise.all([
           getPopularFields(),
           getSports(),
-          getTournaments()
+          getSportsNews('all', 'vi', 8, 1) // Lấy 8 tin tức mới nhất từ trang 1
         ])
 
         // Cập nhật state với dữ liệu từ API
         setPopularFields(fieldsData)
         setSports(sportsData)
-        setTournaments(tournamentsData)
+        setSportsNews(newsResponse.articles || []) // Lấy articles từ response
       } catch (error) {
         console.error('Error fetching homepage data:', error)
       } finally {
@@ -67,8 +69,8 @@ export default function HomePage() {
       {/* Sports Categories Section - Các môn thể thao */}
       <SportsCategoriesSection sports={sports} />
 
-      {/* Tournaments Section - Các giải đấu */}
-      <TournamentsSection tournaments={tournaments} />
+      {/* Sports News Section - Tin tức thể thao */}
+      <TournamentsSection sportsNews={sportsNews} />
 
       {/* About Section - Giới thiệu */}
       <AboutSection />

@@ -28,28 +28,25 @@ public class JwtAuthenticationFilter implements GlobalFilter {
   private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
   private static final Map<HttpMethod, List<String>> PUBLIC_ENDPOINTS = Map.of(
-    HttpMethod.GET, List.of(
-      "/sports",
-      "/sports/**",
-      "/provinces",
-      "/provinces/**",
-      "/wards",
-      "/wards/**",
-      "/stores",
-      "/banks",
-      "/banks/**",
-      "/main-plans",
-      "/main-plans/**",
-      "/ratings",
-      "/ratings/**"
-    ),
-    HttpMethod.POST, List.of(
-      "/users",
-      "/auth",
-      "/auth/**",
-      "/stores/search"
-    )
-  );
+      HttpMethod.GET, List.of(
+          "/sports",
+          "/sports/**",
+          "/provinces",
+          "/provinces/**",
+          "/wards",
+          "/wards/**",
+          "/stores",
+          "/banks",
+          "/banks/**",
+          "/main-plans",
+          "/main-plans/**",
+          "/ratings",
+          "/ratings/**"),
+      HttpMethod.POST, List.of(
+          "/users",
+          "/auth",
+          "/auth/**",
+          "/stores/search"));
 
   @Override
   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -74,13 +71,13 @@ public class JwtAuthenticationFilter implements GlobalFilter {
       String scope = claimsSet.getStringClaim("scope");
 
       return chain.filter(
-        exchange.mutate()
-          .request(r -> r.headers(h -> {
-            h.add("X-Jti", jti == null ? "" : jti);
-            h.add("X-User-Email", email == null ? "" : email);
-            h.add("X-User-Role", extractRoleFromScope(scope));
-          }))
-          .build());
+          exchange.mutate()
+              .request(r -> r.headers(h -> {
+                h.add("X-Jti", jti == null ? "" : jti);
+                h.add("X-User-Email", email == null ? "" : email);
+                h.add("X-User-Role", extractRoleFromScope(scope));
+              }))
+              .build());
     } catch (Exception e) {
       exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
       return exchange.getResponse().setComplete();
@@ -101,7 +98,8 @@ public class JwtAuthenticationFilter implements GlobalFilter {
     log.info("Request path: {}, method: {}", path, method);
 
     List<String> patterns = PUBLIC_ENDPOINTS.get(method);
-    if (patterns == null) return false;
+    if (patterns == null)
+      return false;
 
     return patterns.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
   }

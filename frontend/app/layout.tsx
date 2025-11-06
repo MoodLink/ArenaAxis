@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin')
-  const isStoreRoute = pathname?.startsWith('/store')
+  const isStoreRoute = pathname?.startsWith('/store') && !pathname?.includes('/store-booking')
   const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
 
   return (

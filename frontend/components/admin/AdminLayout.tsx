@@ -8,7 +8,7 @@ import {
   Users,
   MapPin,
   Calendar,
-  Trophy,
+  Store,
   MessageSquare,
   Settings,
   Bell,
@@ -56,9 +56,9 @@ const sidebarItems = [
     badge: '8'
   },
   {
-    title: 'Giải đấu',
-    icon: Trophy,
-    href: '/admin/tournaments',
+    title: 'Quản lý cửa hàng',
+    icon: Store,
+    href: '/admin/stores',
     badge: null
   },
   {

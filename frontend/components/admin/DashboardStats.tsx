@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,6 +13,8 @@ import {
   Star,
   Activity
 } from 'lucide-react'
+import { getUsers, getUserStores } from '@/services/api-new'
+import { FieldService } from '@/services/field.service'
 
 interface StatsCardProps {
   title: string
@@ -23,9 +25,10 @@ interface StatsCardProps {
   }
   icon: React.ElementType
   description?: string
+  loading?: boolean
 }
 
-function StatsCard({ title, value, change, icon: Icon, description }: StatsCardProps) {
+function StatsCard({ title, value, change, icon: Icon, description, loading }: StatsCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -33,8 +36,10 @@ function StatsCard({ title, value, change, icon: Icon, description }: StatsCardP
         <Icon className="h-4 w-4 text-gray-400" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        {change && (
+        <div className="text-2xl font-bold text-gray-900">
+          {loading ? '...' : value}
+        </div>
+        {change && !loading && (
           <div className="flex items-center mt-1">
             {change.type === 'increase' ? (
               <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
@@ -57,56 +62,136 @@ function StatsCard({ title, value, change, icon: Icon, description }: StatsCardP
 }
 
 export default function DashboardStats() {
+  const [totalUsers, setTotalUsers] = useState<number | string>('0')
+  const [totalStores, setTotalStores] = useState<number | string>('0')
+  const [totalFields, setTotalFields] = useState<number | string>('0')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch tổng người dùng
+        try {
+          const usersData = await getUsers(0, 1000)
+          if (Array.isArray(usersData)) {
+            setTotalUsers(usersData.length)
+            console.log('✅ Users loaded:', usersData.length)
+          } else {
+            console.warn('Users data is not an array:', usersData)
+            setTotalUsers('0')
+          }
+        } catch (err: any) {
+          console.error('❌ Error fetching users:', err.message)
+          // Don't set error here - let the component handle gracefully
+          setTotalUsers('0')
+        }
+
+        // Fetch tổng cửa hàng
+        try {
+          const storesData = await getUserStores(1, 1000)
+          if (Array.isArray(storesData)) {
+            setTotalStores(storesData.length)
+            console.log('✅ Stores loaded:', storesData.length)
+          } else {
+            console.warn('Stores data is not an array:', storesData)
+            setTotalStores('0')
+          }
+        } catch (err: any) {
+          console.error('❌ Error fetching stores:', err.message)
+          // Don't set error here - let the component handle gracefully
+          setTotalStores('0')
+        }
+
+        // Fetch tổng sân - sử dụng FieldService
+        try {
+          const fieldsResponse = await FieldService.getFields()
+          if (fieldsResponse?.data && Array.isArray(fieldsResponse.data)) {
+            setTotalFields(fieldsResponse.data.length)
+            console.log('✅ Fields loaded:', fieldsResponse.data.length)
+          } else {
+            console.warn('Fields response invalid:', fieldsResponse)
+            setTotalFields('0')
+          }
+        } catch (err: any) {
+          console.error('❌ Error fetching fields:', err.message)
+          // Don't set error here - let the component handle gracefully
+          setTotalFields('0')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
   const stats = [
     {
       title: 'Tổng người dùng',
-      value: '1,247',
+      value: totalUsers,
       change: { value: 12.5, type: 'increase' as const },
       icon: Users,
-      description: 'Người dùng đã đăng ký'
+      description: 'Người dùng đã đăng ký',
+      loading
+    },
+    {
+      title: 'Tổng cửa hàng',
+      value: totalStores,
+      change: { value: 5.2, type: 'increase' as const },
+      icon: MapPin,
+      description: 'Cửa hàng đang hoạt động',
+      loading
     },
     {
       title: 'Tổng sân thể thao',
-      value: '89',
-      change: { value: 5.2, type: 'increase' as const },
-      icon: MapPin,
-      description: 'Sân đang hoạt động'
+      value: totalFields,
+      change: { value: 8.7, type: 'increase' as const },
+      icon: Calendar,
+      description: 'Sân đang hoạt động',
+      loading
     },
     {
       title: 'Booking trong tháng',
       value: '2,358',
       change: { value: 8.7, type: 'increase' as const },
       icon: Calendar,
-      description: 'Lượt đặt sân'
+      description: 'Lượt đặt sân',
+      loading: false
     },
     {
       title: 'Doanh thu tháng',
       value: '₫125M',
       change: { value: 15.3, type: 'increase' as const },
       icon: DollarSign,
-      description: 'Doanh thu thực tế'
+      description: 'Doanh thu thực tế',
+      loading: false
     },
     {
       title: 'Đánh giá trung bình',
       value: '4.8',
       change: { value: 0.2, type: 'increase' as const },
       icon: Star,
-      description: 'Từ 1,024 đánh giá'
-    },
-    {
-      title: 'Người dùng hoạt động',
-      value: '892',
-      change: { value: -2.1, type: 'decrease' as const },
-      icon: Activity,
-      description: 'Trong 30 ngày qua'
+      description: 'Từ 1,024 đánh giá',
+      loading: false
     }
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {stats.map((stat, index) => (
-        <StatsCard key={index} {...stat} />
-      ))}
+    <div className="space-y-4">
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
+          ⚠️ {error}
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, index) => (
+          <StatsCard key={index} {...stat} />
+        ))}
+      </div>
     </div>
   )
 }

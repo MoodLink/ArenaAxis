@@ -1,16 +1,81 @@
+// Kích hoạt chế độ client-side rendering cho component này
 "use client"
+// Import các hook và component cần thiết
+import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { loginUser, loginClient, loginAdmin } from "@/services/api-new"
 
 export default function LoginPage() {
+  const router = useRouter()
+  // State lưu email người dùng nhập
+  const [email, setEmail] = useState("")
+  // State lưu password người dùng nhập
+  const [password, setPassword] = useState("")
+
+  // State lưu thông báo lỗi
+  const [error, setError] = useState("")
+  // State kiểm soát trạng thái loading khi gửi request
+  const [loading, setLoading] = useState(false)
+
+  // Hàm xử lý đăng nhập khi submit form
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      // Thử lần lượt loginUser, loginClient, loginAdmin
+      const loginFns = [
+        { fn: loginUser, role: "USER" },
+        { fn: loginClient, role: "CLIENT" },
+        { fn: loginAdmin, role: "ADMIN" }
+      ];
+      let result = null;
+      let successRole = null;
+      for (const { fn, role } of loginFns) {
+        try {
+          result = await fn(email, password);
+          if (result && result.token) {
+            successRole = role;
+            break;
+          }
+        } catch (err: any) {
+          // Continue to next login function if this one fails
+          continue;
+        }
+      }
+      if (!result || !result.token) {
+        setError("Sai tài khoản hoặc mật khẩu");
+      } else {
+        localStorage.setItem("token", result.token);
+        if (result.user) {
+          localStorage.setItem("user", JSON.stringify(result.user));
+        }
+        // Điều hướng theo role đã đăng nhập thành công
+        if (successRole === "ADMIN") {
+          router.push("/admin");
+        } else if (successRole === "CLIENT") {
+          router.push("/store");
+        } else {
+          router.push("/");
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || "Không thể kết nối đến server. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
       {/* 3D Cube Animation Background */}
       <div className="absolute inset-0 z-0">
-        {/* Animated floating cubes */}
+        {/* Các khối lập phương động tạo hiệu ứng nền 3D */}
         <div className="cube-container">
           <div className="floating-cube cube-1"></div>
           <div className="floating-cube cube-2"></div>
@@ -19,16 +84,17 @@ export default function LoginPage() {
           <div className="floating-cube cube-5"></div>
         </div>
 
-        {/* Background Image */}
+        {/* Ảnh nền */}
         <img src="/modern-football-turf-field.png" alt="Modern football turf" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-teal-500/70 to-green-400/60"></div>
       </div>
 
-      {/* Login Form */}
+      {/* Form đăng nhập */}
       <Card className="w-full max-w-md mx-4 z-10 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl transform-gpu perspective-1000 hover:scale-105 transition-all duration-500 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] card-3d">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-white animate-fade-in">Sign in</CardTitle>
           <p className="text-white/80 text-sm animate-fade-in-delay">
+            {/* Link chuyển sang trang đăng ký nếu chưa có tài khoản */}
             Don't have an account?{" "}
             <Link href="/signup" className="text-white underline hover:text-white/80 transition-colors">
               Create Account
@@ -36,35 +102,64 @@ export default function LoginPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2 animate-slide-up">
-            <Label htmlFor="email" className="text-white">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
-            />
-          </div>
-          <div className="space-y-2 animate-slide-up-delay">
-            <Label htmlFor="password" className="text-white">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
-            />
-          </div>
-          <div className="text-center animate-slide-up-delay-2">
-            <Link href="/forgot-password" className="text-white/80 text-sm hover:text-white underline transition-colors">
-              Forgot Password?
-            </Link>
-          </div>
-          <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold transform hover:scale-105 transition-all duration-300 hover:shadow-lg animate-slide-up-delay-3">Sign in</Button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* Trường nhập email */}
+            <div className="space-y-2 animate-slide-up">
+              <Label htmlFor="email" className="text-white">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            {/* Trường nhập password */}
+            <div className="space-y-2 animate-slide-up-delay">
+              <Label htmlFor="password" className="text-white">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
 
+            {/* Hiển thị thông báo lỗi nếu có */}
+            {error && (
+              <div className="text-red-300 text-sm bg-red-500/20 p-3 rounded-md border border-red-400/30">
+                {error}
+              </div>
+            )}
+
+            {/* Link quên mật khẩu */}
+            <div className="text-center animate-slide-up-delay-2">
+              <Link href="/forgot-password" className="text-white/80 text-sm hover:text-white underline transition-colors">
+                Forgot Password?
+              </Link>
+            </div>
+            {/* Nút submit đăng nhập */}
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold transform hover:scale-105 transition-all duration-300 hover:shadow-lg animate-slide-up-delay-3"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+
+          {/* Phân cách hoặc đăng nhập bằng mạng xã hội */}
           <div className="relative animate-slide-up-delay-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-white/30" />
@@ -74,6 +169,7 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Nút đăng nhập bằng Google, Facebook (chưa có logic) */}
           <div className="flex gap-4 justify-center animate-slide-up-delay-5">
             <Button variant="outline" size="icon" className="bg-white/20 border-white/30 hover:bg-white/30 transform hover:scale-110 hover:rotate-6 transition-all duration-300">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -104,7 +200,7 @@ export default function LoginPage() {
         </CardContent>
       </Card>
 
-      {/* 3D Animation Styles */}
+      {/* Style cho hiệu ứng động 3D và các animation */}
       <style jsx>{`
         .cube-container {
           position: absolute;

@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Camera, ArrowLeft, Save, User, Bell, Shield, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { getCurrentUser, updateUserProfile } from "@/services/api"
-import { User as UserType, UpdateUserData } from "@/types"
-import { currentUser } from "@/data/mockData"
+import { updateMyProfile, changeMyPassword, getMyProfile } from "@/services/api-new"
+import { User as UserType, UpdateUserData, UserResponse } from "@/types"
+import { useRouter } from "next/navigation"
 
 export default function EditProfilePage() {
   const [user, setUser] = useState<UserType | null>(null)
@@ -24,6 +24,7 @@ export default function EditProfilePage() {
     confirm: false
   })
   const [activeSection, setActiveSection] = useState<string>("profile")
+  const router = useRouter()
 
   const [profile, setProfile] = useState({
     name: "",
@@ -48,29 +49,65 @@ export default function EditProfilePage() {
     push: false
   })
 
-  // Lấy dữ liệu user khi component mount
+  // ✅ Lấy dữ liệu user từ API thật - SỬ DỤNG ĐÚNG ENDPOINT
   useEffect(() => {
     async function fetchUser() {
       try {
-        try {
-          const userData = await getCurrentUser()
-          setUser(userData)
-          if (userData) updateFormData(userData)
-        } catch {
-          setUser(currentUser)
-          if (currentUser) updateFormData(currentUser)
+        console.log("🔍 Fetching current user profile with getMyProfile() - GET /users/myself")
+
+        // ✅ ĐÚNG: Sử dụng getMyProfile() -> GET /users/myself
+        // Endpoint này tự động lấy thông tin user từ JWT token, không cần lấy từ localStorage
+        const userData = await getMyProfile()
+        console.log("✅ User data from API:", userData)
+
+        // Kiểm tra xem userData có tồn tại không
+        if (!userData) {
+          console.error("❌ API trả về null, không có dữ liệu user")
+          router.push("/login")
+          return
         }
+
+        // Map UserResponse sang User type với các field mặc định
+        const mappedUser: UserType = {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          avatarUrl: userData.avatarUrl,
+          bankAccount: userData.bankAccount,
+          // Thêm các field optional với giá trị mặc định
+          avatar: userData.avatarUrl,
+          bio: undefined,
+          location: undefined,
+          favoriteSports: [],
+          notifications: {
+            booking: true,
+            tournament: true,
+            community: true,
+            email: true,
+            push: false
+          },
+          stats: {
+            totalBookings: 0,
+            totalTournaments: 0,
+            totalPosts: 0
+          }
+        }
+
+        console.log("✅ Mapped user:", mappedUser)
+        setUser(mappedUser)
+        if (mappedUser) updateFormData(mappedUser)
       } catch (error) {
-        console.error("Error fetching user:", error)
-        setUser(currentUser)
-        if (currentUser) updateFormData(currentUser)
+        console.error("❌ Error fetching user:", error)
+        // Nếu lỗi, redirect về login
+        router.push("/login")
       } finally {
         setLoading(false)
       }
     }
 
     fetchUser()
-  }, [])
+  }, [router])
 
   const updateFormData = (userData: UserType) => {
     setProfile({
@@ -81,7 +118,13 @@ export default function EditProfilePage() {
       location: userData.location || "",
       favoriteSports: userData.favoriteSports || []
     })
-    setNotifications(userData.notifications)
+    setNotifications(userData.notifications || {
+      booking: true,
+      tournament: true,
+      community: true,
+      email: true,
+      push: false
+    })
   }
 
   const getInitials = (name: string) => {
@@ -96,18 +139,34 @@ export default function EditProfilePage() {
 
     setSaving(true)
     try {
-      const updateData: UpdateUserData = {
+      const updateData = {
         name: profile.name,
         email: profile.email,
         phone: profile.phone,
         bio: profile.bio,
         location: profile.location,
-        favoriteSports: profile.favoriteSports,
-        notifications: notifications
+        favoriteSports: profile.favoriteSports
       }
 
-      await updateUserProfile(updateData)
-      alert("Cập nhật thông tin thành công!")
+      // ✅ CHÍNH XÁC: Sử dụng updateMyProfile() từ api-new
+      const result = await updateMyProfile(updateData)
+      if (result) {
+        // Update local user state to reflect changes
+        setUser(prevUser => prevUser ? {
+          ...prevUser,
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          bio: profile.bio,
+          location: profile.location,
+          favoriteSports: profile.favoriteSports,
+          notifications: notifications
+        } : null)
+
+        alert("Cập nhật thông tin thành công!")
+      } else {
+        alert("Có lỗi xảy ra khi cập nhật thông tin")
+      }
     } catch (error) {
       console.error("Error updating profile:", error)
       alert("Có lỗi xảy ra khi cập nhật thông tin")
@@ -134,10 +193,18 @@ export default function EditProfilePage() {
 
     setSaving(true)
     try {
-      // API call to change password
-      console.log("Password changed")
-      setPasswords({ current: "", new: "", confirm: "" })
-      alert("Đổi mật khẩu thành công!")
+      // ✅ CHÍNH XÁC: Sử dụng changeMyPassword() từ api-new
+      const result = await changeMyPassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new
+      })
+
+      if (result.success) {
+        setPasswords({ current: "", new: "", confirm: "" })
+        alert("Đổi mật khẩu thành công!")
+      } else {
+        alert(result.message || "Có lỗi xảy ra khi đổi mật khẩu")
+      }
     } catch (error) {
       console.error("Error changing password:", error)
       alert("Có lỗi xảy ra khi đổi mật khẩu")
@@ -311,7 +378,7 @@ export default function EditProfilePage() {
                           className="mt-1"
                         />
                       </div>
-                      <div>
+                      {/* <div>
                         <Label htmlFor="location" className="text-sm font-medium text-gray-700">
                           Địa chỉ
                         </Label>
@@ -322,10 +389,10 @@ export default function EditProfilePage() {
                           placeholder="Nhập địa chỉ"
                           className="mt-1"
                         />
-                      </div>
+                      </div> */}
                     </div>
 
-                    <div>
+                    {/* <div>
                       <Label htmlFor="bio" className="text-sm font-medium text-gray-700">
                         Giới thiệu bản thân
                       </Label>
@@ -337,7 +404,7 @@ export default function EditProfilePage() {
                         rows={4}
                         className="mt-1"
                       />
-                    </div>
+                    </div> */}
                   </CardContent>
                 </Card>
 
