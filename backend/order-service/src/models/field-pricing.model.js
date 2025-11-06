@@ -1,7 +1,8 @@
 import { mongoose } from "mongoose";
+import { timeSchema } from "./time.model.js";
 
 // enum from monday to sunday
-const daysOfWeekEnum = {
+export const daysOfWeekEnum = {
   MONDAY: "monday",
   TUESDAY: "tuesday",
   WEDNESDAY: "wednesday",
@@ -10,21 +11,6 @@ const daysOfWeekEnum = {
   SATURDAY: "saturday",
   SUNDAY: "sunday",
 };
-
-const timeSchema = new mongoose.Schema({
-  hour: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 23
-  },
-  minute: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 59
-  }
-}, { _id: false });
 
 const fieldPricingSchema = new mongoose.Schema(
   {
