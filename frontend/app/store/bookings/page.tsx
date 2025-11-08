@@ -54,8 +54,6 @@ const bookings = [
         totalAmount: 400000,
         discount: 0,
         finalAmount: 400000,
-        status: 'confirmed',
-        paymentStatus: 'paid',
         paymentMethod: 'bank_transfer',
         bookedAt: '2024-12-25T10:30:00',
         note: 'Đặt cho trận đấu giao hữu công ty',
@@ -76,8 +74,7 @@ const bookings = [
         totalAmount: 120000,
         discount: 12000,
         finalAmount: 108000,
-        status: 'pending',
-        paymentStatus: 'pending',
+
         paymentMethod: 'cash',
         bookedAt: '2024-12-27T14:20:00',
         note: 'Lớp học tennis cho trẻ em',
@@ -98,8 +95,7 @@ const bookings = [
         totalAmount: 160000,
         discount: 0,
         finalAmount: 160000,
-        status: 'confirmed',
-        paymentStatus: 'paid',
+
         paymentMethod: 'momo',
         bookedAt: '2024-12-26T16:45:00',
         note: '',
@@ -120,8 +116,7 @@ const bookings = [
         totalAmount: 300000,
         discount: 30000,
         finalAmount: 270000,
-        status: 'cancelled',
-        paymentStatus: 'refunded',
+
         paymentMethod: 'bank_transfer',
         bookedAt: '2024-12-24T09:15:00',
         note: 'Hủy do thời tiết xấu',
@@ -132,29 +127,7 @@ const bookings = [
 const statusColors = {
     pending: 'bg-yellow-100 text-yellow-800',
     confirmed: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-    completed: 'bg-blue-100 text-blue-800'
-}
-
-const statusLabels = {
-    pending: 'Chờ xác nhận',
-    confirmed: 'Đã xác nhận',
-    cancelled: 'Đã hủy',
-    completed: 'Hoàn thành'
-}
-
-const paymentStatusColors = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    paid: 'bg-green-100 text-green-800',
-    refunded: 'bg-blue-100 text-blue-800',
-    failed: 'bg-red-100 text-red-800'
-}
-
-const paymentStatusLabels = {
-    pending: 'Chờ thanh toán',
-    paid: 'Đã thanh toán',
-    refunded: 'Đã hoàn tiền',
-    failed: 'Thất bại'
+    cancelled: 'bg-red-100 text-red-800'
 }
 
 const paymentMethodLabels = {
@@ -180,10 +153,7 @@ function BookingCard({ booking }: { booking: any }) {
                         <div className="flex items-center space-x-2 mb-2">
                             <h3 className="font-semibold text-lg text-gray-900">{booking.bookingCode}</h3>
                             <Badge className={statusColors[booking.status as keyof typeof statusColors]}>
-                                {statusLabels[booking.status as keyof typeof statusLabels]}
-                            </Badge>
-                            <Badge className={paymentStatusColors[booking.paymentStatus as keyof typeof paymentStatusColors]}>
-                                {paymentStatusLabels[booking.paymentStatus as keyof typeof paymentStatusLabels]}
+                                {booking.status}
                             </Badge>
                         </div>
                         <div className="space-y-1 text-sm text-gray-600">
@@ -199,7 +169,6 @@ function BookingCard({ booking }: { booking: any }) {
                     </div>
                     <div className="text-right">
                         <p className="text-xl font-bold text-green-600">{booking.finalAmount.toLocaleString()}đ</p>
-                        <p className="text-sm text-gray-500">{paymentMethodLabels[booking.paymentMethod as keyof typeof paymentMethodLabels]}</p>
                     </div>
                 </div>
 
@@ -320,10 +289,6 @@ function BookingCard({ booking }: { booking: any }) {
                                                 <span>Thành tiền:</span>
                                                 <span className="text-green-600">{booking.finalAmount.toLocaleString()}đ</span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-500">Phương thức:</span>
-                                                <span>{paymentMethodLabels[booking.paymentMethod as keyof typeof paymentMethodLabels]}</span>
-                                            </div>
                                         </div>
                                     </div>
 
@@ -374,7 +339,7 @@ export default function StoreBookings() {
             booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             booking.customerPhone.includes(searchQuery)
 
-        const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
+        const matchesStatus = statusFilter === 'all'
         const matchesDate = !dateFilter || booking.date === format(dateFilter, 'yyyy-MM-dd')
         const matchesField = fieldFilter === 'all' || booking.fieldName.includes(fieldFilter)
 
@@ -388,12 +353,8 @@ export default function StoreBookings() {
 
     const stats = {
         total: bookings.length,
-        pending: bookings.filter(b => b.status === 'pending').length,
-        confirmed: bookings.filter(b => b.status === 'confirmed').length,
-        completed: bookings.filter(b => b.status === 'completed').length,
-        totalRevenue: bookings
-            .filter(b => b.paymentStatus === 'paid')
-            .reduce((sum, booking) => sum + booking.finalAmount, 0)
+
+        totalRevenue: bookings.reduce((sum, booking) => sum + booking.finalAmount, 0)
     }
 
     return (
@@ -418,44 +379,22 @@ export default function StoreBookings() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-center">
-                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                                 <p className="text-sm text-gray-600">Tổng đặt sân</p>
+                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+
                             </div>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-center">
-                                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-                                <p className="text-sm text-gray-600">Chờ xác nhận</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="text-center">
-                                <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
-                                <p className="text-sm text-gray-600">Đã xác nhận</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="text-center">
-                                <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
-                                <p className="text-sm text-gray-600">Hoàn thành</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Doanh thu/ngày</p>
                                 <p className="text-lg font-bold text-green-600">{stats.totalRevenue.toLocaleString()}đ</p>
-                                <p className="text-sm text-gray-600">Doanh thu</p>
+
                             </div>
                         </CardContent>
                     </Card>
@@ -477,18 +416,7 @@ export default function StoreBookings() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Trạng thái" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tất cả</SelectItem>
-                                        <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                                        <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                                        <SelectItem value="completed">Hoàn thành</SelectItem>
-                                        <SelectItem value="cancelled">Đã hủy</SelectItem>
-                                    </SelectContent>
-                                </Select>
+
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="w-40">

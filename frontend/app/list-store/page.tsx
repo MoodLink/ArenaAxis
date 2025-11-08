@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { searchStores } from '@/services/api-new';
+import { useSearchParams } from 'next/navigation';
+import { getStores, searchStores } from '@/services/api-new';
 import type { StoreSearchItemResponse } from '@/types';
 import { Loader2 } from 'lucide-react';
 
@@ -16,42 +17,109 @@ import BreadcrumbNav from '@/components/common/BreadcrumbNav';
 import { SearchFilters } from '@/components/store/SearchStoreForm';
 
 export default function ListStorePage() {
+  const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchValue, setSearchValue] = useState("");
   const [stores, setStores] = useState<StoreSearchItemResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Chỉ true lần đầu tiên (nếu cần)
+  const [isInitialLoad, setIsInitialLoad] = useState(true); // Flag để detect lần đầu
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
   const [totalStores, setTotalStores] = useState(0); // Tổng số stores từ backend
   const [selectedFilters, setSelectedFilters] = useState<SearchFilters>({});
 
+  // Khởi tạo filter từ URL query params
+  useEffect(() => {
+    const sportId = searchParams.get('sportId');
+    const provinceId = searchParams.get('provinceId');
+    const wardId = searchParams.get('wardId');
+    const name = searchParams.get('name');
+
+    if (sportId || provinceId || wardId || name) {
+      setSelectedFilters({
+        sportId: sportId || undefined,
+        provinceId: provinceId || undefined,
+        wardId: wardId || undefined,
+        name: name || undefined,
+      });
+      console.log('📌 Filters from URL:', { sportId, provinceId, wardId, name });
+    }
+  }, [searchParams]);
+
   // Fetch stores khi filters hoặc page thay đổi
   useEffect(() => {
     async function fetchStores() {
-      setLoading(true);
+      // Chỉ show loading spinner lần đầu tiên
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       try {
-        // Call API với filters (page - 1 vì API dùng 0-indexed)
-        const apiStores = await searchStores(selectedFilters, currentPage - 1, itemsPerPage);
-        setStores(apiStores);
-        // TODO: Backend should return total count, for now use length
-        // Nếu trả về ít hơn itemsPerPage => đây là trang cuối
-        if (apiStores.length < itemsPerPage) {
-          setTotalStores((currentPage - 1) * itemsPerPage + apiStores.length);
+        let apiStores: StoreSearchItemResponse[];
+
+        // Kiểm tra xem có filter nào hay không
+        const hasFilters = Object.keys(selectedFilters).length > 0 &&
+          Object.values(selectedFilters).some(value =>
+            value !== undefined && value !== '' &&
+            (typeof value !== 'object' || Object.keys(value).length > 0)
+          );
+
+        if (hasFilters) {
+          // Có filter → dùng searchStores (POST /stores/search)
+          apiStores = await searchStores(selectedFilters, currentPage - 1, itemsPerPage);
+          console.log('📍 Using searchStores (has filters)');
         } else {
-          // Giả định còn nhiều stores hơn
-          setTotalStores(currentPage * itemsPerPage + 1);
+          // Không có filter → dùng getStores (GET /stores)
+          apiStores = await getStores(currentPage - 1, itemsPerPage);
+          console.log('📍 Using getStores (no filters)');
         }
+
+        setStores(apiStores);
+
+        // Tính tổng số stores bằng cách fetch tất cả các trang
+        const calculateTotalStores = async () => {
+          let total = 0;
+          let pageNum = 0;
+          let hasMore = true;
+
+          while (hasMore) {
+            let pageStores: StoreSearchItemResponse[] = [];
+            try {
+              if (hasFilters) {
+                pageStores = await searchStores(selectedFilters, pageNum, itemsPerPage);
+              } else {
+                pageStores = await getStores(pageNum, itemsPerPage);
+              }
+
+              if (pageStores.length === 0) {
+                hasMore = false;
+              } else {
+                total += pageStores.length;
+                pageNum++;
+              }
+            } catch (error) {
+              hasMore = false;
+            }
+          }
+
+          return total;
+        };
+
+        const total = await calculateTotalStores();
+        setTotalStores(total);
+        console.log(`📊 Total stores: ${total}`);
       } catch (error) {
         console.error("Error fetching stores:", error);
         setStores([]);
         setTotalStores(0);
       } finally {
         setLoading(false);
+        setIsInitialLoad(false); // Sau lần đầu, không show loading nữa
       }
     }
 
     fetchStores();
-  }, [selectedFilters, currentPage, itemsPerPage]);
+  }, [selectedFilters, currentPage, itemsPerPage, isInitialLoad]);
 
   // Filter stores theo search value (client-side) - CHỈ filter stores của page hiện tại
   const filteredStores = useMemo(() => {
@@ -120,6 +188,7 @@ export default function ListStorePage() {
           selectedFilters={selectedFilters}
           onFiltersChange={handleFiltersChange}
           filteredCount={filteredStores.length}
+          totalStores={totalStores}
         />
 
         {/* Content Display */}
@@ -135,7 +204,7 @@ export default function ListStorePage() {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             itemsPerPage={itemsPerPage}
-            totalItems={filteredStores.length}
+            totalItems={totalStores}
           />
         )}
       </div>

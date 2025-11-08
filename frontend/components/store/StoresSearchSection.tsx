@@ -11,6 +11,7 @@ interface StoresSearchSectionProps {
   selectedFilters: SearchFilters;
   onFiltersChange: (filters: SearchFilters) => void;
   filteredCount: number;
+  totalStores: number; // Tổng số stores
 }
 
 export default function StoresSearchSection({
@@ -18,7 +19,8 @@ export default function StoresSearchSection({
   onViewModeChange,
   selectedFilters,
   onFiltersChange,
-  filteredCount
+  filteredCount,
+  totalStores
 }: StoresSearchSectionProps) {
   return (
     <div className="mb-6">
@@ -32,7 +34,7 @@ export default function StoresSearchSection({
 
       {/* Results Count */}
       <div className="mt-3 text-sm text-gray-600">
-        Hiển thị <span className="font-semibold text-primary">{filteredCount}</span> cửa hàng
+        <span className="font-semibold text-primary">{filteredCount}</span> cửa hàng (Tổng: <span className="font-semibold text-primary">{totalStores}</span>)
       </div>
 
       {/* View Mode Toggle */}

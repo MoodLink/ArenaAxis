@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -38,5 +40,10 @@ public class StoreHasSportServiceImpl implements StoreHasSportService {
 
     storeHasSport.setHasSport(request.isHasSport());
     storeHasSportRepository.save(storeHasSport);
+  }
+
+  @Override
+  public List<Sport> getSportByStoreId(String storeId) {
+    return storeHasSportRepository.getSportsByStoreId(storeId);
   }
 }

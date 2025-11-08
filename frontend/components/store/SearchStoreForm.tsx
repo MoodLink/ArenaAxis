@@ -30,7 +30,7 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
   const [provinces, setProvinces] = useState<ProvinceResponse[]>([]);
   const [wards, setWards] = useState<WardResponse[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded] = useState(true); // Luôn hiển thị, không cần toggle
 
   useEffect(() => {
     loadProvinces();
@@ -45,6 +45,15 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
       setFilters(prev => ({ ...prev, wardId: undefined }));
     }
   }, [filters.provinceId]);
+
+  // Debounce cho input tên sân (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch(filters);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [filters.name]); // Chỉ trigger khi name thay đổi, bỏ onSearch ra khỏi dependencies
 
   const loadProvinces = async () => {
     try {
@@ -75,16 +84,22 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(filters);
+    // Không cần làm gì
   };
 
   const handleReset = () => {
     setFilters({});
-    onSearch({});
+    onSearch({}); // Gọi ngay khi xóa bộ lọc
   };
 
   const updateFilter = (key: keyof SearchFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+
+    // Gọi onSearch ngay cho select (provinceId, wardId, sportId)
+    if (key !== 'name') {
+      onSearch(newFilters);
+    }
   };
 
   const updatePriceFilter = (key: 'min' | 'max', value: string) => {
@@ -113,18 +128,7 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
                 className="h-12 text-base"
               />
             </div>
-            <Button type="submit" size="lg" className="px-6">
-              <Search className="w-5 h-5 mr-2" />
-              Tìm kiếm
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              {isExpanded ? 'Thu gọn' : 'Lọc thêm'}
-            </Button>
+
           </div>
 
           {/* Advanced Filters */}
@@ -193,37 +197,7 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
                 </select>
               </div>
 
-              {/* Price Min */}
-              <div>
-                <Label htmlFor="priceMin" className="flex items-center gap-2 mb-2">
-                  <DollarSign className="w-4 h-4" />
-                  Giá tối thiểu (VNĐ)
-                </Label>
-                <Input
-                  id="priceMin"
-                  type="number"
-                  placeholder="0"
-                  value={filters.price?.min || ''}
-                  onChange={(e) => updatePriceFilter('min', e.target.value)}
-                  min="0"
-                />
-              </div>
 
-              {/* Price Max */}
-              <div>
-                <Label htmlFor="priceMax" className="flex items-center gap-2 mb-2">
-                  <DollarSign className="w-4 h-4" />
-                  Giá tối đa (VNĐ)
-                </Label>
-                <Input
-                  id="priceMax"
-                  type="number"
-                  placeholder="1000000"
-                  value={filters.price?.max || ''}
-                  onChange={(e) => updatePriceFilter('max', e.target.value)}
-                  min="0"
-                />
-              </div>
 
               {/* Reset Button */}
               <div className="flex items-end">

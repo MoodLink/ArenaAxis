@@ -19,7 +19,8 @@ import java.util.Set;
   uses = {
     WardMapper.class,
     ProvinceMapper.class,
-    UserMapper.class
+    UserMapper.class,
+    SportMapper.class,
   }
 )
 public interface StoreMapper {
@@ -101,6 +102,10 @@ public interface StoreMapper {
   @Mapping(
     target = "mediaUrls",
     expression = "java(mapMediaUrls(store.getMedias()))"
+  )
+  @Mapping(
+    target = "sports",
+    ignore = true
   )
   StoreClientDetailResponse toClientDetailResponse(Store store);
 

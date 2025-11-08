@@ -52,50 +52,50 @@ const sidebarItems = [
         title: 'Sân của tôi',
         icon: MapPin,
         href: '/store/my-fields',
-        badge: '5'
+
     },
     {
         title: 'Lịch đặt sân',
         icon: Calendar,
         href: '/store/bookings',
-        badge: '12'
+
     },
     {
         title: 'Doanh thu',
         icon: DollarSign,
         href: '/store/revenue',
-        badge: null
+
     },
     {
         title: 'Đánh giá',
         icon: Star,
         href: '/store/reviews',
-        badge: '8'
+
     },
-    {
-        title: 'Khuyến mãi',
-        icon: Tag,
-        href: '/store/promotions',
-        badge: '3'
-    },
-    {
-        title: 'Bảo trì sân',
-        icon: Wrench,
-        href: '/store/maintenance',
-        badge: '2'
-    },
-    {
-        title: 'Thống kê',
-        icon: BarChart3,
-        href: '/store/analytics',
-        badge: null
-    },
-    {
-        title: 'Cài đặt',
-        icon: Settings,
-        href: '/store/settings',
-        badge: null
-    }
+    // {
+    //     title: 'Khuyến mãi',
+    //     icon: Tag,
+    //     href: '/store/promotions',
+
+    // },
+    // // {
+    //     title: 'Bảo trì sân',
+    //     icon: Wrench,
+    //     href: '/store/maintenance',
+
+    // },
+    // {
+    //     title: 'Thống kê',
+    //     icon: BarChart3,
+    //     href: '/store/analytics',
+
+    // },
+    // {
+    //     title: 'Cài đặt',
+    //     icon: Settings,
+    //     href: '/store/settings',
+
+    // }
 ]
 
 function Sidebar({ className = '' }: { className?: string }) {
@@ -135,11 +135,7 @@ function Sidebar({ className = '' }: { className?: string }) {
                                     <Icon className={`h-4 w-4 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
                                     <span>{item.title}</span>
                                 </div>
-                                {item.badge && (
-                                    <Badge variant="secondary" className="text-xs">
-                                        {item.badge}
-                                    </Badge>
-                                )}
+
                             </Link>
                         </div>
                     )

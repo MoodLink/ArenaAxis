@@ -5,14 +5,12 @@ import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
-import com.arenaaxis.userservice.entity.Store;
-import com.arenaaxis.userservice.entity.StoreViewHistory;
-import com.arenaaxis.userservice.entity.User;
-import com.arenaaxis.userservice.entity.Ward;
+import com.arenaaxis.userservice.entity.*;
 import com.arenaaxis.userservice.entity.enums.Role;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
 import com.arenaaxis.userservice.exception.AppException;
 import com.arenaaxis.userservice.exception.ErrorCode;
+import com.arenaaxis.userservice.mapper.SportMapper;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
@@ -20,6 +18,7 @@ import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
 import com.arenaaxis.userservice.repository.UserRepository;
 import com.arenaaxis.userservice.service.AuthenticationService;
 import com.arenaaxis.userservice.service.MediaService;
+import com.arenaaxis.userservice.service.StoreHasSportService;
 import com.arenaaxis.userservice.service.StoreService;
 import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
@@ -39,7 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,10 +47,13 @@ public class StoreServiceImpl implements StoreService {
   StoreRepository storeRepository;
   UserRepository userRepository;
   WardRepository wardRepository;
+  StoreHasSportService storeHasSportService;
+  StoreViewHistoryRepository storeViewHistoryRepository;
+
   StoreMapper storeMapper;
   MediaService mediaService;
-  StoreViewHistoryRepository storeViewHistoryRepository;
   AuthenticationService authenticationService;
+  private final SportMapper sportMapper;
 
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
@@ -112,7 +114,10 @@ public class StoreServiceImpl implements StoreService {
       saveStoreViewHistory(store, currentUser);
     }
 
-    return storeMapper.toClientDetailResponse(store);
+    var response = storeMapper.toClientDetailResponse(store);
+    List<Sport> sports = storeHasSportService.getSportByStoreId(storeId);
+    response.setSports(sports.stream().map(sportMapper::toResponse).toList());
+    return response;
   }
 
   @Override
@@ -172,8 +177,10 @@ public class StoreServiceImpl implements StoreService {
   }
 
   private boolean shouldSaveHistory(User currentUser, String storeId) {
-    if (Objects.requireNonNull(currentUser).getRole() != Role.USER)
-      return false;
+
+    if (currentUser == null) return false;
+    if (currentUser.getRole() != Role.USER) return false;
+
 
     return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
   }

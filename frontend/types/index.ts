@@ -597,9 +597,9 @@ export interface StoreClientDetailResponse {
     avatarUrl?: string;
     coverImageUrl?: string;
     mediaUrls?: string[]; // List<String>
+    sports?: Sport[]; // ✅ List<SportResponse> từ backend
     latitude?: number; // Float -> number
     longitude?: number; // Float -> number
-    plan?: MainPlan; // ✨ Main Plan subscription
 }
 
 // Interface cho Ward Response (từ WardResponse DTO)

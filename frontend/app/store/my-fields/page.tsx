@@ -10,6 +10,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,26 +29,17 @@ import {
 import {
   Plus,
   Search,
-  MoreHorizontal,
   Eye,
   Edit,
   Trash2,
   MapPin,
-  Star,
   Activity,
   Loader2,
   AlertCircle,
-  ShoppingCart,
   Power,
   PowerOff
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { ViewFieldDialog } from '@/components/store/fields/FieldDialogs'
 import { FieldService, Field as APIField } from '@/services/field.service'
 import { StoreService } from '@/services/store.service'
@@ -284,103 +283,72 @@ export default function MyFields() {
     setIsEditDialogOpen(true)
   }
 
-  // NESTED FIELD CARD COMPONENT
-  const FieldCard = ({ field, stores }: { field: APIField; stores: StoreAdminDetailResponse[] }) => {
+  // NESTED FIELD TABLE ROW COMPONENT
+  const FieldTableRow = ({ field, stores }: { field: APIField; stores: StoreAdminDetailResponse[] }) => {
     const status: FieldStatus = field.activeStatus ? 'available' : 'unavailable'
     const fieldStore = stores.find(s => s.id === field.storeId)
 
     return (
-      <Link href={`/store/my-fields/${field._id}`}>
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
-          <div className="aspect-square relative bg-gray-200">
-            {field.avatar && (
-              <img src={field.avatar} alt={field.name || 'Field'} className="w-full h-full object-cover" />
-            )}
-            {!field.avatar && field.cover_image && (
-              <img src={field.cover_image} alt={field.name || 'Field'} className="w-full h-full object-cover" />
-            )}
-            <div className="absolute top-1 right-1">
-              <Badge className={`${statusColors[status]} text-xs`}>{statusLabels[status]}</Badge>
-            </div>
-            <div className="absolute top-1 left-1 bg-black/50 text-white px-1.5 py-0.5 rounded text-xs">
-              {field.sport_name || 'Thể thao'}
-            </div>
+      <TableRow className="hover:bg-gray-50">
+        <TableCell>
+          <Link href={`/store/my-fields/${field._id}`} className="text-blue-600 hover:underline font-medium">
+            {field.name || 'Sân'}
+          </Link>
+        </TableCell>
+        <TableCell>{field.sport_name || 'Thể thao'}</TableCell>
+        <TableCell>{fieldStore?.name || 'N/A'}</TableCell>
+        <TableCell className="max-w-xs">
+          <div className="flex items-center gap-1">
+            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="truncate">{field.address || 'Chưa có địa chỉ'}</span>
           </div>
-
-          <CardContent className="p-2">
-            <div className="flex items-start justify-between gap-1">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-xs text-gray-900 line-clamp-2">{field.name || 'Sân'}</h3>
-                {fieldStore && (
-                  <div className="flex items-center text-xs text-blue-600 mt-0.5 line-clamp-1">
-                    <ShoppingCart className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                    <span className="truncate font-medium">{fieldStore.name}</span>
-                  </div>
-                )}
-                <div className="flex items-center text-xs text-gray-500 mt-0.5 line-clamp-1">
-                  <MapPin className="h-2.5 w-2.5 mr-0.5 flex-shrink-0" />
-                  <span className="truncate">{field.address || 'Chưa có địa chỉ'}</span>
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 flex-shrink-0">
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <ViewFieldDialog
-                    field={field}
-                    trigger={
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <Eye className="h-3 w-3 mr-2" />
-                        <span className="text-xs">Xem chi tiết</span>
-                      </DropdownMenuItem>
-                    }
-                  />
-                  <DropdownMenuItem onClick={() => openEditDialog(field)}>
-                    <Edit className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Chỉnh sửa</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleToggleStatus(field)}>
-                    {field.activeStatus ? (
-                      <>
-                        <PowerOff className="h-3 w-3 mr-2" />
-                        <span className="text-xs">Tắt</span>
-                      </>
-                    ) : (
-                      <>
-                        <Power className="h-3 w-3 mr-2" />
-                        <span className="text-xs">Bật</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-red-600"
-                    onClick={() => {
-                      setDeleteFieldId(field._id)
-                      setIsDeleteDialogOpen(true)
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Xóa</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="flex items-center justify-between mt-1 pt-1 border-t">
-              <div className="flex items-center gap-0.5">
-                <Star className="h-2.5 w-2.5 text-yellow-400" />
-                <span className="text-xs font-medium">{field.rating || 0}</span>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-900">{parseFloat(field.defaultPrice || '0').toLocaleString()}đ</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
+        </TableCell>
+        <TableCell className="text-right font-medium">
+          {parseFloat(field.defaultPrice || '0').toLocaleString()}đ
+        </TableCell>
+        <TableCell>
+          <Badge className={`${statusColors[status]}`}>{statusLabels[status]}</Badge>
+        </TableCell>
+        <TableCell>
+          <div className="flex gap-1 justify-center items-center">
+            <ViewFieldDialog
+              field={field}
+              trigger={
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditDialog(field)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => handleToggleStatus(field)}
+              title={field.activeStatus ? 'Tắt' : 'Bật'}
+            >
+              {field.activeStatus ? (
+                <PowerOff className="h-4 w-4" />
+              ) : (
+                <Power className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                setDeleteFieldId(field._id)
+                setIsDeleteDialogOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
     )
   }
 
@@ -523,7 +491,7 @@ export default function MyFields() {
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-40"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="all">Trạng thái</SelectItem>
                     <SelectItem value="available">Hoạt động</SelectItem>
                     <SelectItem value="unavailable">Tạm ngừng</SelectItem>
                   </SelectContent>
@@ -547,11 +515,32 @@ export default function MyFields() {
           </CardContent>
         </Card>
 
-        {/* Fields Grid */}
+        {/* Fields Table */}
         {filteredFields.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filteredFields.map((field) => (<FieldCard key={field._id} field={field} stores={myStores} />))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold">Tên sân</TableHead>
+                      <TableHead className="font-semibold">Môn thể thao</TableHead>
+                      <TableHead className="font-semibold">Cửa hàng</TableHead>
+                      <TableHead className="font-semibold">Địa chỉ</TableHead>
+                      <TableHead className="font-semibold text-right">Giá tiền</TableHead>
+                      <TableHead className="font-semibold">Trạng thái</TableHead>
+                      <TableHead className="font-semibold text-center">Hành động</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredFields.map((field) => (
+                      <FieldTableRow key={field._id} field={field} stores={myStores} />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="p-12 text-center">

@@ -1,53 +1,28 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { X, Star, Loader2 } from 'lucide-react'
-import { getSports } from '@/services/api-new'
+import { X } from 'lucide-react'
 import type { Sport } from '@/types'
 
 interface SportModalProps {
     isOpen: boolean
     onClose: () => void
     onConfirm: (sportId: string) => void
+    storeSports?: Sport[]  // ✅ Thêm sports từ store
 }
 
 interface DisplaySport extends Sport {
     emoji: string
-    courtCount: number
-    rating: string
-    price: number
-    description: string
 }
 
-export default function SportSelectionModal({ isOpen, onClose, onConfirm }: SportModalProps) {
+export default function SportSelectionModal({ isOpen, onClose, onConfirm, storeSports = [] }: SportModalProps) {
     const [selectedSport, setSelectedSport] = useState<string | null>(null)
-    const [sports, setSports] = useState<Sport[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        if (!isOpen) return
-
-        const fetchSports = async () => {
-            try {
-                setLoading(true)
-                setError(null)
-                const sportsData = await getSports()
-                setSports(sportsData)
-                setSelectedSport(null)
-            } catch (err) {
-                console.error('Error fetching sports:', err)
-                setError('Không thể tải danh sách môn thể thao')
-                setSports([])
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchSports()
-    }, [isOpen])
+    // ✅ Dùng storeSports từ props (backend trả về) thay vì gọi getSports()
+    const sports = storeSports
+    const loading = false
+    const error = sports.length === 0 ? 'Sân này không có môn thể thao nào' : null
 
     const sportEmojis: Record<string, string> = {
         'badminton': '🏸',
@@ -63,10 +38,6 @@ export default function SportSelectionModal({ isOpen, onClose, onConfirm }: Spor
     const displaySports: DisplaySport[] = sports.map(sport => ({
         ...sport,
         emoji: sportEmojis[sport.id?.toLowerCase()] || '🏟️',
-        courtCount: Math.floor(Math.random() * 5) + 1,
-        rating: (Math.random() * 2 + 3).toFixed(1),
-        price: (Math.floor(Math.random() * 150) + 100) * 1000,
-        description: `Sân ${sport.name.toLowerCase()} - Đặt ngay để được ưu đãi tốt nhất`,
     }))
 
     // Calculate number of columns needed (4 items per column)
@@ -92,9 +63,8 @@ export default function SportSelectionModal({ isOpen, onClose, onConfirm }: Spor
         return (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <Card className="w-full max-w-md shadow-2xl border-0">
-                    <CardContent className="p-6 flex items-center justify-center min-h-[300px]">
+                    <CardContent className="p-6 flex items-center justify-center min-h-[200px]">
                         <div className="text-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-2" />
                             <p className="text-gray-600">Đang tải môn thể thao...</p>
                         </div>
                     </CardContent>
@@ -103,7 +73,7 @@ export default function SportSelectionModal({ isOpen, onClose, onConfirm }: Spor
         )
     }
 
-    if (error) {
+    if (error || sports.length === 0) {
         return (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <Card className="w-full max-w-md shadow-2xl border-0">
@@ -115,7 +85,7 @@ export default function SportSelectionModal({ isOpen, onClose, onConfirm }: Spor
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-center py-8">
-                            <p className="text-red-500 mb-4">{error}</p>
+                            <p className="text-red-500 mb-4">{error || 'Sân này không có môn thể thao nào'}</p>
                             <Button onClick={onClose} variant="outline">
                                 Đóng
                             </Button>
@@ -147,23 +117,15 @@ export default function SportSelectionModal({ isOpen, onClose, onConfirm }: Spor
                                                 key={sport.id}
                                                 onClick={() => setSelectedSport(sport.id)}
                                                 className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedSport === sport.id
-                                                        ? 'border-emerald-600 bg-emerald-50 shadow-md'
-                                                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                                                    ? 'border-emerald-600 bg-emerald-50 shadow-md'
+                                                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="flex items-start gap-2">
                                                     <div className="text-2xl flex-shrink-0">{sport.emoji}</div>
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold text-gray-900 text-sm truncate">{sport.name}</h3>
-                                                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{sport.description}</p>
-                                                        <div className="flex items-center gap-1 mt-2 flex-wrap">
-                                                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                                                                🏟️ {sport.courtCount}
-                                                            </span>
-                                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                                                <Star className="w-2.5 h-2.5 fill-current" /> {sport.rating}
-                                                            </span>
-                                                        </div>
+                                                        <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{sport.nameEn}</p>
                                                     </div>
                                                     {selectedSport === sport.id && (
                                                         <div className="text-emerald-600 text-lg flex-shrink-0">✓</div>

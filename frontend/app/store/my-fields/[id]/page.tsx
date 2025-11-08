@@ -446,15 +446,15 @@ export default function FieldDetailPage() {
                     </div>
 
                     {/* Field Info Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="text-center">
                                     <p className="text-sm text-gray-600 mb-1">Giá mặc định</p>
                                     <p className="text-2xl font-bold text-gray-900">
-                                        {field.defaultPrice ? `${parseInt(field.defaultPrice).toLocaleString()}đ` : 'N/A'}
+                                        {field.defaultPrice ? `${parseInt(field.defaultPrice).toLocaleString()}đ` : 'N/A'} / giờ
                                     </p>
-                                    <p className="text-xs text-gray-500 mt-1">/ giờ</p>
+
                                 </div>
                             </CardContent>
                         </Card>
@@ -470,18 +470,7 @@ export default function FieldDetailPage() {
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="text-center">
-                                    <p className="text-sm text-gray-600 mb-1">Đánh giá</p>
-                                    <div className="flex items-center justify-center gap-1">
-                                        <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
-                                        <span className="text-2xl font-bold text-gray-900">{field.rating || '0'}</span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">từ khách hàng</p>
-                                </div>
-                            </CardContent>
-                        </Card>
+
 
                         <Card>
                             <CardContent className="pt-6">
@@ -632,9 +621,7 @@ export default function FieldDetailPage() {
                                                                                 : 'cursor-not-allowed'
                                                                             } flex items-center justify-center text-sm font-bold relative ${isSpecialPrice ? 'ring-2 ring-yellow-400' : ''}`}
                                                                     >
-                                                                        {status === 'booked' && <span className="text-lg">✕</span>}
-                                                                        {status === 'locked' && <span className="text-lg animate-pulse">🔒</span>}
-                                                                        {status === 'available' && <span className="text-2xl font-light">+</span>}
+
                                                                     </button>
                                                                     {/* Price tooltip */}
                                                                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
@@ -655,29 +642,7 @@ export default function FieldDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Legend */}
-                            <div className="bg-gray-50 border-t border-gray-200 p-4 md:p-6">
-                                <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-emerald-200 flex items-center justify-center text-sm">
-                                            +
-                                        </div>
-                                        <span className="text-sm text-gray-600">Còn trống</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded bg-gradient-to-br from-red-500 to-red-600 border-2 border-red-400 flex items-center justify-center text-white text-sm">
-                                            ✕
-                                        </div>
-                                        <span className="text-sm text-gray-600">Đã đặt</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded bg-gradient-to-br from-gray-400 to-gray-500 border-2 border-gray-300 flex items-center justify-center text-white text-sm">
-                                            🔒
-                                        </div>
-                                        <span className="text-sm text-gray-600">Khóa</span>
-                                    </div>
-                                </div>
-                            </div>
+
                         </CardContent>
                     </Card>
 

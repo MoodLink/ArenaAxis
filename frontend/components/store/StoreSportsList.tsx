@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Star, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { getSports } from "@/services/api-new"
+import { useRouter } from "next/navigation"
+import { getStoreRatings } from "@/services/api-new"
 import type { StoreClientDetailResponse, Sport } from "@/types"
 
 interface StoreSportsListProps {
@@ -11,25 +12,67 @@ interface StoreSportsListProps {
     onBookClick: () => void
 }
 
+interface SportRating {
+    sportId: string
+    averageRating: number
+    totalRatings: number
+}
+
 export default function StoreSportsList({ store, onBookClick }: StoreSportsListProps) {
-    const [sports, setSports] = useState<Sport[]>([])
+    // ✅ Dùng sports từ store (backend trả về) thay vì gọi getSports()
+    const sports = store.sports || []
+    const router = useRouter()
+    const [sportRatings, setSportRatings] = useState<Record<string, SportRating>>({})
     const [loading, setLoading] = useState(true)
 
+    // ✅ Fetch ratings và tính average rating cho từng sport
     useEffect(() => {
-        const fetchSports = async () => {
+        const fetchRatings = async () => {
             try {
-                const sportsData = await getSports()
-                setSports(sportsData)
+                setLoading(true)
+                const ratings = await getStoreRatings(store.id, 0, 100)
+
+                // Group ratings by sport và tính average
+                const ratingsBySport: Record<string, SportRating> = {}
+
+                ratings.forEach((rating: any) => {
+                    const sportId = rating.sport?.id
+                    if (!sportId) return
+
+                    if (!ratingsBySport[sportId]) {
+                        ratingsBySport[sportId] = {
+                            sportId,
+                            averageRating: 0,
+                            totalRatings: 0,
+                        }
+                    }
+
+                    ratingsBySport[sportId].totalRatings += 1
+                    ratingsBySport[sportId].averageRating += (rating.star || 0)
+                })
+
+                // Tính average
+                Object.keys(ratingsBySport).forEach((sportId) => {
+                    ratingsBySport[sportId].averageRating =
+                        ratingsBySport[sportId].averageRating / ratingsBySport[sportId].totalRatings
+                })
+
+                setSportRatings(ratingsBySport)
             } catch (error) {
-                console.error('Error fetching sports:', error)
-                setSports([])
+                console.error('Error fetching ratings:', error)
             } finally {
                 setLoading(false)
             }
         }
 
-        fetchSports()
-    }, [])
+        if (store.id) {
+            fetchRatings()
+        }
+    }, [store.id])
+
+    const handleSportBookClick = (sportId: string) => {
+        router.push(`/store-booking?store_id=${store.id}&sport_id=${sportId}`)
+    }
 
     if (loading) {
         return (
@@ -46,7 +89,7 @@ export default function StoreSportsList({ store, onBookClick }: StoreSportsListP
 
     // Map emoji for each sport
     const sportEmojis: Record<string, string> = {
-        'badminton': '�',
+        'badminton': '🏸',
         'volleyball': '🏐',
         'basketball': '🏀',
         'football': '⚽',
@@ -59,9 +102,6 @@ export default function StoreSportsList({ store, onBookClick }: StoreSportsListP
     const displaySports = sports.map(sport => ({
         ...sport,
         emoji: sportEmojis[sport.id?.toLowerCase()] || '🏟️',
-        courtCount: Math.floor(Math.random() * 5) + 1, // Mock court count
-        rating: (Math.random() * 2 + 3).toFixed(1), // Mock rating 3.0-5.0
-        price: (Math.floor(Math.random() * 150) + 100) * 1000, // Mock price 100k-250k
     }))
 
     // Calculate number of columns needed (4 items per column)
@@ -100,19 +140,34 @@ export default function StoreSportsList({ store, onBookClick }: StoreSportsListP
                                                 <h3 className="font-semibold text-gray-900 text-sm md:text-base truncate">{sport.name}</h3>
                                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                     <span className="text-xs text-gray-600">
-                                                        🏟️ {sport.courtCount}
+                                                        {sport.nameEn && `(${sport.nameEn})`}
                                                     </span>
-                                                    <div className="flex items-center gap-0.5">
-                                                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                                        <span className="text-xs font-semibold text-gray-700">
-                                                            {sport.rating}
-                                                        </span>
-                                                    </div>
+                                                    {/* ✅ Hiển thị rating */}
+                                                    {sportRatings[sport.id] && (
+                                                        <div className="flex items-center gap-0.5">
+                                                            <div className="flex">
+                                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                                    <Star
+                                                                        key={i}
+                                                                        size={14}
+                                                                        className={
+                                                                            i < Math.round(sportRatings[sport.id].averageRating)
+                                                                                ? 'fill-yellow-400 text-yellow-400'
+                                                                                : 'text-gray-300'
+                                                                        }
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className="text-xs font-semibold text-gray-700 ml-1">
+                                                                {sportRatings[sport.id].averageRating.toFixed(1)} ({sportRatings[sport.id].totalRatings})
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
                                         <Button
-                                            onClick={onBookClick}
+                                            onClick={() => handleSportBookClick(sport.id)}
                                             className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white flex-shrink-0"
                                             size="sm"
                                         >

@@ -33,7 +33,7 @@ import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
 import StoreSportsList from '@/components/store/StoreSportsList';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
-import StoreRatingsList from '@/components/store/StoreRatingsList';
+
 import { useToast } from '@/hooks/use-toast';
 import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-sync';
 import { X, Upload } from 'lucide-react';
@@ -100,21 +100,12 @@ export default function StoreDetailPage() {
 
   // Fetch sports when rating dropdown opens
   useEffect(() => {
-    if (isRatingDropdownOpen && sports.length === 0) {
-      const fetchSports = async () => {
-        setSportsLoading(true);
-        try {
-          const sportsData = await getSports();
-          setSports(sportsData);
-        } catch (error) {
-          console.error('Error fetching sports:', error);
-        } finally {
-          setSportsLoading(false);
-        }
-      };
-      fetchSports();
+    if (isRatingDropdownOpen && sports.length === 0 && store?.sports) {
+      // ✅ Dùng sports từ store thay vì gọi getSports()
+      setSports(store.sports);
+      setSportsLoading(false);
     }
-  }, [isRatingDropdownOpen]);
+  }, [isRatingDropdownOpen, store?.sports]);
 
   // Auto-play slide effect
   useEffect(() => {
@@ -717,14 +708,8 @@ export default function StoreDetailPage() {
               />
             )}
 
-            {/* Block 6: Ratings List */}
-            {store && (
-              <StoreRatingsList
-                storeId={store.id}
-                storeName={store.name}
-                currentUserId={currentUser?.id}
-              />
-            )}
+            {/* Block 6: Ratings List - Removed */}
+
           </div>
 
           {/* Right Column - Sidebar */}
@@ -821,6 +806,7 @@ export default function StoreDetailPage() {
           isOpen={isSportModalOpen}
           onClose={() => setIsSportModalOpen(false)}
           onConfirm={handleSportSelected}
+          storeSports={store?.sports}
         />
 
         {/* Sport Rating Modal */}
@@ -867,8 +853,8 @@ export default function StoreDetailPage() {
                         <Star
                           size={40}
                           className={`transition-colors ${i < (hoverRating || userRating)
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-gray-300'
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
                             }`}
                         />
                       </button>
@@ -919,8 +905,8 @@ export default function StoreDetailPage() {
                     <label
                       htmlFor="rating-images"
                       className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isSubmittingRating || ratingImages.length >= 5
-                          ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                          : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+                        ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                        : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
                         }`}
                     >
                       <Upload className="w-6 h-6 text-blue-500" />

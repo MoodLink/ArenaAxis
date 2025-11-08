@@ -52,19 +52,19 @@ export default function Header() {
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/" className="text-gray-700 hover:text-green-600 transition-colors">
-              Home
+              Trang chủ
             </Link>
             <Link href="/list-store" className="text-gray-700 hover:text-green-600 transition-colors">
-              List Store
+              Danh sách cửa hàng
             </Link>
             <Link href="/community" className="text-gray-700 hover:text-green-600 transition-colors">
-              Community
+              Cộng đồng
             </Link>
             <Link href="/tournaments" className="text-gray-700 hover:text-green-600 transition-colors">
-              Sports News
+              Tin tức thể thao
             </Link>
             <Link href="/contact" className="text-gray-700 hover:text-green-600 transition-colors">
-              Contact
+              Liên hệ
             </Link>
           </nav>
 
@@ -107,34 +107,34 @@ export default function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/profile" className="flex items-center">
                       <User className="w-4 h-4 mr-2" />
-                      Profile
+                      Thông Tin Cá Nhân
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/booking-history" className="flex items-center">
                       <History className="w-4 h-4 mr-2" />
-                      Booking History
+                      Lịch Sử Đặt Chỗ
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/chat" className="flex items-center">
                       <MessageCircle className="w-4 h-4 mr-2" />
-                      Messages
+                      Tin Nhắn
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/community" className="flex items-center">
                       <Users className="w-4 h-4 mr-2" />
-                      Community
+                      Cộng Đồng
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    Cài Đặt
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
+                    Đăng Xuất
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE_URL = 'http://localhost:8088';
+const API_BASE_URL = 'https://arena-user-service.onrender.com';
 
 export async function GET(request: NextRequest) {
     try {

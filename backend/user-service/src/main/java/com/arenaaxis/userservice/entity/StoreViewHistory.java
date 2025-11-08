@@ -13,19 +13,17 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(
-  indexes = @Index(name = "index_history_user_id", columnList = "user_id")
-)
+@Table(indexes = @Index(name = "index_history_user_id", columnList = "user_id"))
 public class StoreViewHistory {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "user_id", nullable = false)
   User user;
 
-  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "store_id", nullable = false)
   Store store;
 

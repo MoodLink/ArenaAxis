@@ -37,7 +37,7 @@ import {
 // Import mock data for stores - TEMPORARY: File is empty, will use inline fallback
 // import { mockStoreSearchItems, mockStoreDetails } from '@/data/mockStores';
 
-const API_BASE_URL = 'http://localhost:8088';
+const API_BASE_URL = 'https://arena-user-service.onrender.com';
 
 // Helper function để lấy token từ localStorage
 function getToken(): string | null {
@@ -48,13 +48,89 @@ function getToken(): string | null {
     return null;
 }
 
+/**
+ * Helper function để gửi authenticated requests với automatic token refresh
+ * Nếu token hết hạn, sẽ tự động refresh và retry request
+ */
+async function fetchWithTokenRefresh(
+    url: string,
+    options: RequestInit = {}
+): Promise<Response> {
+    const token = getToken();
+
+    // Thêm Authorization header nếu có token
+    if (token) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${token}`
+        };
+    }
+
+    let response = await fetch(url, options);
+
+    // Nếu nhận được 401 Unauthorized, thử refresh token và retry
+    if (response.status === 401 && token) {
+        console.log('🔄 Token expired (401), attempting to refresh...');
+
+        try {
+            // Refresh token
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+
+            if (refreshResponse.ok) {
+                const refreshData: RefreshResponse = await refreshResponse.json();
+
+                if (refreshData.token) {
+                    // Lưu token mới
+                    localStorage.setItem('token', refreshData.token);
+
+                    // Retry request với token mới
+                    const newToken = refreshData.token;
+                    options.headers = {
+                        ...options.headers,
+                        'Authorization': `Bearer ${newToken}`
+                    };
+
+                    console.log('✅ Token refreshed successfully, retrying request...');
+                    response = await fetch(url, options);
+                }
+            } else {
+                console.warn('⚠️ Token refresh failed, redirecting to login...');
+                // Token refresh failed, clear auth data and redirect to login
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    // Redirect to login page
+                    window.location.href = '/login';
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error during token refresh:', error);
+            // Clear auth data and redirect to login on error
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+        }
+    }
+
+    return response;
+}
+
 // =================
 // AUTH SERVICES - Match AuthenticationController ✅
 // =================
 
 // Đăng nhập user
 export async function loginUser(email: string, password: string): Promise<AuthenticationResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/user`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/login?type=user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -70,7 +146,8 @@ export async function loginUser(email: string, password: string): Promise<Authen
 
 // Đăng nhập client/owner
 export async function loginClient(email: string, password: string): Promise<AuthenticationResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/client`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/login?type=client`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -86,7 +163,8 @@ export async function loginClient(email: string, password: string): Promise<Auth
 
 // Đăng nhập admin
 export async function loginAdmin(email: string, password: string): Promise<AuthenticationResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/admin`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/login?type=admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -102,7 +180,8 @@ export async function loginAdmin(email: string, password: string): Promise<Authe
 
 // Refresh token
 export async function refreshToken(token: string): Promise<RefreshResponse> {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -118,7 +197,8 @@ export async function refreshToken(token: string): Promise<RefreshResponse> {
 
 // Logout
 export async function logout(token: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -136,7 +216,8 @@ export async function logout(token: string): Promise<void> {
 
 // Đăng ký user
 export async function signupUser({ name, email, password, phone }: { name: string; email: string; password: string; phone?: string }): Promise<UserResponse> {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, phone })
@@ -152,6 +233,7 @@ export async function signupUser({ name, email, password, phone }: { name: strin
 
 // Lấy thông tin user theo ID
 export async function getUserById(id: string): Promise<UserResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -162,7 +244,7 @@ export async function getUserById(id: string): Promise<UserResponse> {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    const response = await fetch(`/api/users/${id}`, {
         headers
     });
 
@@ -224,6 +306,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 
 // Toggle active status của user (Admin only)
 export async function toggleUserActive(id: string): Promise<UserResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -233,9 +316,10 @@ export async function toggleUserActive(id: string): Promise<UserResponse> {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/${id}/toggle_active`, {
+    const response = await fetch(`/api/users/toggle-active`, {
         method: 'PUT',
-        headers
+        headers,
+        body: JSON.stringify({ userId: id })
     });
 
     if (!response.ok) {
@@ -248,6 +332,7 @@ export async function toggleUserActive(id: string): Promise<UserResponse> {
 
 // Xóa user (Admin only)
 export async function deleteUser(id: string): Promise<void> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -257,7 +342,7 @@ export async function deleteUser(id: string): Promise<void> {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    const response = await fetch(`/api/users/${id}`, {
         method: 'DELETE',
         headers
     });
@@ -274,16 +359,16 @@ export async function deleteUser(id: string): Promise<void> {
 
 // Lấy profile của chính mình (require auth)
 export async function getMyProfile(): Promise<UserResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     if (!token) {
         throw new Error('Không có token, vui lòng đăng nhập');
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/myself`, {
+    const response = await fetchWithTokenRefresh(`/api/users/profile`, {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
         }
     });
 
@@ -297,6 +382,7 @@ export async function getMyProfile(): Promise<UserResponse> {
 
 // Lấy profile của người khác (optional auth)
 export async function getUserProfile(userId: string): Promise<UserResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json'
@@ -306,7 +392,7 @@ export async function getUserProfile(userId: string): Promise<UserResponse> {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+    const response = await fetch(`/api/users/${userId}`, {
         method: 'GET',
         headers
     });
@@ -321,17 +407,17 @@ export async function getUserProfile(userId: string): Promise<UserResponse> {
 
 // Cập nhật profile của mình (require auth) - backend chưa có, dùng mock
 export async function updateMyProfile(data: Partial<UserResponse>): Promise<UserResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     if (!token) {
         throw new Error('Không có token, vui lòng đăng nhập');
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/users/myself`, {
+        const response = await fetchWithTokenRefresh(`/api/users/profile`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
         });
@@ -364,17 +450,17 @@ export async function updateMyProfile(data: Partial<UserResponse>): Promise<User
 
 // Đổi mật khẩu (require auth) - backend chưa có, dùng mock
 export async function changeMyPassword(data: { currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     if (!token) {
         throw new Error('Không có token, vui lòng đăng nhập');
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/users/change-password`, {
+        const response = await fetchWithTokenRefresh(`/api/users/change-password`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
         });
@@ -403,7 +489,8 @@ export async function changeMyPassword(data: { currentPassword: string; newPassw
 
 // Lấy danh sách tất cả môn thể thao
 export async function getSports(): Promise<Sport[]> {
-    const response = await fetch(`${API_BASE_URL}/sports`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/sport`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -415,7 +502,8 @@ export async function getSports(): Promise<Sport[]> {
 
 // Lấy môn thể thao theo ID
 export async function getSportById(id: string): Promise<Sport> {
-    const response = await fetch(`${API_BASE_URL}/sports/${id}`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/sport/${id}`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -427,6 +515,7 @@ export async function getSportById(id: string): Promise<Sport> {
 
 // Tạo môn thể thao mới (Admin only)
 export async function createSport(request: { name: string; nameEn?: string }): Promise<Sport> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -436,7 +525,7 @@ export async function createSport(request: { name: string; nameEn?: string }): P
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/sports`, {
+    const response = await fetch(`/api/sport`, {
         method: 'POST',
         headers,
         body: JSON.stringify(request)
@@ -452,6 +541,7 @@ export async function createSport(request: { name: string; nameEn?: string }): P
 
 // Cập nhật môn thể thao (Admin only)
 export async function updateSport(id: string, request: { name?: string; nameEn?: string }): Promise<Sport> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -461,8 +551,8 @@ export async function updateSport(id: string, request: { name?: string; nameEn?:
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/sports/${id}`, {
-        method: 'PUT',
+    const response = await fetch(`/api/sport/${id}`, {
+        method: 'PATCH',
         headers,
         body: JSON.stringify(request)
     });
@@ -482,8 +572,47 @@ export async function updateSport(id: string, request: { name?: string; nameEn?:
 // Helper: Simulate API delay
 const simulateDelay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Tìm kiếm stores với phân trang
+// Lấy danh sách stores với phân trang (không filter)
 // Backend: GET /stores với query params page và perPage
+export async function getStores(
+    page: number = 0,
+    perPage: number = 20
+): Promise<StoreSearchItemResponse[]> {
+    try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
+        // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
+        const backendPage = page + 1;
+
+        const response = await fetch(
+            `/api/store?page=${backendPage}&perPage=${perPage}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.error(`API error: ${response.status} ${response.statusText}`);
+            console.warn('⚠️ Backend not available, returning empty array');
+            return [];
+        }
+
+        const stores: StoreSearchItemResponse[] = await response.json();
+        console.log(`📋 Stores: Found ${stores.length} stores from API (page ${backendPage})`);
+
+        return stores;
+
+    } catch (error) {
+        console.error('Error fetching stores:', error);
+        console.warn('⚠️ Backend not available, returning empty array');
+        return [];
+    }
+}
+
+// Tìm kiếm stores với phân trang và filters
+// Backend: POST /stores/search với SearchStoreRequest body
 export async function searchStores(
     searchRequest: {
         name?: string;
@@ -500,17 +629,18 @@ export async function searchStores(
     perPage: number = 20
 ): Promise<StoreSearchItemResponse[]> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
         const backendPage = page + 1;
 
-        // Gọi API thật
         const response = await fetch(
-            `${API_BASE_URL}/stores?page=${backendPage}&perPage=${perPage}`,
+            `/api/store/search?page=${backendPage}&perPage=${perPage}`,
             {
-                method: 'GET',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                body: JSON.stringify(searchRequest),
             }
         );
 
@@ -523,41 +653,7 @@ export async function searchStores(
         const stores: StoreSearchItemResponse[] = await response.json();
         console.log(`🔍 Search: Found ${stores.length} stores from API (page ${backendPage})`);
 
-        // Client-side filtering nếu có search request
-        let filteredStores = stores;
-
-        // Filter by name (case-insensitive)
-        if (searchRequest.name && searchRequest.name.trim()) {
-            const searchTerm = searchRequest.name.toLowerCase().trim();
-            filteredStores = filteredStores.filter(store =>
-                store.name.toLowerCase().includes(searchTerm)
-            );
-        }
-
-        // Filter by address
-        if (searchRequest.address && searchRequest.address.trim()) {
-            const searchAddress = searchRequest.address.toLowerCase().trim();
-            filteredStores = filteredStores.filter(store =>
-                (store.ward?.name || '').toLowerCase().includes(searchAddress) ||
-                (store.province?.name || '').toLowerCase().includes(searchAddress)
-            );
-        }
-
-        // Filter by wardId
-        if (searchRequest.wardId && searchRequest.wardId.trim()) {
-            filteredStores = filteredStores.filter(store =>
-                store.ward?.id === searchRequest.wardId
-            );
-        }
-
-        // Filter by provinceId
-        if (searchRequest.provinceId && searchRequest.provinceId.trim()) {
-            filteredStores = filteredStores.filter(store =>
-                store.province?.id === searchRequest.provinceId
-            );
-        }
-
-        return filteredStores;
+        return stores;
 
     } catch (error) {
         console.error('Error searching stores:', error);
@@ -566,10 +662,11 @@ export async function searchStores(
     }
 }
 
-// Lấy chi tiết store theo ID
-// Backend: GET /stores/{id} trả về StoreClientDetailResponse (public, không cần auth)
+// Lấy chi tiết store cho client theo ID
+// Backend: GET /stores/detail/{id} trả về StoreClientDetailResponse (public, không cần auth)
 export async function getStoreById(id: string): Promise<StoreClientDetailResponse | null> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         const token = getToken();
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
@@ -581,7 +678,7 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
         }
 
         const response = await fetch(
-            `${API_BASE_URL}/stores/${id}`,
+            `/api/store/${id}`,
             {
                 method: 'GET',
                 headers,
@@ -609,6 +706,7 @@ export async function updateStoreInfo(
     updateData: Partial<StoreAdminDetailResponse>
 ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         const token = getToken();
         if (!token) {
             console.error('❌ No authentication token');
@@ -639,7 +737,7 @@ export async function updateStoreInfo(
         console.log('📝 Updating store:', storeId, payload);
 
         const response = await fetch(
-            `${API_BASE_URL}/stores/${storeId}`,
+            `/api/store/${storeId}`,
             {
                 method: 'PUT',
                 headers,
@@ -676,6 +774,7 @@ export async function updateStoreInfo(
 // Đăng ký Store mới cho USER
 export async function registerStore(request: StoreRegistrationRequest): Promise<StoreRegistrationResponse> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         // Step 1: Create store with JSON data ONLY - images will be handled separately in Step 2
         const storeData = {
             name: request.name,
@@ -697,7 +796,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
             };
         }
 
-        const createResponse = await fetch(`${API_BASE_URL}/stores`, {
+        const createResponse = await fetch(`/api/store`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -762,6 +861,7 @@ export async function updateStoreImages(
     }
 ): Promise<{ success: boolean; message: string; data?: any }> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         const token = getToken();
         if (!token) {
             console.error('❌ No authentication token');
@@ -815,10 +915,10 @@ export async function updateStoreImages(
             }
         }
         console.log(`📦 Total upload size: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`);
-        console.log('📤 Uploading to:', `${API_BASE_URL}/stores/${storeId}/images`);
+        console.log('📤 Uploading to:', `/api/store/images?storeId=${storeId}`);
 
-        const response = await fetch(`${API_BASE_URL}/stores/${storeId}/images`, {
-            method: 'PUT',
+        const response = await fetch(`/api/store/images?storeId=${storeId}`, {
+            method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
                 // QUAN TRỌNG: KHÔNG set Content-Type header
@@ -975,6 +1075,7 @@ export async function getMyStore(): Promise<StoreAdminDetailResponse | null> {
 // Lấy danh sách stores của user theo ID
 export async function getUserStores(page: number = 1, perPage: number = 12): Promise<StoreSearchItemResponse[]> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         const token = getToken();
         const headers: HeadersInit = {
             'Content-Type': 'application/json'
@@ -984,7 +1085,7 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`${API_BASE_URL}/stores?page=${page}&perPage=${perPage}`, {
+        const response = await fetch(`/api/store?page=${page}&perPage=${perPage}`, {
             method: 'GET',
             headers
         });
@@ -1005,6 +1106,7 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
 // Lấy danh sách cửa hàng của owner theo owner-id
 export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDetailResponse[]> {
     try {
+        // ✅ SỬ DỤNG PROXY để bypass CORS
         const token = getToken();
 
         // ✅ REQUIRED: Token là bắt buộc vì backend yêu cầu @PreAuthorize
@@ -1024,7 +1126,7 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
         console.log(`🔍 Fetching stores for owner: ${ownerId}`)
         console.log(`📡 Headers:`, { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token.substring(0, 30) + '...' })
 
-        const response = await fetch(`${API_BASE_URL}/stores/owner/${ownerId}`, {
+        const response = await fetch(`/api/store/owner/${ownerId}`, {
             method: 'GET',
             headers
         });
@@ -1093,10 +1195,11 @@ const MAIN_PLANS_DATA = [
 
 // Lấy danh sách tất cả Main Plans
 export async function getMainPlans(): Promise<any[]> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     console.log('📋 Getting main plans from backend...')
 
     try {
-        const response = await fetch(`${API_BASE_URL}/main-plans`, {
+        const response = await fetch(`/api/plans?type=main`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -1119,11 +1222,12 @@ export async function getMainPlans(): Promise<any[]> {
 
 // Đăng ký Main Plan cho Store
 export async function purchaseMainPlan(storeId: string, planId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     console.log(`📋 Registering Main Plan: ${planId} for store ${storeId}`)
 
     try {
         const token = getToken();
-        const response = await fetch(`${API_BASE_URL}/subscriptions/main-plan`, {
+        const response = await fetch(`/api/subscriptions?type=main`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1169,8 +1273,9 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
 
 // Lấy danh sách tất cả Optional Plans
 export async function getOptionalPlans(): Promise<OptionalPlan[]> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     try {
-        const response = await fetch(`${API_BASE_URL}/optional-plans`, {
+        const response = await fetch(`/api/plans?type=optional`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -1210,8 +1315,9 @@ export async function getOptionalPlans(): Promise<OptionalPlan[]> {
 
 // Mua Optional Plan cho Store
 export async function purchaseOptionalPlan(request: OptionalPlanPurchaseRequest): Promise<OptionalPlanPurchaseResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     try {
-        const response = await fetch(`${API_BASE_URL}/optional-plans/purchase`, {
+        const response = await fetch(`/api/subscriptions?type=optional`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${getToken()}`,
@@ -1246,8 +1352,9 @@ export async function purchaseOptionalPlan(request: OptionalPlanPurchaseRequest)
 
 // Lấy danh sách Optional Plans đã mua của Store
 export async function getMyOptionalPlans(storeId: string): Promise<ApplyOptionalPlan[]> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     try {
-        const response = await fetch(`${API_BASE_URL}/stores/${storeId}/optional-plans`, {
+        const response = await fetch(`/api/subscriptions?type=optional&storeId=${storeId}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${getToken()}`,
@@ -1271,10 +1378,11 @@ export async function getMyOptionalPlans(storeId: string): Promise<ApplyOptional
 
 // Lấy danh sách tất cả banks
 export async function getBanks(): Promise<BankResponse[]> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     console.log("🔍 getBanks - Token:", token ? "Present" : "Missing");
 
-    const response = await fetch(`${API_BASE_URL}/banks`, {
+    const response = await fetch(`/api/banks`, {
         headers: {
             'Authorization': token ? `Bearer ${token}` : '',
             'Content-Type': 'application/json'
@@ -1297,7 +1405,8 @@ export async function getBanks(): Promise<BankResponse[]> {
 
 // Lấy bank theo ID
 export async function getBankById(id: string): Promise<BankResponse> {
-    const response = await fetch(`${API_BASE_URL}/banks/${id}`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/banks/${id}`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -1309,13 +1418,14 @@ export async function getBankById(id: string): Promise<BankResponse> {
 
 // Tạo bank mới (Admin only) - với file upload
 export async function createBank(name: string, logo?: File): Promise<BankResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const formData = new FormData();
     formData.append('name', name);
     if (logo) {
         formData.append('logo', logo);
     }
 
-    const response = await fetch(`${API_BASE_URL}/banks`, {
+    const response = await fetch(`/api/banks`, {
         method: 'POST',
         body: formData
     });
@@ -1330,14 +1440,15 @@ export async function createBank(name: string, logo?: File): Promise<BankRespons
 
 // Cập nhật bank (Admin only) - với file upload
 export async function updateBank(id: string, name: string, logo?: File): Promise<BankResponse> {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
     const formData = new FormData();
     formData.append('name', name);
     if (logo) {
         formData.append('logo', logo);
     }
 
-    const response = await fetch(`${API_BASE_URL}/banks/${id}`, {
-        method: 'PUT',
+    const response = await fetch(`/api/banks/${id}`, {
+        method: 'PATCH',
         body: formData
     });
 
@@ -1355,7 +1466,8 @@ export async function updateBank(id: string, name: string, logo?: File): Promise
 
 // Tạo bank account cho user hiện tại
 export async function createBankAccount(request: { name: string; number: string; bankId: string }): Promise<BankAccountResponse> {
-    const response = await fetch(`${API_BASE_URL}/bank-accounts`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/bank-accounts`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -1374,7 +1486,8 @@ export async function createBankAccount(request: { name: string; number: string;
 
 // Lấy bank account theo ID
 export async function getBankAccountById(id: string): Promise<BankAccountResponse> {
-    const response = await fetch(`${API_BASE_URL}/bank-accounts/${id}`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/bank-accounts/${id}`, {
         headers: {
             'Authorization': `Bearer ${getToken()}`
         }
@@ -1390,7 +1503,8 @@ export async function getBankAccountById(id: string): Promise<BankAccountRespons
 
 // Lấy bank account của user hiện tại
 export async function getMyBankAccount(): Promise<BankAccountResponse> {
-    const response = await fetch(`${API_BASE_URL}/bank-accounts/myself`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/bank-accounts/my-account`, {
         headers: {
             'Authorization': `Bearer ${getToken()}`
         }
@@ -1406,7 +1520,8 @@ export async function getMyBankAccount(): Promise<BankAccountResponse> {
 
 // Cập nhật bank account của user hiện tại
 export async function updateMyBankAccount(request: { name: string; number: string; bankId: string }): Promise<BankAccountResponse> {
-    const response = await fetch(`${API_BASE_URL}/bank-accounts/myself`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/bank-accounts/my-account`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -1425,7 +1540,8 @@ export async function updateMyBankAccount(request: { name: string; number: strin
 
 // Xóa bank account của user hiện tại
 export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
-    const response = await fetch(`${API_BASE_URL}/bank-accounts/myself`, {
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/bank-accounts/my-account`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${getToken()}`
@@ -1446,7 +1562,8 @@ export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
 
 // Lấy danh sách tất cả provinces
 export async function getProvinces(): Promise<ProvinceResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/provinces`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/locations/provinces`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -1458,7 +1575,8 @@ export async function getProvinces(): Promise<ProvinceResponse[]> {
 
 // Lấy province theo ID
 export async function getProvinceById(id: string): Promise<ProvinceResponse> {
-    const response = await fetch(`${API_BASE_URL}/provinces/${id}`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/locations/provinces/${id}`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -1470,7 +1588,8 @@ export async function getProvinceById(id: string): Promise<ProvinceResponse> {
 
 // Lấy danh sách wards theo province ID
 export async function getWardsByProvinceId(provinceId: string): Promise<WardResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/provinces/${provinceId}/wards`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/locations/provinces/${provinceId}/wards`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -1482,7 +1601,8 @@ export async function getWardsByProvinceId(provinceId: string): Promise<WardResp
 
 // Lấy danh sách tất cả wards
 export async function getWards(): Promise<WardResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/wards`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/locations/wards`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -1494,7 +1614,8 @@ export async function getWards(): Promise<WardResponse[]> {
 
 // Lấy ward theo ID
 export async function getWardById(id: string): Promise<WardResponse> {
-    const response = await fetch(`${API_BASE_URL}/wards/${id}`);
+    // ✅ SỬ DỤNG PROXY để bypass CORS
+    const response = await fetch(`/api/locations/wards/${id}`);
 
     if (!response.ok) {
         const error = await response.json();
@@ -2253,10 +2374,9 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/favourites`, {
+        const response = await fetchWithTokenRefresh(`${API_BASE_URL}/favourites`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });

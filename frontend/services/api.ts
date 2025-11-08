@@ -5,7 +5,7 @@
 // Đăng nhập user
 export async function loginUser(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/auth/user', {
+        const response = await fetch('https://arena-user-service.onrender.com/auth/user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -23,7 +23,7 @@ export async function loginUser(email: string, password: string): Promise<{ toke
 // Đăng nhập admin
 export async function loginAdmin(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/auth/admin', {
+        const response = await fetch('https://arena-user-service.onrender.com/auth/admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -42,7 +42,7 @@ export async function loginAdmin(email: string, password: string): Promise<{ tok
 // Đăng nhập Client
 export async function loginClient(email: string, password: string): Promise<{ token?: string; user?: any; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/auth/client', {
+        const response = await fetch('https://arena-user-service.onrender.com/auth/client', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -61,7 +61,7 @@ export async function loginClient(email: string, password: string): Promise<{ to
 // Đăng ký user
 export async function signupUser({ name, email, password, phone }: { name: string; email: string; password: string; phone?: string }): Promise<{ success: boolean; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/users', {
+        const response = await fetch('https://arena-user-service.onrender.com/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password, phone })
@@ -85,7 +85,7 @@ export async function signupUser({ name, email, password, phone }: { name: strin
 // Refresh token
 export async function refreshToken(token: string): Promise<{ token?: string; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/auth/refresh', {
+        const response = await fetch('https://arena-user-service.onrender.com/auth/refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
@@ -103,7 +103,7 @@ export async function refreshToken(token: string): Promise<{ token?: string; err
 // Logout
 export async function logout(token: string): Promise<{ success: boolean; error?: string }> {
     try {
-        const response = await fetch('http://localhost:8088/auth/logout', {
+        const response = await fetch('https://arena-user-service.onrender.com/auth/logout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
@@ -125,7 +125,7 @@ export async function logout(token: string): Promise<{ success: boolean; error?:
 // Lấy thông tin user theo ID
 export async function getUserById(id: string): Promise<User | null> {
     try {
-        const response = await fetch(`http://localhost:8088/users/${id}`);
+        const response = await fetch(`https://arena-user-service.onrender.com/users/${id}`);
         if (!response.ok) {
             return null;
         }
@@ -139,7 +139,7 @@ export async function getUserById(id: string): Promise<User | null> {
 // Lấy danh sách users với phân trang
 export async function getUsers(page: number = 0, pageSize: number = 30): Promise<User[]> {
     try {
-        const response = await fetch(`http://localhost:8088/users?page=${page}&pageSize=${pageSize}`);
+        const response = await fetch(`https://arena-user-service.onrender.com/users?page=${page}&pageSize=${pageSize}`);
         if (!response.ok) {
             return [];
         }
@@ -153,7 +153,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 // Toggle active status của user (Admin only)
 export async function toggleUserActive(id: string): Promise<User | null> {
     try {
-        const response = await fetch(`http://localhost:8088/users/${id}/toggle_active`, {
+        const response = await fetch(`https://arena-user-service.onrender.com/users/${id}/toggle_active`, {
             method: 'PUT'
         });
         if (!response.ok) {
@@ -169,7 +169,7 @@ export async function toggleUserActive(id: string): Promise<User | null> {
 // Xóa user (Admin only)
 export async function deleteUser(id: string): Promise<boolean> {
     try {
-        const response = await fetch(`http://localhost:8088/users/${id}`, {
+        const response = await fetch(`https://arena-user-service.onrender.com/users/${id}`, {
             method: 'DELETE'
         });
         return response.ok;
@@ -291,7 +291,7 @@ export async function getFields(filters?: {
 
         for (const storeId of storeIds) {
             try {
-                const storeResponse = await fetch(`http://localhost:8088/stores/${storeId}`)
+                const storeResponse = await fetch(`https://arena-user-service.onrender.com/stores/${storeId}`)
                 if (storeResponse.ok) {
                     const storeData = await storeResponse.json()
                     const store = storeData.data || storeData
@@ -410,7 +410,7 @@ export async function getFieldById(id: string): Promise<Field | null> {
         // Fetch Store data để lấy introduction, startTime, endTime, owner info
         if (field.storeId) {
             try {
-                const storeResponse = await fetch(`http://localhost:8088/stores/${field.storeId}`)
+                const storeResponse = await fetch(`https://arena-user-service.onrender.com/stores/${field.storeId}`)
                 if (storeResponse.ok) {
                     const storeData = await storeResponse.json()
                     const store = storeData.data || storeData
@@ -498,7 +498,7 @@ export async function getFieldBookingSlots(fieldId: string, date?: string): Prom
 export async function getSports(): Promise<Sport[]> {
     try {
         // Gọi trực tiếp API backend (bỏ qua apiCall để lấy dữ liệu thật)
-        const response = await fetch('http://localhost:8088/sports');
+        const response = await fetch('https://arena-user-service.onrender.com/sports');
         if (!response.ok) return [];
         const data = await response.json();
         return Array.isArray(data) ? data : [];

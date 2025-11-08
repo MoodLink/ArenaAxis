@@ -330,26 +330,26 @@ export default function RevenueOverview() {
                 <StatCard
                     title={`Tổng doanh thu / ${filteredStores.length} store`}
                     value={`${(totalRevenue / 1000000).toFixed(1)}M đ`}
-                    change="+18.5%"
+                    
                     changeType="increase"
                     icon={DollarSign}
-                    trend="So với tháng trước"
+                  
                 />
                 <StatCard
                     title="Doanh thu trung bình/ngày"
                     value="3.533.000đ"
-                    change="+15.2%"
-                    changeType="increase"
+                  
+               
                     icon={Calendar}
-                    trend="Trung bình tháng này"
+                   
                 />
                 <StatCard
                     title="Số giao dịch"
                     value={totalBookings.toString()}
-                    change="+8.7%"
-                    changeType="increase"
+                  
+                 
                     icon={CreditCard}
-                    trend="Tổng giao dịch"
+                  
                 />
             </div>
 

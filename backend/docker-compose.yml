@@ -59,19 +59,19 @@ services:
       context: ./user-service
       dockerfile: Dockerfile_dev
     volumes:
-      - ./gateway-service:/app/user-service/current
+      - ./user-service:/app/user-service/current
       - /app/user-service/target
       - C:/Users/Acer predator/.m2:/root/.m2
     environment:
-      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
       MYSQL_URL: jdbc:mysql://arena-db:3306/arena_db
       MYSQL_USERNAME: authuser
       MYSQL_PASSWORD: authpass
+      SIGNER_KEY: IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT
+      CLOUDINARY_URL: cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix
+      ORDER_SERVICE_URL: https://arena-axis.vercel.app
     ports:
-      - "8082:8082"
+      - "8081:8081"
     depends_on:
-      eureka-server:
-        condition: service_healthy
       arena-db:
         condition: service_healthy
 

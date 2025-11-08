@@ -10,6 +10,10 @@ interface StatCardProps {
     color?: 'blue' | 'green' | 'orange' | 'purple'
 }
 
+interface StatsOverviewProps {
+    storeCount?: number
+}
+
 function StatCard({ title, value, color = 'blue' }: StatCardProps) {
     const colorClasses = {
         blue: 'bg-blue-100 text-blue-600',
@@ -31,24 +35,24 @@ function StatCard({ title, value, color = 'blue' }: StatCardProps) {
     )
 }
 
-export default function StatsOverview() {
+export default function StatsOverview({ storeCount = 0 }: StatsOverviewProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
-                title="Doanh thu tháng"
+                title="Doanh thu tháng 11"
                 value="25.000.000đ"
             />
             <StatCard
-                title="Tổng số Store"
-                value="5"
+                title="Tổng số cửa hàng"
+                value={storeCount.toString()}
             />
             <StatCard
-                title="Tổng số View"
+                title="Tổng số lượt xem cửa hàng"
                 value="1.520"
 
             />
             <StatCard
-                title="Rating Trung Bình"
+                title="Đánh giá trung bình"
                 value="4.7"
 
             />
