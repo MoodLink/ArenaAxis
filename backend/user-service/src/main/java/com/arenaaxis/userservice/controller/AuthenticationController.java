@@ -41,6 +41,11 @@ public class AuthenticationController {
     return ResponseEntity.ok(authenticationService.authenticate(request, Role.ADMIN));
   }
 
+  @PostMapping("/login")
+  public ResponseEntity<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
+    return ResponseEntity.ok(authenticationService.authenticate(request, null));
+  }
+
   @PostMapping("/refresh")
   public ResponseEntity<RefreshResponse> refresh(@RequestBody RefreshRequest request)
     throws ParseException, JOSEException {

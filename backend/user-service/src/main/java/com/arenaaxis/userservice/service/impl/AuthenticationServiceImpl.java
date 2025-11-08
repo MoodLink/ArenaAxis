@@ -77,7 +77,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
     if (
       !passwordEncoder.matches(request.getPassword(), user.getPassword()) ||
-        user.getRole() != role
+        (role != null && user.getRole() != role)
     ) {
       throw new AppException(ErrorCode.USER_NOT_FOUND);
     }
