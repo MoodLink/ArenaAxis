@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema(
     statusPayment: { type: String, required: true },
     cost: { type: Number, required: true },
     createdAt: { type: Date, default: Date.now },
+    isRated: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
