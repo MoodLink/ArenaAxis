@@ -66,10 +66,10 @@ export const getFieldById = async (fieldId) => {
   return data;
 };
 
-export const create = async (body) => {
+export const create = async (body, req) => {
   const field = new Field(body);
   const data = await field.save();
-  await handleUpdateSportForStore(data.storeId, data.sportId, true);
+  await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
   return data;
 };
 
@@ -81,8 +81,8 @@ export const update = async (fieldId, updateData) => {
   const data = await existingField.save();
 
   if (oldSportId !== data.sportId) {
-    await handleUpdateSportForStore(data.storeId, oldSportId, false);
-    await handleUpdateSportForStore(data.storeId, data.sportId, true);
+    await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
+    await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
   }
 
   return data;
@@ -97,6 +97,6 @@ export const remove = async (fieldId) => {
     },
     { new: true }
   );
-  await handleUpdateSportForStore(data.storeId, data.sportId, false);
+  await handleUpdateSportForStore(req, data.storeId, data.sportId, false);
   return data;
 };
