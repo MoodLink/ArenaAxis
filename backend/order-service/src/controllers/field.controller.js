@@ -55,7 +55,7 @@ export const create = async (req, res) => {
       createdAt: new Date(),
     };
 
-    const data = await createField(body);
+    const data = await createField(body, req);
 
     res.status(201).send({ message: "Field created successfully", data });
   } catch (error) {
