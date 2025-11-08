@@ -6,14 +6,22 @@ const API_BASE_URL = 'https://arena-user-service.onrender.com';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        const authHeader = request.headers.get('authorization');
 
         console.log('[API Proxy] POST /auth/refresh');
 
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        // Forward Authorization header if provided
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+
         const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(body),
         });
 

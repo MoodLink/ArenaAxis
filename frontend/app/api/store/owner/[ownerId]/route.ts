@@ -1,23 +1,27 @@
 // File: app/api/store/owner/[ownerId]/route.ts
 // Proxy API để lấy danh sách stores của owner
 
+import { NextRequest, NextResponse } from 'next/server';
+
 const API_BASE_URL = 'https://arena-user-service.onrender.com';
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     { params }: { params: { ownerId: string } }
 ) {
     try {
         const { ownerId } = await Promise.resolve(params);
-        const authToken = request.headers.get('authorization')?.replace('Bearer ', '');
+        const authHeader = request.headers.get('authorization');
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
         };
 
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
         }
+
+        console.log(`[API Proxy] GET /stores/owner/${ownerId}`);
 
         const response = await fetch(`${API_BASE_URL}/stores/owner/${ownerId}`, {
             method: 'GET',
@@ -25,22 +29,37 @@ export async function GET(
         });
 
         if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
+            const errorText = await response.text();
+            console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: true,
+                    status: response.status,
+                    message: `Backend error: ${response.status}`,
+                    data: []
+                },
+                { status: 200 }
+            );
         }
 
         const data = await response.json();
+        console.log(`[API Proxy] ✅ Stores by owner retrieved: ${data?.length || 0} items`);
 
-        return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stores by owner';
-        return new Response(
-            JSON.stringify({ error: errorMessage, message: 'Failed to fetch stores by owner' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        console.error('[API Proxy] Error:', errorMessage);
+
+        return NextResponse.json(
+            {
+                success: false,
+                error: true,
+                message: errorMessage,
+                data: []
+            },
+            { status: 200 }
         );
     }
 }

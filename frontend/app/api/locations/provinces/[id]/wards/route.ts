@@ -7,7 +7,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        const response = await fetch(`${API_BASE_URL}/provinces/${params.id}`, {
+        const response = await fetch(`${API_BASE_URL}/provinces/${params.id}/wards`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -22,9 +22,9 @@ export async function GET(
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching province:', error);
+        console.error('Error fetching wards for province:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch province' },
+            { error: 'Failed to fetch wards for province' },
             { status: 500 }
         );
     }

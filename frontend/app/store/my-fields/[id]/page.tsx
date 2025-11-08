@@ -486,6 +486,95 @@ export default function FieldDetailPage() {
                             </CardContent>
                         </Card>
                     </div>
+                    {/* Special Pricing Overview */}
+                    <Card className="shadow-lg border-0">
+                        <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
+                            <CardTitle className="flex items-center gap-2 text-yellow-900">
+                                <Calendar className="h-5 w-5" />
+                                Giá đặc biệt
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            {fieldPricings && fieldPricings.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {(() => {
+                                        // Group pricings by day of week
+                                        const pricingsByDay: { [key: string]: FieldPricing[] } = {
+                                            'monday': [],
+                                            'tuesday': [],
+                                            'wednesday': [],
+                                            'thursday': [],
+                                            'friday': [],
+                                            'saturday': [],
+                                            'sunday': []
+                                        }
+
+                                        fieldPricings.forEach(pricing => {
+                                            if (pricingsByDay[pricing.dayOfWeek]) {
+                                                pricingsByDay[pricing.dayOfWeek].push(pricing)
+                                            }
+                                        })
+
+                                        const dayNames: { [key: string]: string } = {
+                                            'monday': 'Thứ 2',
+                                            'tuesday': 'Thứ 3',
+                                            'wednesday': 'Thứ 4',
+                                            'thursday': 'Thứ 5',
+                                            'friday': 'Thứ 6',
+                                            'saturday': 'Thứ 7',
+                                            'sunday': 'Chủ nhật'
+                                        }
+
+                                        return Object.entries(pricingsByDay)
+                                            .filter(([_, pricings]) => pricings.length > 0)
+                                            .map(([day, pricings]) => (
+                                                <div
+                                                    key={`day-pricing-${day}`}
+                                                    className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                                                >
+                                                    <div className="font-bold text-lg text-yellow-900 mb-3">
+                                                        {dayNames[day]}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        {pricings.sort((a, b) => {
+                                                            const timeA = a.startAt.hour * 60 + a.startAt.minute
+                                                            const timeB = b.startAt.hour * 60 + b.startAt.minute
+                                                            return timeA - timeB
+                                                        }).map((pricing, idx) => (
+                                                            <div
+                                                                key={`pricing-detail-${pricing._id}-${idx}`}
+                                                                className="flex items-center justify-between bg-white p-2 rounded border border-yellow-100"
+                                                            >
+                                                                <div className="text-sm text-gray-700">
+                                                                    <span className="font-medium">
+                                                                        {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="font-bold text-emerald-600 text-sm">
+                                                                    {pricing.specialPrice.toLocaleString()}đ
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                    })()}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                    <Calendar className="h-12 w-12 text-gray-300 mb-3" />
+                                    <p className="text-gray-500 mb-3">Chưa có giá đặc biệt nào được thiết lập</p>
+                                    <Button
+                                        size="sm"
+                                        className="bg-yellow-600 hover:bg-yellow-700"
+                                        onClick={handleOpenPricingModal}
+                                    >
+                                        Thêm giá đặc biệt
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {/* Booking Grid */}
                     <Card className="shadow-xl border-0">
@@ -539,10 +628,12 @@ export default function FieldDetailPage() {
                                 </div>
                             </div>
 
+
+
                             {/* Grid Layout - Responsive and contained */}
                             <div className="relative bg-white">
                                 {/* Court Selector */}
-                                <div className="border-b border-gray-200 px-4 md:px-6 py-4 bg-gray-50 flex items-center gap-4">
+                                {/* <div className="border-b border-gray-200 px-4 md:px-6 py-4 bg-gray-50 flex items-center gap-4">
                                     <label className="text-sm font-medium text-gray-700">Chọn sân:</label>
                                     <select
                                         value={selectedCourt}
@@ -553,7 +644,7 @@ export default function FieldDetailPage() {
                                         <option value="subcourt-002">Sân B</option>
                                         <option value="subcourt-003">Sân C</option>
                                     </select>
-                                </div>
+                                </div> */}
 
                                 {/* Scrollable Time Grid with proper container */}
                                 <div className="w-full">
@@ -645,6 +736,8 @@ export default function FieldDetailPage() {
 
                         </CardContent>
                     </Card>
+
+
 
                     {/* Additional Info */}
                     <Card>

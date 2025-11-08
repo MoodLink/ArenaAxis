@@ -4,21 +4,23 @@ const API_BASE_URL = 'https://arena-user-service.onrender.com';
 
 export async function POST(request: NextRequest) {
     try {
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        const authHeader = request.headers.get('authorization');
 
-        if (!token) {
+        if (!authHeader) {
             return NextResponse.json(
-                { error: 'Unauthorized - No token provided' },
-                { status: 401 }
+                { error: true, message: 'Unauthorized - No token provided', status: 401 },
+                { status: 200 }
             );
         }
 
         const body = await request.json();
 
+        console.log(`[API Proxy] POST /bank-accounts`);
+
         const response = await fetch(`${API_BASE_URL}/bank-accounts`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(body)
@@ -27,15 +29,18 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
 
         if (!response.ok) {
-            return NextResponse.json(data, { status: response.status });
+            console.error(`[API Proxy] Backend error (${response.status}):`, data);
+            return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        return NextResponse.json(data, { status: 201 });
+        console.log(`[API Proxy] ✅ Bank account created`);
+        return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating bank account:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create bank account';
+        console.error('[API Proxy] Error:', errorMessage);
         return NextResponse.json(
-            { error: 'Failed to create bank account' },
-            { status: 500 }
+            { error: true, message: 'Failed to create bank account', details: errorMessage },
+            { status: 200 }
         );
     }
 }
@@ -46,19 +51,21 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '10';
 
     try {
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+        const authHeader = request.headers.get('authorization');
 
-        if (!token) {
+        if (!authHeader) {
             return NextResponse.json(
-                { error: 'Unauthorized - No token provided' },
-                { status: 401 }
+                { error: true, message: 'Unauthorized - No token provided', status: 401 },
+                { status: 200 }
             );
         }
+
+        console.log(`[API Proxy] GET /bank-accounts?page=${page}&limit=${limit}`);
 
         const response = await fetch(`${API_BASE_URL}/bank-accounts?page=${page}&limit=${limit}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': authHeader,
                 'Content-Type': 'application/json'
             }
         });
@@ -66,15 +73,18 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
 
         if (!response.ok) {
-            return NextResponse.json(data, { status: response.status });
+            console.error(`[API Proxy] Backend error (${response.status}):`, data);
+            return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
+        console.log(`[API Proxy] ✅ Bank accounts retrieved`);
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching bank accounts:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch bank accounts';
+        console.error('[API Proxy] Error:', errorMessage);
         return NextResponse.json(
-            { error: 'Failed to fetch bank accounts' },
-            { status: 500 }
+            { error: true, message: 'Failed to fetch bank accounts', details: errorMessage },
+            { status: 200 }
         );
     }
 }

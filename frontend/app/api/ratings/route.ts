@@ -1,5 +1,5 @@
-// File: app/api/store/route.ts
-// Proxy API cho stores - GET list, POST register
+// File: app/api/ratings/route.ts
+// Proxy API cho ratings
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -11,19 +11,15 @@ export async function GET(request: NextRequest) {
         const queryString = searchParams.toString();
 
         const authHeader = request.headers.get('authorization');
-        const cookieToken = request.cookies.get('token')?.value;
-        const token = authHeader || cookieToken;
-
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
         };
 
-        if (token) {
-            const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-            headers['Authorization'] = bearerToken;
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
         }
 
-        const url = `${API_BASE_URL}/stores${queryString ? `?${queryString}` : ''}`;
+        const url = `${API_BASE_URL}/ratings${queryString ? `?${queryString}` : ''}`;
         console.log(`[API Proxy] GET ${url}`);
 
         const response = await fetch(url, {
@@ -34,22 +30,20 @@ export async function GET(request: NextRequest) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
-            throw new Error(`API responded with status: ${response.status}`);
+            return NextResponse.json(
+                { success: false, error: true, status: response.status },
+                { status: 200 }
+            );
         }
 
         const data = await response.json();
-
-        return NextResponse.json(data, { status: response.status });
+        return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stores';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch ratings';
         console.error('[API Proxy] Error:', errorMessage);
         return NextResponse.json(
-            {
-                error: errorMessage,
-                message: 'Failed to fetch stores',
-                fallback: true
-            },
-            { status: 500 }
+            { success: false, error: true, message: errorMessage },
+            { status: 200 }
         );
     }
 }
@@ -57,10 +51,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const authHeader = request.headers.get('authorization');
-        const cookieToken = request.cookies.get('token')?.value;
-        const token = authHeader || cookieToken;
 
-        if (!token) {
+        if (!authHeader) {
             return NextResponse.json(
                 { error: 'No auth token provided', message: 'Unauthorized' },
                 { status: 401 }
@@ -68,16 +60,14 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
-            'Authorization': bearerToken,
+            'Authorization': authHeader,
         };
 
-        console.log(`[API Proxy] POST /stores`);
+        console.log(`[API Proxy] POST /ratings`);
 
-        const response = await fetch(`${API_BASE_URL}/stores`, {
+        const response = await fetch(`${API_BASE_URL}/ratings`, {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
@@ -86,22 +76,20 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
-            throw new Error(`API responded with status: ${response.status}`);
+            return NextResponse.json(
+                { success: false, error: true, status: response.status },
+                { status: 200 }
+            );
         }
 
         const data = await response.json();
-
-        return NextResponse.json(data, { status: response.status });
+        return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to register store';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to create rating';
         console.error('[API Proxy] Error:', errorMessage);
         return NextResponse.json(
-            {
-                error: errorMessage,
-                message: 'Failed to register store',
-                fallback: true
-            },
-            { status: 500 }
+            { success: false, error: true, message: errorMessage },
+            { status: 200 }
         );
     }
 }

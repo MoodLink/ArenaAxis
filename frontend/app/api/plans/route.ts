@@ -1,14 +1,18 @@
 // File: app/api/plans/route.ts
 // Proxy API cho main plans và optional plans
 
+import { NextRequest, NextResponse } from 'next/server';
+
 const API_BASE_URL = 'https://arena-user-service.onrender.com';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type') || 'main'; // 'main' or 'optional'
 
         const endpoint = type === 'optional' ? '/optional-plans' : '/main-plans';
+
+        console.log(`[API Proxy] GET /plans?type=${type}`);
 
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'GET',
@@ -17,23 +21,21 @@ export async function GET(request: Request) {
             },
         });
 
-        if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
-        }
-
         const data = await response.json();
 
-        return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        if (!response.ok) {
+            console.error(`[API Proxy] Backend error (${response.status}):`, data);
+            return NextResponse.json(data, { status: 200 });
+        }
+
+        console.log(`[API Proxy] ✅ Plans retrieved for type=${type}`);
+        return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch plans';
-        return new Response(
-            JSON.stringify({ error: errorMessage, message: 'Failed to fetch plans' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        console.error('[API Proxy] Error:', errorMessage);
+        return NextResponse.json(
+            { error: true, message: 'Failed to fetch plans', details: errorMessage },
+            { status: 200 }
         );
     }
 }

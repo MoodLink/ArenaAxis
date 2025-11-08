@@ -112,7 +112,7 @@ export default function BankAccountPage() {
                     }
                 } catch (error: any) {
                     // If 404, user doesn't have bank account yet
-                    if (error?.message?.includes("404")) {
+                    if (error?.status === 404) {
                         console.log("ℹ️ No bank account found (404), user can create one")
                         setIsEditing(true)
                     } else {

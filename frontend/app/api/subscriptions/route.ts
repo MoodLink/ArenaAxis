@@ -21,6 +21,11 @@ export async function POST(request: Request) {
 
         const endpoint = type === 'optional' ? '/optional-plans/purchase' : '/subscriptions/main-plan';
 
+        console.log(`[API Proxy] POST ${endpoint}`);
+        console.log(`[API Proxy] Request body:`, JSON.stringify(body));
+        console.log(`[API Proxy] Backend URL: ${API_BASE_URL}${endpoint}`);
+        console.log(`[API Proxy] Auth token present: ${!!authToken}`);
+
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
@@ -30,13 +35,50 @@ export async function POST(request: Request) {
             body: JSON.stringify(body),
         });
 
+        console.log(`[API Proxy] Response status: ${response.status}`);
+        console.log(`[API Proxy] Response ok: ${response.ok}`);
+
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`Backend error (${response.status}):`, errorText);
-            throw new Error(`API responded with status: ${response.status}`);
+            console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
+
+            // Preserve original status code and error response
+            try {
+                const errorData = JSON.parse(errorText);
+                console.error(`[API Proxy] Parsed error data:`, errorData);
+                return new Response(
+                    JSON.stringify(errorData),
+                    { status: response.status, headers: { 'Content-Type': 'application/json' } }
+                );
+            } catch {
+                console.error(`[API Proxy] Failed to parse error, returning raw text`);
+                return new Response(
+                    JSON.stringify({
+                        error: `API responded with status: ${response.status}`,
+                        message: errorText,
+                        status: response.status
+                    }),
+                    { status: response.status, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
         }
 
-        const data = await response.json();
+        // Handle empty response (204 No Content or ResponseEntity<Void>)
+        const contentLength = response.headers.get('content-length');
+        const text = await response.text();
+
+        console.log(`[API Proxy] Response content-length: ${contentLength}`);
+        console.log(`[API Proxy] Response body length: ${text.length}`);
+
+        if (!text || text.trim() === '') {
+            console.log(`[API Proxy] Empty response body - subscription created successfully`);
+            return new Response(
+                JSON.stringify({ success: true, message: 'Subscription created successfully' }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        const data = JSON.parse(text);
 
         return new Response(JSON.stringify(data), {
             status: response.status,

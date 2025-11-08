@@ -79,7 +79,8 @@ export default function StoreRegistrationPage() {
                 }
             } catch (error: any) {
                 // If 404, user doesn't have bank account
-                if (error?.message?.includes("404") || error?.message?.includes("not found")) {
+                if (error?.status === 404) {
+                    console.log("ℹ️ No bank account found (404), user can create one")
                     setHasBankAccount(false)
                 } else {
                     console.error('Error checking bank account:', error)
@@ -91,7 +92,7 @@ export default function StoreRegistrationPage() {
         }
         checkBankAccount()
     }, [router])
- 
+
     // Load main plans on component mount
     useEffect(() => {
         const loadPlans = async () => {
