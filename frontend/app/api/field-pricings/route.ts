@@ -2,7 +2,7 @@
 // Proxy API for field pricing management
 
 // Dùng backend local khi dev, production khi deploy
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://arena-axis.vercel.app/api/v1';
+const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN;
 
 export async function GET(request: Request) {
   try {

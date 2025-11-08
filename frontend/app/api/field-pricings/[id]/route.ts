@@ -1,7 +1,7 @@
 // File: app/api/field-pricings/[id]/route.ts
 // Proxy API for field pricing detail, update, delete
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://arena-axis.vercel.app/api/v1';
+const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN;
 
 export async function GET(
   request: Request,

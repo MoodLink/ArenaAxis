@@ -1,7 +1,7 @@
 // File: app/api/fields/[id]/route.ts
 // Proxy API cho detail, update, delete
 
-const API_BASE_URL = 'https://arena-axis.vercel.app/api/v1';
+const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN ;
 
 export async function GET(
   request: Request,
