@@ -13,5 +13,6 @@ public interface RatingService {
   RatingResponse create(RatingRequest request, List<MultipartFile> medias, User current);
   RatingRequest update(RatingRequest request, User current);
   List<RatingResponse> getPageRatingForStore(SearchRatingRequest request, int page, int perPage);
+  RatingResponse getById(String id);
   void delete(String ratingId, User current);
 }

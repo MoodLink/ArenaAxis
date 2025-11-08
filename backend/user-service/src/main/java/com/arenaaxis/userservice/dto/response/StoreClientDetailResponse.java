@@ -35,6 +35,7 @@ public class StoreClientDetailResponse {
 
   List<String> mediaUrls;
   List<SportResponse> sports;
+  List<SportRatingResponse> sportRatings;
 
   Float latitude;
   Float longitude;

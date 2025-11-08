@@ -81,6 +81,12 @@ public class RatingServiceImpl implements RatingService {
   }
 
   @Override
+  public RatingResponse getById(String id) {
+    return ratingRepository.findById(id).map(ratingMapper::toResponse)
+      .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
+  }
+
+  @Override
   public void delete(String ratingId, User current) {
     Rating rating = ratingRepository.findById(ratingId)
       .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
@@ -99,7 +105,7 @@ public class RatingServiceImpl implements RatingService {
     int star = rating.getStar();
 
     List<RatingStoreSport> allRatings = ratingStoreSportRepository.findByStoreId(store.getId());
-    RatingStoreSport currentRating = findOrThrowException(allRatings, store, sport);
+    RatingStoreSport currentRating = findOrThrowException(allRatings, sport);
     decreaseRating(currentRating, star);
 
     updateAverageRating(store, allRatings);
@@ -134,7 +140,7 @@ public class RatingServiceImpl implements RatingService {
   }
 
   private RatingStoreSport findOrThrowException(
-    List<RatingStoreSport> ratingStoreSports, Store store, Sport sport
+    List<RatingStoreSport> ratingStoreSports, Sport sport
   ) {
     return ratingStoreSports.stream()
       .filter(rating -> rating.getSport().getId().equals(sport.getId()))
@@ -142,20 +148,16 @@ public class RatingServiceImpl implements RatingService {
       .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
   }
 
-  private RatingStoreSport increaseRating(RatingStoreSport ratingStoreSport, long score) {
+  private void increaseRating(RatingStoreSport ratingStoreSport, long score) {
     ratingStoreSport.increaseRatingCount();
     ratingStoreSport.increaseRatingScore(score);
-    ratingStoreSport = ratingStoreSportRepository.save(ratingStoreSport);
-
-    return ratingStoreSport;
+    ratingStoreSportRepository.save(ratingStoreSport);
   }
 
-  private RatingStoreSport decreaseRating(RatingStoreSport ratingStoreSport, long score) {
+  private void decreaseRating(RatingStoreSport ratingStoreSport, long score) {
     ratingStoreSport.decreaseRatingCount();
     ratingStoreSport.decreaseRatingScore(score);
-    ratingStoreSport = ratingStoreSportRepository.save(ratingStoreSport);
-
-    return ratingStoreSport;
+    ratingStoreSportRepository.save(ratingStoreSport);
   }
 
   private void updateAverageRating(Store store, List<RatingStoreSport> allRatings) {

@@ -45,6 +45,6 @@ public class Rating {
   Integer star;
   String comment;
 
-  @OneToMany(cascade = CascadeType.ALL, mappedBy = "rating")
+  @OneToMany(mappedBy = "rating", fetch = FetchType.EAGER)
   Set<RatingMedia> ratingMedias;
 }

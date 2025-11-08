@@ -22,7 +22,7 @@ public class RatingMedia {
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
 
-  @OneToOne(cascade = CascadeType.ALL)
+  @OneToOne
   @JoinColumn(name = "media_id", nullable = false)
   Media media;
 
