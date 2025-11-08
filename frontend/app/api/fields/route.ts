@@ -1,6 +1,7 @@
 // File: app/api/fields/route.ts
 // Proxy API để bypass CORS issue
 
+import { NextRequest } from 'next/server';
 const API_BASE_URL = 'https://arena-axis.vercel.app/api/v1';
 
 export async function GET(request: Request) {
@@ -38,14 +39,15 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const response = await fetch(`${API_BASE_URL}/fields`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });

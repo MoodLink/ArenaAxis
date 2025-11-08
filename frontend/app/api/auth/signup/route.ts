@@ -1,7 +1,7 @@
 // File: app/api/auth/signup/route.ts
 // Proxy API cho signup (POST /users)
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function POST(request: Request) {
     try {

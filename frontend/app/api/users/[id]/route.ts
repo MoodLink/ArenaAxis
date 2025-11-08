@@ -1,7 +1,7 @@
 // File: app/api/users/[id]/route.ts
 // Proxy API cho user operations - GET detail, PUT update, DELETE xóa
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function GET(
     request: Request,

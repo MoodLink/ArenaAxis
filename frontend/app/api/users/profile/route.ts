@@ -1,7 +1,7 @@
 // File: app/api/users/profile/route.ts
 // Proxy API cho profile operations - GET my profile, PUT update profile
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function GET(request: Request) {
     try {

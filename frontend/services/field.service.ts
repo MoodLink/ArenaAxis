@@ -112,20 +112,38 @@ export class FieldService {
    * Create new field
    */
   static async createField(data: CreateFieldDto): Promise<FieldResponse> {
-    const response = await fetch(`${API_BASE_URL}`, {
-      method: 'POST',
-      headers: {
+    try {
+      // Get token from localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null;
+
+      const headers: HeadersInit = {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+      };
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `Failed to create field: ${response.statusText}`);
+      // Add authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Backend error (${response.status}):`, errorText);
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create field';
+      console.error('POST /api/fields error:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    return response.json();
   }
 
   /**

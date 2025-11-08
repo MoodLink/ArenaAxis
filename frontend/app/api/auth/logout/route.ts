@@ -1,7 +1,7 @@
 // File: app/api/auth/logout/route.ts
 // Proxy API cho logout
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function POST(request: Request) {
     try {

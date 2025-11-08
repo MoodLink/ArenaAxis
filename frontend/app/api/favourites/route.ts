@@ -1,7 +1,7 @@
 // File: app/api/favourites/route.ts
 // Proxy API cho favourites endpoints - BYPASS CORS
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 /**
  * GET /api/favourites

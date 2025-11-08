@@ -37,7 +37,7 @@ import {
 // Import mock data for stores - TEMPORARY: File is empty, will use inline fallback
 // import { mockStoreSearchItems, mockStoreDetails } from '@/data/mockStores';
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 // Helper function để lấy token từ localStorage
 function getToken(): string | null {

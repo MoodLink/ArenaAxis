@@ -1,7 +1,7 @@
 // File: app/api/store/search/route.ts
 // Proxy API để tìm kiếm stores với filters
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function POST(request: Request) {
     try {

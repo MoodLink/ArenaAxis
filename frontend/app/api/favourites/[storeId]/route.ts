@@ -1,7 +1,7 @@
 // File: app/api/favourites/[storeId]/route.ts
 // Proxy API cho dynamic favourites endpoints - BYPASS CORS
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 /**
  * DELETE /api/favourites/[storeId]

@@ -1,7 +1,7 @@
 // File: app/api/store/images/route.ts
 // Proxy API để upload ảnh cho store
 
-const API_BASE_URL = 'https://arena-user-service.onrender.com';
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function PUT(request: Request) {
     try {
