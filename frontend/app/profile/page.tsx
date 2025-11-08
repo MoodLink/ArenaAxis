@@ -9,7 +9,7 @@ import ProfileActivities from "@/components/profile/ProfileActivities"
 import ProfileStores from "@/components/profile/ProfileStores"
 import ProfileAchievements from "@/components/profile/ProfileAchievements"
 import ProfileSettings from "@/components/profile/ProfileSettings"
-import { getMyProfile } from "@/services/api-new"
+import { getMyProfile } from "@/services/get-my-profile"
 import { User as UserType } from "@/types"
 import { useRouter } from "next/navigation"
 
@@ -19,25 +19,16 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<string>("overview")
   const router = useRouter()
 
-  // ✅ Lấy dữ liệu user từ API thật - SỬ DỤNG ĐÚNG ENDPOINT
   useEffect(() => {
     async function fetchUser() {
       try {
-        console.log("🔍 Fetching current user profile with getMyProfile() - GET /users/myself")
+        const userData = getMyProfile()
 
-        // ✅ ĐÚNG: Sử dụng getMyProfile() -> GET /users/myself
-        // Endpoint này tự động lấy thông tin user từ JWT token
-        const userData = await getMyProfile()
-        console.log("✅ User data from API:", userData)
-
-        // Kiểm tra xem userData có tồn tại không
         if (!userData) {
-          console.error("❌ API trả về null, không có dữ liệu user")
           router.push("/login")
           return
         }
 
-        // Map UserResponse sang User type với các field mặc định
         const mappedUser: UserType = {
           id: userData.id,
           name: userData.name,
@@ -45,7 +36,6 @@ export default function ProfilePage() {
           phone: userData.phone,
           avatarUrl: localStorage.getItem('userAvatar') || userData.avatarUrl,
           bankAccount: userData.bankAccount,
-          // Thêm các field optional với giá trị mặc định
           avatar: localStorage.getItem('userAvatar') || userData.avatarUrl,
           bio: undefined,
           location: undefined,
@@ -64,11 +54,9 @@ export default function ProfilePage() {
           }
         }
 
-        console.log("✅ Mapped user:", mappedUser)
         setUser(mappedUser)
       } catch (error) {
         console.error("❌ Error fetching user:", error)
-        // Nếu lỗi, redirect về login
         router.push("/login")
       } finally {
         setLoading(false)

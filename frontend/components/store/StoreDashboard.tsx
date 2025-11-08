@@ -8,7 +8,8 @@ import DataSection from '@/components/store/dashboard/DataSection'
 import QuickActions from '@/components/store/dashboard/QuickActions'
 import OwnerStoresList from '@/components/store/OwnerStoresList'
 import { StoreAdminDetailResponse } from '@/types'
-import { getStoresByOwnerId, getMyProfile } from '@/services/api-new'
+import { getStoresByOwnerId } from '@/services/api-new'
+import { getMyProfile } from '@/services/get-my-profile'
 
 export default function StoreDashboard() {
     const [stores, setStores] = useState<StoreAdminDetailResponse[]>([])
@@ -17,7 +18,7 @@ export default function StoreDashboard() {
     useEffect(() => {
         const fetchStores = async () => {
             try {
-                const currentUser = await getMyProfile()
+                const currentUser = getMyProfile()
                 if (currentUser?.id) {
                     const data = await getStoresByOwnerId(currentUser.id)
                     setStores(data)

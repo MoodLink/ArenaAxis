@@ -24,7 +24,8 @@ import {
     AlertCircle
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
-import { getMyProfile, getStoresByOwnerId } from '@/services/api-new'
+import { getStoresByOwnerId } from '@/services/api-new'
+import { getMyProfile } from '@/services/get-my-profile'
 import { StoreAdminDetailResponse } from '@/types'
 
 // Mock data - Revenue charts only
@@ -190,7 +191,7 @@ export default function RevenueOverview() {
                 setError(null)
 
                 // Get user profile
-                const profile = await getMyProfile()
+                const profile = getMyProfile()
                 console.log('User profile:', profile)
 
                 // Get stores by owner ID

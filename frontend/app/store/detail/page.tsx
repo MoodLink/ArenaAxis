@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoresByOwnerId, getMyProfile } from '@/services/api-new';
+import { getStoresByOwnerId } from '@/services/api-new';
+import { getMyProfile } from '@/services/get-my-profile';
 import { Loader2 } from 'lucide-react';
 import StoreLayout from '@/components/store/StoreLayout';
 
@@ -13,7 +14,7 @@ export default function StoreDetailPage() {
         const redirectToFirstStore = async () => {
             try {
                 // Lấy thông tin user hiện tại
-                const currentUser = await getMyProfile();
+                const currentUser = getMyProfile();
                 if (!currentUser?.id) {
                     router.push('/login');
                     return;

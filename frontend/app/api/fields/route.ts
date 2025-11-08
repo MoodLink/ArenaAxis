@@ -2,14 +2,14 @@
 // Proxy API để bypass CORS issue
 
 import { NextRequest } from 'next/server';
+
 const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN;
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
-
-    const url = `${API_BASE_URL}/fields${queryString ? `?${queryString}` : ''}`;
+    const url = API_BASE_URL + '/fields' + (queryString ? '?' + queryString : '');
 
     const response = await fetch(url, {
       method: 'GET',
@@ -41,13 +41,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: NextRequest) {
   try {
+	  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
     const body = await request.json();
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
     const response = await fetch(`${API_BASE_URL}/fields`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(body),
     });

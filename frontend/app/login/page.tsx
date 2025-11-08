@@ -8,60 +8,35 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { loginUser, loginClient, loginAdmin } from "@/services/api-new"
+import { login } from "@/services/auth.service"
 
 export default function LoginPage() {
   const router = useRouter()
-  // State lưu email người dùng nhập
   const [email, setEmail] = useState("")
-  // State lưu password người dùng nhập
   const [password, setPassword] = useState("")
-
-  // State lưu thông báo lỗi
   const [error, setError] = useState("")
-  // State kiểm soát trạng thái loading khi gửi request
   const [loading, setLoading] = useState(false)
 
-  // Hàm xử lý đăng nhập khi submit form
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      // Thử lần lượt loginUser, loginClient, loginAdmin
-      const loginFns = [
-        { fn: loginUser, role: "USER" },
-        { fn: loginClient, role: "CLIENT" },
-        { fn: loginAdmin, role: "ADMIN" }
-      ];
-      let result = null;
-      let successRole = null;
-      for (const { fn, role } of loginFns) {
-        try {
-          result = await fn(email, password);
-          if (result && result.token) {
-            successRole = role;
-            break;
-          }
-        } catch (err: any) {
-          // Continue to next login function if this one fails
-          continue;
-        }
-      }
-      if (!result || !result.token) {
+      let result = await login(email, password);
+      if (!result?.token) {
         setError("Sai tài khoản hoặc mật khẩu");
       } else {
         localStorage.setItem("token", result.token);
         if (result.user) {
           localStorage.setItem("user", JSON.stringify(result.user));
-        }
-        // Điều hướng theo role đã đăng nhập thành công
-        if (successRole === "ADMIN") {
-          router.push("/admin");
-        } else if (successRole === "CLIENT") {
-          router.push("/store");
-        } else {
-          router.push("/");
+          const successRole = result.user.role;
+          if (successRole === "ADMIN") {
+            router.push("/admin");
+          } else if (successRole === "CLIENT") {
+            router.push("/store");
+          } else {
+            router.push("/");
+          }
         }
       }
     } catch (err: any) {

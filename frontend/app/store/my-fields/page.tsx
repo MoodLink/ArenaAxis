@@ -43,7 +43,8 @@ import { useToast } from '@/hooks/use-toast'
 import { ViewFieldDialog } from '@/components/store/fields/FieldDialogs'
 import { FieldService, Field as APIField } from '@/services/field.service'
 import { StoreService } from '@/services/store.service'
-import { getStoresByOwnerId, getMyProfile, getSports } from '@/services/api-new'
+import { getStoresByOwnerId, getSports } from '@/services/api-new'
+import { getMyProfile } from '@/services/get-my-profile'
 import { StoreAdminDetailResponse, Sport } from '@/types'
 
 type FieldStatus = 'available' | 'unavailable' | 'maintenance'
@@ -121,7 +122,7 @@ export default function MyFields() {
       }
 
       // Lấy owner ID từ profile
-      const currentUser = await getMyProfile()
+      const currentUser = getMyProfile()
       if (!currentUser?.id) {
         setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.')
         setLoading(false)

@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Camera, ArrowLeft, Save, User, Bell, Shield, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
-import { updateMyProfile, changeMyPassword, getMyProfile } from "@/services/api-new"
+import { updateMyProfile, changeMyPassword } from "@/services/api-new"
+import { getMyProfile } from "@/services/get-my-profile"
 import { User as UserType, UpdateUserData, UserResponse } from "@/types"
 import { useRouter } from "next/navigation"
 
@@ -53,21 +54,15 @@ export default function EditProfilePage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        console.log("🔍 Fetching current user profile with getMyProfile() - GET /users/myself")
-
-        // ✅ ĐÚNG: Sử dụng getMyProfile() -> GET /users/myself
-        // Endpoint này tự động lấy thông tin user từ JWT token, không cần lấy từ localStorage
-        const userData = await getMyProfile()
+        const userData = getMyProfile()
         console.log("✅ User data from API:", userData)
 
-        // Kiểm tra xem userData có tồn tại không
         if (!userData) {
           console.error("❌ API trả về null, không có dữ liệu user")
           router.push("/login")
           return
         }
 
-        // Map UserResponse sang User type với các field mặc định
         const mappedUser: UserType = {
           id: userData.id,
           name: userData.name,
@@ -75,7 +70,6 @@ export default function EditProfilePage() {
           phone: userData.phone,
           avatarUrl: userData.avatarUrl,
           bankAccount: userData.bankAccount,
-          // Thêm các field optional với giá trị mặc định
           avatar: userData.avatarUrl,
           bio: undefined,
           location: undefined,
@@ -94,12 +88,10 @@ export default function EditProfilePage() {
           }
         }
 
-        console.log("✅ Mapped user:", mappedUser)
         setUser(mappedUser)
         if (mappedUser) updateFormData(mappedUser)
       } catch (error) {
         console.error("❌ Error fetching user:", error)
-        // Nếu lỗi, redirect về login
         router.push("/login")
       } finally {
         setLoading(false)
@@ -148,10 +140,8 @@ export default function EditProfilePage() {
         favoriteSports: profile.favoriteSports
       }
 
-      // ✅ CHÍNH XÁC: Sử dụng updateMyProfile() từ api-new
       const result = await updateMyProfile(updateData)
       if (result) {
-        // Update local user state to reflect changes
         setUser(prevUser => prevUser ? {
           ...prevUser,
           name: profile.name,
@@ -193,7 +183,6 @@ export default function EditProfilePage() {
 
     setSaving(true)
     try {
-      // ✅ CHÍNH XÁC: Sử dụng changeMyPassword() từ api-new
       const result = await changeMyPassword({
         currentPassword: passwords.current,
         newPassword: passwords.new

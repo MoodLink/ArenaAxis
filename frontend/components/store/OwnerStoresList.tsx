@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { StoreAdminDetailResponse } from '@/types'
-import { getStoresByOwnerId, getMyProfile } from '@/services/api-new'
+import { getStoresByOwnerId } from '@/services/api-new'
+import { getMyProfile } from '@/services/get-my-profile'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,7 +31,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                 if (!currentOwnerId) {
                     console.log('📍 Owner ID not provided, fetching current user profile...')
                     // ✅ ĐÚNG: Gọi GET /users/myself để lấy thông tin user hiện tại
-                    const currentUser = await getMyProfile()
+                    const currentUser = getMyProfile()
 
                     if (!currentUser?.id) {
                         console.error('❌ Cannot get user ID from getMyProfile()')

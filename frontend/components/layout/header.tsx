@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MapPin, User, LogOut, Settings, Users, History, MessageCircle } from "lucide-react"
+import { logout } from "@/services/auth.service"
 
 export default function Header() {
   // State để lưu trạng thái đăng nhập và thông tin user
@@ -30,10 +31,14 @@ export default function Header() {
   // Hàm đăng xuất
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      setUser(null)
-      window.location.href = '/login'
+      logout().then(() => {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        setUser(null)
+        window.location.href = '/login'
+      }).catch((error) => {
+        console.error('Logout failed:', error);
+      })
     }
   }
 

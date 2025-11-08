@@ -1,6 +1,3 @@
-// File: services/field.service.ts
-// Service layer for Fields API - Using Next.js API Routes as Proxy
-
 export interface Field {
   _id: string;
   sportId: string;
@@ -47,16 +44,12 @@ export interface UpdateFieldDto {
   name?: string;
   sport_name?: string;
   address?: string;
-  active_status?: boolean; // Changed from string to boolean
+  active_status?: boolean;
 }
 
-// Use Next.js API proxy routes to bypass CORS issues
 const API_BASE_URL = '/api/fields';
 
 export class FieldService {
-  /**
-   * Get all fields with optional filters
-   */
   static async getFields(params?: {
     sport_id?: string;
     store_id?: string;
@@ -74,8 +67,8 @@ export class FieldService {
       queryParams.append('active_status', String(params.active_status));
     }
 
-    const url = `${API_BASE_URL}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
+    const queryString = queryParams.toString();
+    const url = queryString ? `${API_BASE_URL}?${queryString}` : API_BASE_URL;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -90,9 +83,6 @@ export class FieldService {
     return response.json();
   }
 
-  /**
-   * Get field by ID
-   */
   static async getFieldById(fieldId: string): Promise<FieldResponse> {
     const response = await fetch(`${API_BASE_URL}/${fieldId}`, {
       method: 'GET',
@@ -108,26 +98,15 @@ export class FieldService {
     return response.json();
   }
 
-  /**
-   * Create new field
-   */
   static async createField(data: CreateFieldDto): Promise<FieldResponse> {
     try {
-      // Get token from localStorage
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('authToken') : null;
-
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(data),
       });
 
@@ -146,9 +125,6 @@ export class FieldService {
     }
   }
 
-  /**
-   * Update field
-   */
   static async updateField(
     fieldId: string,
     data: UpdateFieldDto
@@ -169,9 +145,6 @@ export class FieldService {
     return response.json();
   }
 
-  /**
-   * Delete field
-   */
   static async deleteField(fieldId: string): Promise<{ message: string }> {
     const response = await fetch(`${API_BASE_URL}/${fieldId}`, {
       method: 'DELETE',
@@ -188,9 +161,6 @@ export class FieldService {
     return response.json();
   }
 
-  /**
-   * Toggle field active status
-   */
   static async toggleFieldStatus(
     fieldId: string,
     currentStatus: boolean
@@ -200,9 +170,6 @@ export class FieldService {
     });
   }
 
-  /**
-   * Update field price
-   */
   static async updateFieldPrice(
     fieldId: string,
     newPrice: string
@@ -212,9 +179,6 @@ export class FieldService {
     });
   }
 
-  /**
-   * Get active fields only
-   */
   static async getActiveFields(storeId?: string): Promise<FieldsResponse> {
     return this.getFields({
       store_id: storeId,
@@ -222,16 +186,10 @@ export class FieldService {
     });
   }
 
-  /**
-   * Get fields by store
-   */
   static async getFieldsByStore(storeId: string): Promise<FieldsResponse> {
     return this.getFields({ store_id: storeId });
   }
 
-  /**
-   * Get fields by sport
-   */
   static async getFieldsBySport(
     sportId: string,
     storeId?: string

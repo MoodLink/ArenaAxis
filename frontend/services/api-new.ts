@@ -33,6 +33,7 @@ import {
   OptionalPlanPurchaseRequest,
   OptionalPlanPurchaseResponse
 } from '@/types';
+import { getMyProfile } from './get-my-profile';
 
 // Import mock data for stores - TEMPORARY: File is empty, will use inline fallback
 // import { mockStoreSearchItems, mockStoreDetails } from '@/data/mockStores';
@@ -94,11 +95,11 @@ async function fetchWithTokenRefresh(
             'Authorization': `Bearer ${newToken}`
           };
 
-          console.log('✅ Token refreshed successfully, retrying request...');
+          console.log('Token refreshed successfully, retrying request...');
           response = await fetch(url, options);
         }
       } else {
-        console.warn('⚠️ Token refresh failed, redirecting to login...');
+        console.warn('Token refresh failed, redirecting to login...');
         // Token refresh failed, clear auth data and redirect to login
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
@@ -109,7 +110,7 @@ async function fetchWithTokenRefresh(
         }
       }
     } catch (error) {
-      console.error('❌ Error during token refresh:', error);
+      console.error('Error during token refresh:', error);
       // Clear auth data and redirect to login on error
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
@@ -129,7 +130,7 @@ async function fetchWithTokenRefresh(
 
 // Đăng nhập user
 export async function loginUser(email: string, password: string): Promise<AuthenticationResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/login?type=user`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -146,7 +147,7 @@ export async function loginUser(email: string, password: string): Promise<Authen
 
 // Đăng nhập client/owner
 export async function loginClient(email: string, password: string): Promise<AuthenticationResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/login?type=client`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -163,7 +164,7 @@ export async function loginClient(email: string, password: string): Promise<Auth
 
 // Đăng nhập admin
 export async function loginAdmin(email: string, password: string): Promise<AuthenticationResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/login?type=admin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -180,7 +181,7 @@ export async function loginAdmin(email: string, password: string): Promise<Authe
 
 // Refresh token
 export async function refreshToken(token: string): Promise<RefreshResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -197,7 +198,7 @@ export async function refreshToken(token: string): Promise<RefreshResponse> {
 
 // Logout
 export async function logout(token: string): Promise<void> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/logout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -216,7 +217,7 @@ export async function logout(token: string): Promise<void> {
 
 // Đăng ký user
 export async function signupUser({ name, email, password, phone }: { name: string; email: string; password: string; phone?: string }): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -233,7 +234,7 @@ export async function signupUser({ name, email, password, phone }: { name: strin
 
 // Lấy thông tin user theo ID
 export async function getUserById(id: string): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -275,7 +276,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
     });
 
     if (!response.ok) {
-      console.error('❌ Failed to get users:', response.status, response.statusText);
+      console.error('Failed to get users:', response.status, response.statusText);
       return [];
     }
 
@@ -283,7 +284,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 
     // If backend returned fallback data
     if (data.fallback) {
-      console.warn('⚠️ Using fallback data for users:', data.message);
+      console.warn('Using fallback data for users:', data.message);
       return data.data || [];
     }
 
@@ -299,14 +300,14 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 
     return [];
   } catch (error: any) {
-    console.error('❌ Error getting users:', error.message);
+    console.error('Error getting users:', error.message);
     return [];
   }
 }
 
 // Toggle active status của user (Admin only)
 export async function toggleUserActive(id: string): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -332,7 +333,7 @@ export async function toggleUserActive(id: string): Promise<UserResponse> {
 
 // Xóa user (Admin only)
 export async function deleteUser(id: string): Promise<void> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -353,36 +354,9 @@ export async function deleteUser(id: string): Promise<void> {
   }
 }
 
-// =================
-// PROFILE SERVICES - Profile-specific operations
-// =================
-
-// Lấy profile của chính mình (require auth)
-export async function getMyProfile(): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
-  const token = getToken();
-  if (!token) {
-    throw new Error('Không có token, vui lòng đăng nhập');
-  }
-
-  const response = await fetchWithTokenRefresh(`/api/users/profile`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Lấy profile thất bại');
-  }
-
-  return response.json();
-}
-
 // Lấy profile của người khác (optional auth)
 export async function getUserProfile(userId: string): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json'
@@ -407,7 +381,7 @@ export async function getUserProfile(userId: string): Promise<UserResponse> {
 
 // Cập nhật profile của mình (require auth) - backend chưa có, dùng mock
 export async function updateMyProfile(data: Partial<UserResponse>): Promise<UserResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   if (!token) {
     throw new Error('Không có token, vui lòng đăng nhập');
@@ -450,7 +424,7 @@ export async function updateMyProfile(data: Partial<UserResponse>): Promise<User
 
 // Đổi mật khẩu (require auth) - backend chưa có, dùng mock
 export async function changeMyPassword(data: { currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   if (!token) {
     throw new Error('Không có token, vui lòng đăng nhập');
@@ -489,7 +463,7 @@ export async function changeMyPassword(data: { currentPassword: string; newPassw
 
 // Lấy danh sách tất cả môn thể thao
 export async function getSports(): Promise<Sport[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/sport`);
 
   if (!response.ok) {
@@ -502,7 +476,7 @@ export async function getSports(): Promise<Sport[]> {
 
 // Lấy môn thể thao theo ID
 export async function getSportById(id: string): Promise<Sport> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/sport/${id}`);
 
   if (!response.ok) {
@@ -515,7 +489,7 @@ export async function getSportById(id: string): Promise<Sport> {
 
 // Tạo môn thể thao mới (Admin only)
 export async function createSport(request: { name: string; nameEn?: string }): Promise<Sport> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -541,7 +515,7 @@ export async function createSport(request: { name: string; nameEn?: string }): P
 
 // Cập nhật môn thể thao (Admin only)
 export async function updateSport(id: string, request: { name?: string; nameEn?: string }): Promise<Sport> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -579,7 +553,7 @@ export async function getStores(
   perPage: number = 20
 ): Promise<StoreSearchItemResponse[]> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
     const backendPage = page + 1;
 
@@ -595,7 +569,7 @@ export async function getStores(
 
     if (!response.ok) {
       console.error(`API error: ${response.status} ${response.statusText}`);
-      console.warn('⚠️ Backend not available, returning empty array');
+      console.warn('Backend not available, returning empty array');
       return [];
     }
 
@@ -606,7 +580,7 @@ export async function getStores(
 
   } catch (error) {
     console.error('Error fetching stores:', error);
-    console.warn('⚠️ Backend not available, returning empty array');
+    console.warn('Backend not available, returning empty array');
     return [];
   }
 }
@@ -629,7 +603,7 @@ export async function searchStores(
   perPage: number = 20
 ): Promise<StoreSearchItemResponse[]> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
     const backendPage = page + 1;
 
@@ -646,7 +620,7 @@ export async function searchStores(
 
     if (!response.ok) {
       console.error(`API error: ${response.status} ${response.statusText}`);
-      console.warn('⚠️ Backend not available, returning empty array');
+      console.warn('Backend not available, returning empty array');
       return [];
     }
 
@@ -657,17 +631,13 @@ export async function searchStores(
 
   } catch (error) {
     console.error('Error searching stores:', error);
-    console.warn('⚠️ Backend not available, returning empty array');
+    console.warn('Backend not available, returning empty array');
     return [];
   }
 }
 
-// Lấy chi tiết store cho client theo ID
-// Backend: GET /stores/detail/{id} trả về StoreClientDetailResponse (public, không cần auth)
 export async function getStoreById(id: string): Promise<StoreClientDetailResponse | null> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
-    // Store detail endpoint không cần authentication (endpoint public)
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -680,12 +650,10 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
       }
     );
 
-    // Luôn đọc JSON response để kiểm tra error
     const data = await response.json();
 
-    // Kiểm tra xem có error không (backend trả về 500)
     if (data.success === false || data.error) {
-      console.error(`❌ API error: ${data.status || response.status} - ${data.message}`, {
+      console.error(`API error: ${data.status || response.status} - ${data.message}`, {
         storeId: id,
         url: `/api/store/${id}`
       });
@@ -694,7 +662,7 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
 
     // Kiểm tra response status bình thường
     if (!response.ok) {
-      console.error(`❌ API error: ${response.status} ${response.statusText}`, {
+      console.error(`API error: ${response.status} ${response.statusText}`, {
         storeId: id,
         error: data,
         url: `/api/store/${id}`
@@ -703,11 +671,11 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
     }
 
     const storeDetail: StoreClientDetailResponse = data;
-    console.log(`✅ 📍 Store detail từ API: ${storeDetail.name}`);
+    console.log(`📍 Store detail từ API: ${storeDetail.name}`);
     return storeDetail;
 
   } catch (error) {
-    console.error('❌ Error fetching store detail:', error);
+    console.error('Error fetching store detail:', error);
     return null;
   }
 }
@@ -718,10 +686,10 @@ export async function updateStoreInfo(
   updateData: Partial<StoreAdminDetailResponse>
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     if (!token) {
-      console.error('❌ No authentication token');
+      console.error('No authentication token');
       return {
         success: false,
         message: 'Vui lòng đăng nhập'
@@ -759,7 +727,7 @@ export async function updateStoreInfo(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error(`❌ API error: ${response.status} ${response.statusText}`, errorData);
+      console.error(`API error: ${response.status} ${response.statusText}`, errorData);
       return {
         success: false,
         message: errorData?.message || `Lỗi cập nhật: ${response.statusText}`
@@ -767,7 +735,7 @@ export async function updateStoreInfo(
     }
 
     const result = await response.json();
-    console.log('✅ Store updated successfully:', result);
+    console.log('Store updated successfully:', result);
     return {
       success: true,
       message: 'Cập nhật thông tin cửa hàng thành công',
@@ -775,7 +743,7 @@ export async function updateStoreInfo(
     };
 
   } catch (error: any) {
-    console.error('❌ Error updating store:', error);
+    console.error('Error updating store:', error);
     return {
       success: false,
       message: error?.message || 'Có lỗi xảy ra khi cập nhật thông tin'
@@ -786,7 +754,7 @@ export async function updateStoreInfo(
 // Đăng ký Store mới cho USER
 export async function registerStore(request: StoreRegistrationRequest): Promise<StoreRegistrationResponse> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     // Step 1: Create store with JSON data ONLY - images will be handled separately in Step 2
     const storeData = {
       name: request.name,
@@ -873,10 +841,10 @@ export async function updateStoreImages(
   }
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     if (!token) {
-      console.error('❌ No authentication token');
+      console.error('No authentication token');
       return {
         success: false,
         message: 'Vui lòng đăng nhập'
@@ -886,10 +854,9 @@ export async function updateStoreImages(
     console.log('🔑 Token:', token.substring(0, 20) + '...');
     console.log('📁 Store ID:', storeId);
 
-    // Kiểm tra xem có file nào được cung cấp không
     const hasFiles = images.avatar || images.coverImage || images.businessLicenseImage || (images.medias && images.medias.length > 0);
     if (!hasFiles) {
-      console.warn('⚠️ No files provided to upload');
+      console.warn('No files provided to upload');
       return {
         success: false,
         message: 'Vui lòng chọn ít nhất một ảnh để upload'
@@ -898,28 +865,25 @@ export async function updateStoreImages(
 
     const formData = new FormData();
 
-    // QUAN TRỌNG: Field names PHẢI match với @RequestParam trong backend
-    // Backend: avatar, coverImage, businessLicenceImage, medias
     if (images.avatar) {
       formData.append('avatar', images.avatar);
-      console.log(`✅ Avatar: ${images.avatar.name} (${(images.avatar.size / 1024).toFixed(1)}KB)`);
+      console.log(`Avatar: ${images.avatar.name} (${(images.avatar.size / 1024).toFixed(1)}KB)`);
     }
     if (images.coverImage) {
       formData.append('coverImage', images.coverImage);
-      console.log(`✅ Cover: ${images.coverImage.name} (${(images.coverImage.size / 1024).toFixed(1)}KB)`);
+      console.log(`Cover: ${images.coverImage.name} (${(images.coverImage.size / 1024).toFixed(1)}KB)`);
     }
     if (images.businessLicenseImage) {
       formData.append('businessLicenceImage', images.businessLicenseImage);
-      console.log(`✅ License: ${images.businessLicenseImage.name} (${(images.businessLicenseImage.size / 1024).toFixed(1)}KB)`);
+      console.log(`License: ${images.businessLicenseImage.name} (${(images.businessLicenseImage.size / 1024).toFixed(1)}KB)`);
     }
     if (images.medias && images.medias.length > 0) {
       images.medias.forEach((media, index) => {
         formData.append('medias', media);
-        console.log(`✅ Media ${index + 1}: ${media.name} (${(media.size / 1024).toFixed(1)}KB)`);
+        console.log(`Media ${index + 1}: ${media.name} (${(media.size / 1024).toFixed(1)}KB)`);
       });
     }
 
-    // Tính tổng kích thước upload
     let totalSize = 0;
     for (let [key, value] of formData.entries()) {
       if (value instanceof File) {
@@ -933,8 +897,6 @@ export async function updateStoreImages(
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`
-        // QUAN TRỌNG: KHÔNG set Content-Type header
-        // Browser sẽ tự động set: Content-Type: multipart/form-data; boundary=...
       },
       body: formData
     });
@@ -949,7 +911,7 @@ export async function updateStoreImages(
 
       try {
         errorBody = await response.text();
-        console.error('❌ Error response body:', errorBody);
+        console.error('Error response body:', errorBody);
 
         // Kiểm tra xem response có phải JSON không
         const contentType = response.headers.get('content-type');
@@ -964,9 +926,9 @@ export async function updateStoreImages(
         } else {
           // Xử lý response không phải JSON
           if (response.status === 401) {
-            errorMessage = '❌ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+            errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
           } else if (response.status === 403) {
-            errorMessage = '❌ Không có quyền truy cập!\n' +
+            errorMessage = 'Không có quyền truy cập!\n' +
               '• Bạn cần đăng nhập với tài khoản CLIENT/OWNER\n' +
               '• Hoặc cửa hàng này không thuộc về bạn\n' +
               '• Vui lòng kiểm tra token và role';
@@ -987,12 +949,12 @@ export async function updateStoreImages(
             if (errorBody.includes('MaxUploadSizeExceededException') ||
               errorBody.includes('upload size exceeded') ||
               errorBody.includes('maximum upload size')) {
-              errorMessage = '❌ File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB. Vui lòng:\n' +
+              errorMessage = 'File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB. Vui lòng:\n' +
                 '• Chọn ảnh nhỏ hơn (< 2MB)\n' +
                 '• Hoặc nén ảnh trước khi upload';
             } else if (errorBody.includes('AuthorizationDeniedException') ||
               errorBody.includes('Access Denied')) {
-              errorMessage = '❌ Lỗi phân quyền!\n' +
+              errorMessage = 'Lỗi phân quyền!\n' +
                 '• Backend từ chối truy cập\n' +
                 '• Cần đăng nhập với role CLIENT hoặc OWNER\n' +
                 '• Store phải thuộc về user hiện tại';
@@ -1004,21 +966,16 @@ export async function updateStoreImages(
           }
         }
       } catch (parseError) {
-        console.error('❌ Error parsing error response:', parseError);
+        console.error('Error parsing error response:', parseError);
       }
 
-      console.error('❌ Upload failed:', errorMessage);
+      console.error('Upload failed:', errorMessage);
       return {
         success: false,
         message: errorMessage
       };
     }
 
-    // Backend sử dụng @Async để upload images, nên response sẽ return ngay lập tức
-    // File upload diễn ra ở background
-    // Frontend coi là thành công nếu API return 200 OK
-
-    // Parse successful response
     let data;
     try {
       const responseText = await response.text();
@@ -1028,18 +985,18 @@ export async function updateStoreImages(
         data = {};
       }
     } catch (e) {
-      console.warn('⚠️ Response is not valid JSON');
+      console.warn('Response is not valid JSON');
       data = {};
     }
 
-    console.log('✅ Upload request accepted! Backend will process images asynchronously. Response:', data);
+    console.log('Upload request accepted! Backend will process images asynchronously. Response:', data);
     return {
       success: true,
       message: 'Upload ảnh thành công (xử lý ở background)',
       data
     };
   } catch (error) {
-    console.error('❌ Error uploading store images:', error);
+    console.error('Error uploading store images:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi upload ảnh'
@@ -1052,34 +1009,25 @@ export async function getMyStore(): Promise<StoreAdminDetailResponse | null> {
   try {
     const token = getToken();
     if (!token) {
-      console.warn('⚠️ No token - user not logged in');
+      console.warn('No token - user not logged in');
       return null;
     }
 
-    // Step 1: Get current user profile to get owner ID
-    console.log('📍 Step 1: Fetching current user profile...')
-    const currentUser = await getMyProfile()
+    const currentUser = getMyProfile()
     if (!currentUser?.id) {
-      console.warn('⚠️ Cannot get current user ID');
-      return null;
+        throw new Error('User ID is undefined');
     }
+    const stores = await getStoresByOwnerId(currentUser.id);
 
-    console.log('✅ Got owner ID:', currentUser.id)
-
-    // Step 2: Get stores for this owner
-    console.log('🔍 Step 2: Fetching stores for owner...')
-    const stores = await getStoresByOwnerId(currentUser.id)
-
-    // Return first store or null if no stores
     if (stores && stores.length > 0) {
-      console.log('✅ Got store:', stores[0].id)
+      console.log('Got store:', stores[0].id)
       return stores[0];
     }
 
     console.log('ℹ️ User has no store yet');
     return null;
   } catch (error) {
-    console.error('❌ Error getting my store:', error);
+    console.error('Error getting my store:', error);
     return null;
   }
 }
@@ -1087,7 +1035,7 @@ export async function getMyStore(): Promise<StoreAdminDetailResponse | null> {
 // Lấy danh sách stores của user theo ID
 export async function getUserStores(page: number = 1, perPage: number = 12): Promise<StoreSearchItemResponse[]> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json'
@@ -1103,14 +1051,14 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
     });
 
     if (!response.ok) {
-      console.error('❌ Failed to get user stores:', response.status, response.statusText);
+      console.error('Failed to get user stores:', response.status, response.statusText);
       return [];
     }
 
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('❌ Error getting user stores:', error);
+    console.error('Error getting user stores:', error);
     return [];
   }
 }
@@ -1118,21 +1066,20 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
 // Lấy danh sách cửa hàng của owner theo owner-id
 export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDetailResponse[]> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
 
-    // ✅ REQUIRED: Token là bắt buộc vì backend yêu cầu @PreAuthorize
+    // REQUIRED: Token là bắt buộc vì backend yêu cầu @PreAuthorize
     if (!token) {
-      console.error('❌ ERROR: No token found! Endpoint /stores/owner/{owner-id} requires authentication!')
+      console.error('ERROR: No token found! Endpoint /stores/owner/{owner-id} requires authentication!')
       console.error('   localStorage keys:', Object.keys(localStorage))
       return [];
     }
 
-    console.log('✅ Token found:', token.substring(0, 50) + '...')
+    console.log('Token found:', token.substring(0, 50) + '...')
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`  // ✅ REQUIRED
+      'Authorization': `Bearer ${token}`  // REQUIRED
     };
 
     console.log(`🔍 Fetching stores for owner: ${ownerId}`)
@@ -1145,13 +1092,11 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
 
     console.log(`📡 Response status: ${response.status} ${response.statusText}`)
 
-    // Đọc response body
     const data = await response.json();
 
-    // Kiểm tra lỗi từ proxy
     if (data.success === false || data.error) {
       let errorMsg = data.message || `${response.status} ${response.statusText}`;
-      console.error(`❌ Failed to get stores by owner: ${errorMsg}`);
+      console.error(`Failed to get stores by owner: ${errorMsg}`);
 
       if (data.status === 401) {
         console.error('🔐 Error 401: Token invalid or expired - please login again')
@@ -1167,7 +1112,7 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
     // Kiểm tra response status bình thường
     if (!response.ok) {
       let errorMsg = `${response.status} ${response.statusText}`
-      console.error(`❌ Failed to get stores by owner: ${errorMsg}`)
+      console.error(`Failed to get stores by owner: ${errorMsg}`)
 
       if (response.status === 401) {
         console.error('🔐 Error 401: Token invalid or expired - please login again')
@@ -1180,49 +1125,14 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
       return [];
     }
 
-    console.log('✅ Stores retrieved for owner:', data);
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('❌ Error getting stores by owner:', error);
+    console.error('Error getting stores by owner:', error);
     return [];
   }
 }
 
-// =================
-// OPTIONAL PLAN SERVICES - Controller chưa có ❌
-// =================
-// MAIN PLAN SERVICES - Fake API (Backend chưa implement) ⏳
-// =================
-
-// Dữ liệu Main Plans từ database
-const MAIN_PLANS_DATA = [
-  {
-    id: '30c0f324-ad6b-11f0-81d5-0...',
-    name: 'Gói Miễn Phí',
-    description: 'Gói cơ bản cho các cửa hàng vừa bắt đầu'
-  },
-  {
-    id: '30c0f75b-ad6b-11f0-81d5-0...',
-    name: 'Gói Cơ Bản',
-    description: 'Gói cơ bản cho các cửa hàng nhỏ - 29.999đ/tháng'
-  },
-  {
-    id: '30c0f962-ad6b-11f0-81d5-0...',
-    name: 'Gói Chuyên Nghiệp',
-    description: 'Gói chuyên nghiệp cho các cửa hàng trung bình - 599K/tháng'
-  },
-  {
-    id: '30c0f9c2-ad6b-11f0-81d5-0...',
-    name: 'Gói Doanh Nghiệp',
-    description: 'Gói cao cấp cho các cửa hàng lớn - 999K/tháng'
-  }
-];
-
-// Lấy danh sách tất cả Main Plans
 export async function getMainPlans(): Promise<any[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
-  console.log('📋 Getting main plans from backend...')
-
   try {
     const response = await fetch(`/api/plans?type=main`, {
       method: 'GET',
@@ -1232,25 +1142,18 @@ export async function getMainPlans(): Promise<any[]> {
     });
 
     const data = await response.json();
-
-    // Kiểm tra lỗi từ proxy
     if (data.error) {
       throw new Error(data.message || 'Lấy danh sách gói dịch vụ thất bại');
     }
 
-    console.log('✅ Main plans retrieved:', data.length)
     return data
   } catch (error: any) {
-    console.error('❌ Error getting main plans:', error)
+    console.error('Error getting main plans:', error)
     throw error
   }
 }
 
-// Đăng ký Main Plan cho Store
 export async function purchaseMainPlan(storeId: string, planId: string): Promise<{ success: boolean; message: string; data?: any }> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
-  console.log(`📋 Registering Main Plan: ${planId} for store ${storeId}`)
-
   try {
     const token = getToken();
     console.log(`🔑 Auth token present: ${!!token}`)
@@ -1278,7 +1181,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
       let errorText = '';
       try {
         errorText = await response.text();
-        console.error(`❌ Error response body:`, errorText);
+        console.error(`Error response body:`, errorText);
 
         const contentType = response.headers.get('content-type');
         if (contentType?.includes('application/json')) {
@@ -1287,7 +1190,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
           errorData = { message: errorText };
         }
       } catch (parseError) {
-        console.error(`❌ Failed to parse error response:`, parseError);
+        console.error(`Failed to parse error response:`, parseError);
         errorData = { message: `HTTP ${response.status}: ${errorText || 'Unknown error'}` };
       }
 
@@ -1310,14 +1213,14 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
           responseData = { success: true };
         }
       } catch (e) {
-        console.error(`❌ Failed to parse success response:`, e);
+        console.error(`Failed to parse success response:`, e);
         responseData = { success: true };
       }
     } else {
       responseData = { success: true };
     }
 
-    console.log(`✅ Main Plan registered successfully!`)
+    console.log(`Main Plan registered successfully!`)
     return {
       success: true,
       message: `Đã đăng ký gói dịch vụ thành công`,
@@ -1329,7 +1232,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
       }
     }
   } catch (error: any) {
-    console.error('❌ Error registering main plan:', error)
+    console.error('Error registering main plan:', error)
     return {
       success: false,
       message: error?.message || 'Có lỗi xảy ra khi đăng ký gói dịch vụ'
@@ -1337,13 +1240,8 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
   }
 }
 
-// =================
-// OPTIONAL PLAN SERVICES - Controller chưa có ❌
-// =================
-
-// Lấy danh sách tất cả Optional Plans
 export async function getOptionalPlans(): Promise<OptionalPlan[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   try {
     const response = await fetch(`/api/plans?type=optional`, {
       method: 'GET',
@@ -1385,7 +1283,7 @@ export async function getOptionalPlans(): Promise<OptionalPlan[]> {
 
 // Mua Optional Plan cho Store
 export async function purchaseOptionalPlan(request: OptionalPlanPurchaseRequest): Promise<OptionalPlanPurchaseResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   try {
     const response = await fetch(`/api/subscriptions?type=optional`, {
       method: 'POST',
@@ -1422,7 +1320,7 @@ export async function purchaseOptionalPlan(request: OptionalPlanPurchaseRequest)
 
 // Lấy danh sách Optional Plans đã mua của Store
 export async function getMyOptionalPlans(storeId: string): Promise<ApplyOptionalPlan[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   try {
     const response = await fetch(`/api/subscriptions?type=optional&storeId=${storeId}`, {
       method: 'GET',
@@ -1448,7 +1346,7 @@ export async function getMyOptionalPlans(storeId: string): Promise<ApplyOptional
 
 // Lấy danh sách tất cả banks
 export async function getBanks(): Promise<BankResponse[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const token = getToken();
   console.log("🔍 getBanks - Token:", token ? "Present" : "Missing");
 
@@ -1464,18 +1362,18 @@ export async function getBanks(): Promise<BankResponse[]> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("❌ getBanks - Error response:", errorText);
+    console.error("getBanks - Error response:", errorText);
     throw new Error(`HTTP ${response.status}: ${errorText}`);
   }
 
   const data = await response.json();
-  console.log("✅ getBanks - Success:", data);
+  console.log("getBanks - Success:", data);
   return data;
 }
 
 // Lấy bank theo ID
 export async function getBankById(id: string): Promise<BankResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/banks/${id}`);
 
   if (!response.ok) {
@@ -1488,7 +1386,7 @@ export async function getBankById(id: string): Promise<BankResponse> {
 
 // Tạo bank mới (Admin only) - với file upload
 export async function createBank(name: string, logo?: File): Promise<BankResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const formData = new FormData();
   formData.append('name', name);
   if (logo) {
@@ -1508,9 +1406,7 @@ export async function createBank(name: string, logo?: File): Promise<BankRespons
   return response.json();
 }
 
-// Cập nhật bank (Admin only) - với file upload
 export async function updateBank(id: string, name: string, logo?: File): Promise<BankResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
   const formData = new FormData();
   formData.append('name', name);
   if (logo) {
@@ -1530,14 +1426,8 @@ export async function updateBank(id: string, name: string, logo?: File): Promise
   return response.json();
 }
 
-// =================
-// BANK ACCOUNT SERVICES - Match BankAccountController ✅
-// =================
-
-// Tạo bank account cho user hiện tại
 export async function createBankAccount(request: { name: string; number: string; bankId: string }): Promise<BankAccountResponse> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
 
     if (!token) {
@@ -1562,14 +1452,14 @@ export async function createBankAccount(request: { name: string; number: string;
 
     return data;
   } catch (error) {
-    console.error('❌ Error creating bank account:', error);
+    console.error('Error creating bank account:', error);
     throw error;
   }
 }
 
 // Lấy bank account theo ID
 export async function getBankAccountById(id: string): Promise<BankAccountResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/bank-accounts/${id}`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`
@@ -1587,7 +1477,7 @@ export async function getBankAccountById(id: string): Promise<BankAccountRespons
 // Lấy bank account của user hiện tại
 export async function getMyBankAccount(): Promise<BankAccountResponse> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
 
     if (!token) {
@@ -1604,9 +1494,7 @@ export async function getMyBankAccount(): Promise<BankAccountResponse> {
 
     const data = await response.json();
 
-    // Kiểm tra lỗi từ proxy
     if (data.error) {
-      // Nếu là 404 (bank account không tồn tại), throw error với "404"
       if (data.status === 404) {
         const error = new Error('Bank account not found');
         (error as any).status = 404;
@@ -1617,15 +1505,13 @@ export async function getMyBankAccount(): Promise<BankAccountResponse> {
 
     return data;
   } catch (error) {
-    console.error('❌ Error checking bank account:', error);
+    console.error('Error checking bank account:', error);
     throw error;
   }
 }
 
-// Cập nhật bank account của user hiện tại
 export async function updateMyBankAccount(request: { name: string; number: string; bankId: string }): Promise<BankAccountResponse> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
 
     if (!token) {
@@ -1653,15 +1539,13 @@ export async function updateMyBankAccount(request: { name: string; number: strin
 
     return data;
   } catch (error) {
-    console.error('❌ Error updating bank account:', error);
+    console.error('Error updating bank account:', error);
     throw error;
   }
 }
 
-// Xóa bank account của user hiện tại
 export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
     const token = getToken();
 
     if (!token) {
@@ -1688,18 +1572,13 @@ export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
 
     return data;
   } catch (error) {
-    console.error('❌ Error deleting bank account:', error);
+    console.error('Error deleting bank account:', error);
     throw error;
   }
 }
 
-// =================
-// LOCATION SERVICES - Match ProvinceController & WardController ✅
-// =================
-
-// Lấy danh sách tất cả provinces
 export async function getProvinces(): Promise<ProvinceResponse[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/locations/provinces`);
 
   if (!response.ok) {
@@ -1712,7 +1591,7 @@ export async function getProvinces(): Promise<ProvinceResponse[]> {
 
 // Lấy province theo ID
 export async function getProvinceById(id: string): Promise<ProvinceResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/locations/provinces/${id}`);
 
   if (!response.ok) {
@@ -1725,7 +1604,7 @@ export async function getProvinceById(id: string): Promise<ProvinceResponse> {
 
 // Lấy danh sách wards theo province ID
 export async function getWardsByProvinceId(provinceId: string): Promise<WardResponse[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/locations/provinces/${provinceId}/wards`);
 
   if (!response.ok) {
@@ -1738,7 +1617,7 @@ export async function getWardsByProvinceId(provinceId: string): Promise<WardResp
 
 // Lấy danh sách tất cả wards
 export async function getWards(): Promise<WardResponse[]> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/locations/wards`);
 
   if (!response.ok) {
@@ -1751,7 +1630,7 @@ export async function getWards(): Promise<WardResponse[]> {
 
 // Lấy ward theo ID
 export async function getWardById(id: string): Promise<WardResponse> {
-  // ✅ SỬ DỤNG PROXY để bypass CORS
+  // SỬ DỤNG PROXY để bypass CORS
   const response = await fetch(`/api/locations/wards/${id}`);
 
   if (!response.ok) {
@@ -1762,325 +1641,6 @@ export async function getWardById(id: string): Promise<WardResponse> {
   return response.json();
 }
 
-// =================
-// CONTROLLERS CHƯA CÓ - COMMENTED OUT
-// =================
-
-// =================
-// FIELD SERVICES - Controller chưa có ❌
-// =================
-// export async function getFields(): Promise<Field[]> {
-//     // TODO: Implement FieldController
-//     // const response = await fetch(`${API_BASE_URL}/fields`);
-//     // return response.json();
-// }
-
-// export async function getFieldById(id: string): Promise<Field> {
-//     // TODO: Implement FieldController
-//     // const response = await fetch(`${API_BASE_URL}/fields/${id}`);
-//     // return response.json();
-// }
-
-// export async function getFieldBookingSlots(fieldId: string, date?: string): Promise<any[]> {
-//     // TODO: Implement FieldController
-//     // const queryParams = date ? `?date=${date}` : '';
-//     // const response = await fetch(`${API_BASE_URL}/fields/${fieldId}/slots${queryParams}`);
-//     // return response.json();
-// }
-
-// =================
-// BOOKING SERVICES - Controller chưa có ❌
-// =================
-// export async function getBookings(): Promise<Booking[]> {
-//     // TODO: Implement BookingController
-//     // const response = await fetch(`${API_BASE_URL}/bookings`);
-//     // return response.json();
-// }
-
-// export async function createBooking(booking: any): Promise<Booking> {
-//     // TODO: Implement BookingController
-//     // const response = await fetch(`${API_BASE_URL}/bookings`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(booking)
-//     // });
-//     // return response.json();
-// }
-
-// export async function getBookingById(id: string): Promise<Booking> {
-//     // TODO: Implement BookingController
-//     // const response = await fetch(`${API_BASE_URL}/bookings/${id}`);
-//     // return response.json();
-// }
-
-// export async function cancelBooking(bookingId: string): Promise<void> {
-//     // TODO: Implement BookingController
-//     // const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
-//     //     method: 'POST'
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// TOURNAMENT SERVICES - Controller chưa có ❌
-// =================
-// export async function getTournaments(): Promise<Tournament[]> {
-//     // TODO: Implement TournamentController
-//     // const response = await fetch(`${API_BASE_URL}/tournaments`);
-//     // return response.json();
-// }
-
-// export async function getTournamentById(id: string): Promise<Tournament> {
-//     // TODO: Implement TournamentController
-//     // const response = await fetch(`${API_BASE_URL}/tournaments/${id}`);
-//     // return response.json();
-// }
-
-// export async function registerTournament(tournamentId: string, userId: string): Promise<boolean> {
-//     // TODO: Implement TournamentController
-//     // const response = await fetch(`${API_BASE_URL}/tournaments/register`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ tournamentId, userId })
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// COMMUNITY SERVICES - Controller chưa có ❌
-// =================
-// export async function getCommunityPosts(filters?: any): Promise<CommunityPost[]> {
-//     // TODO: Implement CommunityController
-//     // const queryParams = new URLSearchParams(filters).toString();
-//     // const response = await fetch(`${API_BASE_URL}/community/posts?${queryParams}`);
-//     // return response.json();
-// }
-
-// export async function getCommunityPostById(id: string): Promise<CommunityPost> {
-//     // TODO: Implement CommunityController
-//     // const response = await fetch(`${API_BASE_URL}/community/posts/${id}`);
-//     // return response.json();
-// }
-
-// export async function createCommunityPost(post: any): Promise<CommunityPost> {
-//     // TODO: Implement CommunityController
-//     // const response = await fetch(`${API_BASE_URL}/community/posts`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(post)
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// CHAT SERVICES - Controller chưa có ❌
-// =================
-// export async function getChatRooms(): Promise<ChatRoom[]> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms`);
-//     // return response.json();
-// }
-
-// export async function getChatMessages(roomId: string): Promise<ChatMessage[]> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages`);
-//     // return response.json();
-// }
-
-// export async function sendMessage(roomId: string, content: string): Promise<ChatMessage> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ content })
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// PAYMENT SERVICES - Controller chưa có ❌
-// =================
-// export async function processPayment(bookingId: string, paymentData: any): Promise<PaymentResponse> {
-//     // TODO: Implement PaymentController
-//     // const response = await fetch(`${API_BASE_URL}/payment/process`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ bookingId, paymentData })
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// REVIEW SERVICES - Controller chưa có ❌
-// =================
-// export async function getFieldReviews(fieldId: string): Promise<{ fieldData: any, reviews: Review[] }> {
-//     // TODO: Implement ReviewController
-//     // const response = await fetch(`${API_BASE_URL}/fields/${fieldId}/reviews`);
-//     // return response.json();
-// }
-
-// export async function addReview(fieldId: string, reviewData: any): Promise<Review> {
-//     // TODO: Implement ReviewController
-//     // const response = await fetch(`${API_BASE_URL}/fields/${fieldId}/reviews`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(reviewData)
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// USER PROFILE SERVICES - Controller chưa có ❌
-// =================
-// export async function getCurrentUser(): Promise<UserResponse> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/profile`);
-//     // return response.json();
-// }
-
-// export async function updateUserProfile(userData: any): Promise<UserResponse> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/profile`, {
-//     //     method: 'PUT',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(userData)
-//     // });
-//     // return response.json();
-// }
-
-// export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/change-password`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ currentPassword, newPassword })
-//     // });
-//     // return response.json();
-// }
-
-// export async function uploadAvatar(file: File): Promise<string> {
-//     // TODO: Implement User Profile endpoints
-//     // const formData = new FormData();
-//     // formData.append('avatar', file);
-//     // const response = await fetch(`${API_BASE_URL}/user/avatar`, {
-//     //     method: 'POST',
-//     //     body: formData
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// BOOKING SERVICES - Controller chưa có ❌
-// =================
-// =================
-// TOURNAMENT SERVICES - Controller chưa có ❌
-// =================
-// =================
-// CHAT SERVICES - Controller chưa có ❌
-// =================
-// export async function getChatRooms(): Promise<ChatRoom[]> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms`);
-//     // return response.json();
-// }
-
-// export async function getChatMessages(roomId: string): Promise<ChatMessage[]> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages`);
-//     // return response.json();
-// }
-
-// export async function sendMessage(roomId: string, content: string): Promise<ChatMessage> {
-//     // TODO: Implement ChatController
-//     // const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ content })
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// PAYMENT SERVICES - Controller chưa có ❌
-// =================
-// export async function processPayment(bookingId: string, paymentData: any): Promise<PaymentResponse> {
-//     // TODO: Implement PaymentController
-//     // const response = await fetch(`${API_BASE_URL}/payment/process`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ bookingId, paymentData })
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// REVIEW SERVICES - Controller chưa có ❌
-// =================
-// export async function getFieldReviews(fieldId: string): Promise<{ fieldData: any, reviews: Review[] }> {
-//     // TODO: Implement ReviewController
-//     // const response = await fetch(`${API_BASE_URL}/fields/${fieldId}/reviews`);
-//     // return response.json();
-// }
-
-// export async function addReview(fieldId: string, reviewData: any): Promise<Review> {
-//     // TODO: Implement ReviewController
-//     // const response = await fetch(`${API_BASE_URL}/fields/${fieldId}/reviews`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(reviewData)
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// USER PROFILE SERVICES - Controller chưa có ❌
-// =================
-// export async function getCurrentUser(): Promise<UserResponse> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/profile`);
-//     // return response.json();
-// }
-
-// export async function updateUserProfile(userData: any): Promise<UserResponse> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/profile`, {
-//     //     method: 'PUT',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify(userData)
-//     // });
-//     // return response.json();
-// }
-
-// export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-//     // TODO: Implement User Profile endpoints
-//     // const response = await fetch(`${API_BASE_URL}/user/change-password`, {
-//     //     method: 'POST',
-//     //     headers: { 'Content-Type': 'application/json' },
-//     //     body: JSON.stringify({ currentPassword, newPassword })
-//     // });
-//     // return response.json();
-// }
-
-// export async function uploadAvatar(file: File): Promise<string> {
-//     // TODO: Implement User Profile endpoints
-//     // const formData = new FormData();
-//     // formData.append('avatar', file);
-//     // const response = await fetch(`${API_BASE_URL}/user/avatar`, {
-//     //     method: 'POST',
-//     //     body: formData
-//     // });
-//     // return response.json();
-// }
-
-// =================
-// FUNCTIONS ĐANG ĐƯỢC SỬ DỤNG - ĐÃ CHUYỂN SANG REAL API CALLS
-// =================
-
-// =================
-// FIELD SERVICES - Đã chuyển sang real API calls
-// =================
-
-// Lấy danh sách sân phổ biến
 export async function getPopularFields(): Promise<Field[]> {
   const response = await fetch(`${API_BASE_URL}/fields/popular`);
 
@@ -2364,7 +1924,7 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
   try {
     const token = getToken();
     if (!token) {
-      console.log('⚠️ Không có token, không thể lấy current user')
+      console.log('Không có token, không thể lấy current user')
       return null;
     }
 
@@ -2379,7 +1939,7 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
 
     if (!response.ok) {
       if (response.status === 401) {
-        console.log('⚠️ User not authenticated')
+        console.log('User not authenticated')
         return null;
       }
       const error = await response.json();
@@ -2387,10 +1947,10 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
     }
 
     const data = await response.json();
-    console.log('✅ Current user retrieved:', data);
+    console.log('Current user retrieved:', data);
     return data;
   } catch (error) {
-    console.error('❌ Error getting current user:', error)
+    console.error('Error getting current user:', error)
     return null;
   }
 }
@@ -2500,7 +2060,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
   const token = getToken();
   if (!token) {
-    console.warn('⚠️ Không có token, không thể lấy danh sách yêu thích');
+    console.warn('Không có token, không thể lấy danh sách yêu thích');
     return [];
   }
 
@@ -2512,7 +2072,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
   }
 
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const response = await fetch('/api/favourites', {
       method: 'GET',
       headers: {
@@ -2523,7 +2083,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
     if (!response.ok) {
       if (response.status === 401) {
-        console.warn('⚠️ Token hết hạn, không thể lấy yêu thích');
+        console.warn('Token hết hạn, không thể lấy yêu thích');
         return [];
       }
       const error = await response.json();
@@ -2531,7 +2091,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
     }
 
     const data = await response.json();
-    console.log('✅ Danh sách yêu thích đã được tải:', Array.isArray(data) ? data.length : 'N/A');
+    console.log('Danh sách yêu thích đã được tải:', Array.isArray(data) ? data.length : 'N/A');
 
     // Update cache
     favouritesCache = data;
@@ -2539,7 +2099,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
     return data;
   } catch (error: any) {
-    console.error('❌ Lỗi khi lấy danh sách yêu thích:', error.message);
+    console.error('Lỗi khi lấy danh sách yêu thích:', error.message);
     return [];
   }
 }
@@ -2559,7 +2119,7 @@ export async function isFavourite(storeId: string): Promise<boolean> {
     console.log(`🔍 Store ${storeId} favourite:`, result);
     return result;
   } catch (error) {
-    console.error('❌ Lỗi khi kiểm tra yêu thích:', error);
+    console.error('Lỗi khi kiểm tra yêu thích:', error);
     return false;
   }
 }
@@ -2571,12 +2131,12 @@ export async function isFavourite(storeId: string): Promise<boolean> {
 export async function addFavourite(storeId: string): Promise<StoreClientDetailResponse | null> {
   const token = getToken();
   if (!token) {
-    console.error('❌ Không có token, không thể thêm yêu thích');
+    console.error('Không có token, không thể thêm yêu thích');
     throw new Error('Vui lòng đăng nhập để thêm yêu thích');
   }
 
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const response = await fetch('/api/favourites', {
       method: 'POST',
       headers: {
@@ -2592,14 +2152,14 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
     }
 
     const data = await response.json();
-    console.log('✅ Đã thêm vào yêu thích:', storeId);
+    console.log('Đã thêm vào yêu thích:', storeId);
 
     // Invalidate cache
     favouritesCache = null;
 
     return data;
   } catch (error: any) {
-    console.error('❌ Lỗi khi thêm yêu thích:', error.message);
+    console.error('Lỗi khi thêm yêu thích:', error.message);
     throw error;
   }
 }
@@ -2611,12 +2171,12 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
 export async function removeFavourite(storeId: string): Promise<void> {
   const token = getToken();
   if (!token) {
-    console.error('❌ Không có token, không thể xóa yêu thích');
+    console.error('Không có token, không thể xóa yêu thích');
     throw new Error('Vui lòng đăng nhập để xóa yêu thích');
   }
 
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const response = await fetch(`/api/favourites/${storeId}`, {
       method: 'DELETE',
       headers: {
@@ -2629,7 +2189,7 @@ export async function removeFavourite(storeId: string): Promise<void> {
 
     // Thành công: 204 No Content hoặc 200 OK
     if (response.ok || response.status === 204) {
-      console.log('✅ Đã xóa khỏi yêu thích:', storeId);
+      console.log('Đã xóa khỏi yêu thích:', storeId);
       favouritesCache = null;
       return;
     }
@@ -2654,7 +2214,7 @@ export async function removeFavourite(storeId: string): Promise<void> {
     throw new Error(errorMsg);
   } catch (error: any) {
     if (error.message) {
-      console.error('❌ Lỗi khi xóa yêu thích:', error.message);
+      console.error('Lỗi khi xóa yêu thích:', error.message);
     }
     throw error;
   }
@@ -2751,7 +2311,7 @@ export async function createRating(request: {
 
     return response.json();
   } catch (error: any) {
-    console.error('❌ Error creating rating:', error);
+    console.error('Error creating rating:', error);
     throw error;
   }
 }
@@ -2779,7 +2339,7 @@ export async function deleteRating(ratingId: string): Promise<void> {
       throw new Error(error.message || 'Không thể xóa đánh giá');
     }
   } catch (error: any) {
-    console.error('❌ Error deleting rating:', error);
+    console.error('Error deleting rating:', error);
     throw error;
   }
 }
@@ -2835,7 +2395,7 @@ export async function updateRating(
 
     return response.json();
   } catch (error: any) {
-    console.error('❌ Error updating rating:', error);
+    console.error('Error updating rating:', error);
     throw error;
   }
 }
@@ -2852,7 +2412,7 @@ export async function getStoreRatings(
   perPage: number = 20
 ): Promise<any[]> {
   try {
-    // ✅ SỬ DỤNG PROXY để bypass CORS
+    // SỬ DỤNG PROXY để bypass CORS
     const response = await fetch(
       `/api/ratings/store/${storeId}?page=${page}&perPage=${perPage}`
     );
@@ -2860,13 +2420,13 @@ export async function getStoreRatings(
     const data = await response.json();
 
     if (data.success === false || data.error) {
-      console.warn('⚠️ Cannot fetch store ratings');
+      console.warn('Cannot fetch store ratings');
       return [];
     }
 
     return Array.isArray(data) ? data : data.content || [];
   } catch (error: any) {
-    console.error('❌ Error fetching store ratings:', error);
+    console.error('Error fetching store ratings:', error);
     return [];
   }
 }
