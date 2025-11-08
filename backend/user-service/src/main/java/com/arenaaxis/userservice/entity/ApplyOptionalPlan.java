@@ -33,7 +33,7 @@ public class ApplyOptionalPlan {
 
   @Builder.Default
   LocalDateTime createdAt = LocalDateTime.now();
-  LocalDateTime deletedAt = LocalDateTime.now();
+  LocalDateTime deletedAt;
 
   Long price;
 }

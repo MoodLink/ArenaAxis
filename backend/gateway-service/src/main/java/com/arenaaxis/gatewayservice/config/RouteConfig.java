@@ -24,6 +24,7 @@ public class RouteConfig {
             "/main-plans/**",
             "/subscriptions/**",
             "/favourites/**",
+            "/ratings/**",
             "/store-view-histories")
           .uri("lb://user-service")
       )

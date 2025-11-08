@@ -4,6 +4,7 @@ import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.request.UpdateSportForStoreRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
+import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
@@ -76,6 +77,12 @@ public class StoreController {
   @GetMapping("/{id}")
   public ResponseEntity<StoreAdminDetailResponse> getFullInfo(@PathVariable("id") String id) {
     return ResponseEntity.ok(storeService.fullInfo(id));
+  }
+
+  @GetMapping("/detail/{id}")
+  public ResponseEntity<StoreClientDetailResponse> detail(@PathVariable("id") String id) {
+    User user = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.detail(id, user));
   }
 
   @GetMapping("/owner/{owner-id}")

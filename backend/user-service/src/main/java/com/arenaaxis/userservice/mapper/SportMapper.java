@@ -14,7 +14,9 @@ public interface SportMapper {
   Sport toSport(SportCreateRequest request);
 
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "nameEnglish", source = "nameEn")
   void toSport(@MappingTarget Sport sport, SportUpdateRequest request);
 
+  @Mapping(target = "nameEn", source = "nameEnglish")
   SportResponse toResponse(Sport sport);
 }

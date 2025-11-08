@@ -19,7 +19,8 @@ import java.util.Set;
   uses = {
     WardMapper.class,
     ProvinceMapper.class,
-    UserMapper.class
+    UserMapper.class,
+    SportMapper.class,
   }
 )
 public interface StoreMapper {
@@ -37,6 +38,11 @@ public interface StoreMapper {
   @Mapping(target = "optionalPlans", ignore = true)
   @Mapping(target = "approved", ignore = true)
   @Mapping(target = "owner", ignore = true)
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "averageRating", ignore = true)
+  @Mapping(target = "province", ignore = true)
+  @Mapping(target = "sports", ignore = true)
+  @Mapping(target = "ward", ignore = true)
   Store fromCreateRequest(StoreCreateRequest request);
 
   @Mapping(
@@ -93,6 +99,15 @@ public interface StoreMapper {
     source = "coverImage.url",
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
   )
+  @Mapping(
+    target = "mediaUrls",
+    expression = "java(mapMediaUrls(store.getMedias()))"
+  )
+  @Mapping(
+    target = "sports",
+    ignore = true
+  )
+  @Mapping(target = "sportRatings", ignore = true)
   StoreClientDetailResponse toClientDetailResponse(Store store);
 
   @Mapping(

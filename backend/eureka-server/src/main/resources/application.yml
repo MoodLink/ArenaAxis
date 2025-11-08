@@ -6,7 +6,6 @@ eureka:
     renewal-percent-threshold: 0.5
     enable-self-preservation: true
     eviction-interval-timer-in-ms: 60000
-    renewalPercentThreshold: 0.85
   instance:
     hostname: ${EUREKA_HOSTNAME:localhost}
     prefer-ip-address: true

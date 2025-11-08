@@ -1,8 +1,6 @@
 package com.arenaaxis.userservice.service.impl;
 
 import com.arenaaxis.userservice.entity.User;
-import com.arenaaxis.userservice.exception.AppException;
-import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.repository.UserRepository;
 import com.arenaaxis.userservice.service.CurrentUserService;
 import lombok.AccessLevel;
@@ -31,6 +29,6 @@ public class CurrentUserServiceImpl implements CurrentUserService {
 
     String email = authentication.getName();
     return userRepository.findByEmail(email)
-      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+      .orElse(null);
   }
 }

@@ -34,6 +34,8 @@ public class StoreClientDetailResponse {
   String coverImageUrl;
 
   List<String> mediaUrls;
+  List<SportResponse> sports;
+  List<SportRatingResponse> sportRatings;
 
   Float latitude;
   Float longitude;

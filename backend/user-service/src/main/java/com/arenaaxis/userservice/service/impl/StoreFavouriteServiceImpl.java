@@ -56,16 +56,19 @@ public class StoreFavouriteServiceImpl implements StoreFavouriteService {
   }
 
   @Override
+  @Transactional
   public void deleteFavouriteByStoreIdAndUser(String storeId, User currentUser) {
     storeFavouriteRepository.deleteByStoreIdAndUserId(storeId, currentUser.getId());
   }
 
   @Override
+  @Transactional
   public void deleteFavouriteByUser(User currentUser) {
     storeFavouriteRepository.deleteByUserId(currentUser.getId());
   }
 
   @Override
+  @Transactional
   public void deleteFavouriteByStoreIdsAndUser(List<String> ids, User currentUser) {
     storeFavouriteRepository.deleteByStoreIdsAndUserId(ids, currentUser.getId());
   }
