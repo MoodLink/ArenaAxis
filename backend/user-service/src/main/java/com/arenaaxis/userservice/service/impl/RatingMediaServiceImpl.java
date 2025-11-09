@@ -29,7 +29,7 @@ public class RatingMediaServiceImpl implements RatingMediaService {
   public void createMultiple(Rating rating, List<MultipartFile> files) {
     if (files == null || files.isEmpty()) return;
 
-    files.stream().map(file -> mediaService.createMedia(file)).forEach(media -> {
+    files.stream().map(mediaService::createMedia).forEach(media -> {
       RatingMedia rm = RatingMedia.builder()
                                   .media(media)
                                   .rating(rating)

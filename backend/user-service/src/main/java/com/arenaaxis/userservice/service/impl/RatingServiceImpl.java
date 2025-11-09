@@ -2,7 +2,6 @@ package com.arenaaxis.userservice.service.impl;
 
 import java.util.List;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,10 +47,10 @@ public class RatingServiceImpl implements RatingService {
   @Override
   public RatingResponse create(RatingRequest request, List<MultipartFile> medias, User current) {
     Store store = storeRepository.findById(request.getStoreId())
-        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     Sport sport = sportRepository.findById(request.getSportId())
-        .orElseThrow(() -> new AppException(ErrorCode.SPORT_NOT_FOUND));
+      .orElseThrow(() -> new AppException(ErrorCode.SPORT_NOT_FOUND));
 
     if (!storeHasSportRepository.existsBySportIdAndStoreId(request.getSportId(), request.getStoreId())) {
       throw new AppException(ErrorCode.STORE_NOT_HAS_SPORT);
@@ -77,19 +76,20 @@ public class RatingServiceImpl implements RatingService {
 
   @Override
   public List<RatingResponse> getPageRatingForStore(SearchRatingRequest request, int page, int perPage) {
-    var pageable = PageRequest.of(page, perPage);
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'getPageRatingForStore'");
+  }
 
-    List<Rating> ratings = ratingRepository.findByStoreId(request.getStoreId(), pageable);
-
-    return ratings.stream()
-        .map(ratingMapper::toResponse)
-        .toList();
+  @Override
+  public RatingResponse getById(String id) {
+    return ratingRepository.findById(id).map(ratingMapper::toResponse)
+      .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
   }
 
   @Override
   public void delete(String ratingId, User current) {
     Rating rating = ratingRepository.findById(ratingId)
-        .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
+      .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
 
     if (!rating.getUser().getId().equals(current.getId())) {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -105,7 +105,7 @@ public class RatingServiceImpl implements RatingService {
     int star = rating.getStar();
 
     List<RatingStoreSport> allRatings = ratingStoreSportRepository.findByStoreId(store.getId());
-    RatingStoreSport currentRating = findOrThrowException(allRatings, store, sport);
+    RatingStoreSport currentRating = findOrThrowException(allRatings, sport);
     decreaseRating(currentRating, star);
 
     updateAverageRating(store, allRatings);
@@ -128,48 +128,46 @@ public class RatingServiceImpl implements RatingService {
   }
 
   private RatingStoreSport findOrCreateRatingForSport(
-      List<RatingStoreSport> ratingStoreSports, Store store, Sport sport) {
+    List<RatingStoreSport> ratingStoreSports, Store store, Sport sport
+  ) {
     return ratingStoreSports.stream()
-        .filter(rating -> rating.getSport().getId().equals(sport.getId()))
-        .findFirst()
-        .orElseGet(() -> RatingStoreSport.builder()
-            .sport(sport)
-            .store(store)
-            .build());
+      .filter(rating -> rating.getSport().getId().equals(sport.getId()))
+      .findFirst()
+      .orElseGet(() -> RatingStoreSport.builder()
+        .sport(sport)
+        .store(store)
+        .build());
   }
 
   private RatingStoreSport findOrThrowException(
-      List<RatingStoreSport> ratingStoreSports, Store store, Sport sport) {
+    List<RatingStoreSport> ratingStoreSports, Sport sport
+  ) {
     return ratingStoreSports.stream()
-        .filter(rating -> rating.getSport().getId().equals(sport.getId()))
-        .findFirst()
-        .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
+      .filter(rating -> rating.getSport().getId().equals(sport.getId()))
+      .findFirst()
+      .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
   }
 
-  private RatingStoreSport increaseRating(RatingStoreSport ratingStoreSport, long score) {
+  private void increaseRating(RatingStoreSport ratingStoreSport, long score) {
     ratingStoreSport.increaseRatingCount();
     ratingStoreSport.increaseRatingScore(score);
-    ratingStoreSport = ratingStoreSportRepository.save(ratingStoreSport);
-
-    return ratingStoreSport;
+    ratingStoreSportRepository.save(ratingStoreSport);
   }
 
-  private RatingStoreSport decreaseRating(RatingStoreSport ratingStoreSport, long score) {
+  private void decreaseRating(RatingStoreSport ratingStoreSport, long score) {
     ratingStoreSport.decreaseRatingCount();
     ratingStoreSport.decreaseRatingScore(score);
-    ratingStoreSport = ratingStoreSportRepository.save(ratingStoreSport);
-
-    return ratingStoreSport;
+    ratingStoreSportRepository.save(ratingStoreSport);
   }
 
   private void updateAverageRating(Store store, List<RatingStoreSport> allRatings) {
     long totalScore = allRatings.stream()
-        .mapToLong(RatingStoreSport::getRatingScore)
-        .sum();
+      .mapToLong(RatingStoreSport::getRatingScore)
+      .sum();
 
     long totalRating = allRatings.stream()
-        .mapToLong(RatingStoreSport::getRatingCount)
-        .sum();
+      .mapToLong(RatingStoreSport::getRatingCount)
+      .sum();
 
     float average = (float) ((totalRating == 0) ? 0.0 : (float) totalScore / totalRating);
     store.setAverageRating(average);

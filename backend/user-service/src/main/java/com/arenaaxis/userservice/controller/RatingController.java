@@ -2,19 +2,12 @@ package com.arenaaxis.userservice.controller;
 
 import java.util.List;
 
+import com.arenaaxis.userservice.dto.request.RatingUpdateRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.arenaaxis.userservice.dto.request.RatingRequest;
-import com.arenaaxis.userservice.dto.request.SearchRatingRequest;
 import com.arenaaxis.userservice.dto.response.RatingResponse;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.service.CurrentUserService;
@@ -34,11 +27,31 @@ public class RatingController {
 
   @PostMapping
   public ResponseEntity<RatingResponse> create(
-      @RequestPart("ratingRequest") RatingRequest ratingRequest,
-      @RequestPart(value = "medias", required = false) List<MultipartFile> medias) {
+    @RequestPart("ratingRequest") RatingRequest ratingRequest,
+    @RequestPart(value = "medias", required = false) List<MultipartFile> medias
+  ) {
     User current = currentUserService.getCurrentUser();
 
     return ResponseEntity.ok(ratingService.create(ratingRequest, medias, current));
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<RatingResponse> get(@PathVariable("id") String id) {
+    return ResponseEntity.ok(ratingService.getById(id));
+  }
+
+  @PutMapping("/{id}")
+  public ResponseEntity<RatingResponse> update(
+    @PathVariable("id") String ratingId,
+    @RequestPart("ratingRequest") RatingUpdateRequest request,
+    @RequestPart(value = "medias", required = false) List<MultipartFile> medias
+  ) {
+    return null;
+  }
+
+  @GetMapping("/stores/{store_id}")
+  public ResponseEntity<List<RatingResponse>> getRatings(@PathVariable("store_id") String storeId) {
+    return null;
   }
 
   @DeleteMapping("/{id}")
@@ -47,16 +60,5 @@ public class RatingController {
 
     ratingService.delete(ratingId, user);
     return ResponseEntity.noContent().build();
-  }
-
-  
-  @GetMapping("/store/{storeId}")
-  public ResponseEntity<List<RatingResponse>> getStoreRatings(
-      @PathVariable("storeId") String storeId,
-      @RequestParam(value = "page", defaultValue = "0") int page,
-      @RequestParam(value = "perPage", defaultValue = "20") int perPage) {
-    SearchRatingRequest request = new SearchRatingRequest();
-    request.setStoreId(storeId);
-    return ResponseEntity.ok(ratingService.getPageRatingForStore(request, page, perPage));
   }
 }

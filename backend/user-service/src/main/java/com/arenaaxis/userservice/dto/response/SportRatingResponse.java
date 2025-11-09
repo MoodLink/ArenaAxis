@@ -1,6 +1,5 @@
 package com.arenaaxis.userservice.dto.response;
 
-import com.arenaaxis.userservice.entity.enums.Role;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,14 +9,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserResponse {
+public class SportRatingResponse {
   String id;
-  String email;
   String name;
-  String phone;
-  String avatarUrl;
-  boolean active;
-
-  Role role;
-  BankAccountResponse bankAccount;
+  String nameEn;
+  Float star;
 }

@@ -107,6 +107,7 @@ public interface StoreMapper {
     target = "sports",
     ignore = true
   )
+  @Mapping(target = "sportRatings", ignore = true)
   StoreClientDetailResponse toClientDetailResponse(Store store);
 
   @Mapping(
