@@ -19,7 +19,7 @@ async function getSportDetails(sportId) {
   }
 }
 
-async function getStoreDetails(storeId) {
+export const getStoreDetails = async (storeId) => {
   try {
     const response = await axios.get(
       `${USER_SERVICE_BASE_URL}/stores/detail/${storeId}`
