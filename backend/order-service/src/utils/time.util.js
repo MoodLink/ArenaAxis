@@ -13,7 +13,10 @@ export const generateDurations = (startTime, endTime) => {
     const nextHour = currentMinute + 30 >= 60 ? currentHour + 1 : currentHour;
     const nextMinute = (currentMinute + 30) % 60;
 
-    durations.push({ startAt: { hour: currentHour, minute: currentMinute }, endAt: { hour: nextHour, minute: nextMinute } });
+    durations.push({
+      startAt: { hour: currentHour, minute: currentMinute },
+      endAt: { hour: nextHour, minute: nextMinute },
+    });
 
     currentHour = nextHour;
     currentMinute = nextMinute;
@@ -36,26 +39,28 @@ export const joinDurations = (pricings) => {
   let currentGroup = {
     specialPrice: pricings[0].specialPrice,
     startAt: { ...pricings[0].startAt },
-    endAt: { ...pricings[0].endAt }
+    endAt: { ...pricings[0].endAt },
   };
 
   for (let i = 1; i < pricings.length; i++) {
     const current = pricings[i];
-    
-    if (current.specialPrice === currentGroup.specialPrice &&
-        current.startAt.hour === currentGroup.endAt.hour &&
-        current.startAt.minute === currentGroup.endAt.minute) {
+
+    if (
+      current.specialPrice === currentGroup.specialPrice &&
+      current.startAt.hour === currentGroup.endAt.hour &&
+      current.startAt.minute === currentGroup.endAt.minute
+    ) {
       currentGroup.endAt = { ...current.endAt };
     } else {
       result.push({
         specialPrice: currentGroup.specialPrice,
         startAt: formatTime(currentGroup.startAt),
-        endAt: formatTime(currentGroup.endAt)
+        endAt: formatTime(currentGroup.endAt),
       });
       currentGroup = {
         specialPrice: current.specialPrice,
         startAt: { ...current.startAt },
-        endAt: { ...current.endAt }
+        endAt: { ...current.endAt },
       };
     }
   }
@@ -63,7 +68,7 @@ export const joinDurations = (pricings) => {
   result.push({
     specialPrice: currentGroup.specialPrice,
     startAt: formatTime(currentGroup.startAt),
-    endAt: formatTime(currentGroup.endAt)
+    endAt: formatTime(currentGroup.endAt),
   });
 
   return result;
@@ -73,4 +78,90 @@ export const formatTime = (time) => {
   const hour = time.hour.toString().padStart(2, "0");
   const minute = time.minute.toString().padStart(2, "0");
   return `${hour}:${minute}`;
+};
+
+export const mergeContinuous = (items) => {
+  items.sort((a, b) => {
+    if (a.field_id !== b.field_id) return a.field_id.localeCompare(b.field_id);
+    return a.start_time.localeCompare(b.start_time);
+  });
+
+  const merged = [];
+  let current = null;
+
+  for (const item of items) {
+    if (!current) {
+      current = { ...item };
+      continue;
+    }
+
+    if (
+      current.field_id === item.field_id &&
+      current.end_time === item.start_time
+    ) {
+      current.end_time = item.end_time;
+      current.price += item.price;
+    } else {
+      merged.push(current);
+      current = { ...item };
+    }
+  }
+
+  if (current) merged.push(current);
+
+  const result = merged.map((i) => ({
+    name: i.name + `: (${i.start_time} - ${i.end_time})`,
+    quantity: 1,
+    price: i.price,
+  }));
+
+  return result;
+};
+
+export const mergeOrderDetails = (orderDetails) => {
+  const sorted = [...orderDetails].sort((a, b) => {
+    if (a.fieldId !== b.fieldId) return a.fieldId.localeCompare(b.fieldId);
+    return new Date(a.startTime) - new Date(b.startTime);
+  });
+
+  const merged = [];
+  let current = null;
+
+  for (const item of sorted) {
+    if (!current) {
+      current = { ...item };
+      continue;
+    }
+
+    if (
+      current.fieldId === item.fieldId &&
+      new Date(current.endTime).getTime() === new Date(item.startTime).getTime()
+    ) {
+      current.endTime = item.endTime;
+      current.price += item.price;
+    } else {
+      merged.push(current);
+      current = { ...item };
+    }
+  }
+
+  if (current) merged.push(current);
+
+  return merged.map((item) => ({
+    fieldId: item.fieldId,
+    startTime: formatDate(item.startTime),
+    endTime: formatDate(item.endTime),
+    price: item.price,
+  }));
+};
+
+export const formatDate = (date) => {
+  const d = new Date(date);
+  const pad = (n) => n.toString().padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const MM = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const HH = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${yyyy}-${MM}-${dd} ${HH}:${mm}`;
 };
