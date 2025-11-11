@@ -97,10 +97,10 @@ export const payosWebhookHandler = async (req, res) => {
 
     const { orderCode, amount, code, desc } = body.data;
 
-    // const order = await Order.findOne({ orderCode: orderCode });
-    // if (!order) return res.status(404).send("Order not found");
-    // order.statusPayment = code === "00" ? "PAID" : "FAILED";
-    // await order.save();
+    const order = await Order.findOne({ orderCode: orderCode });
+    if (!order) return res.status(404).send("Order not found");
+    order.statusPayment = code === "00" ? "PAID" : "FAILED";
+    await order.save();
 
     console.log(`Cập nhật đơn hàng ${orderCode} thành công`);
     res.status(200).json({ message: "Webhook received successfully" });
