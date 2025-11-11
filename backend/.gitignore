@@ -1,0 +1,41 @@
+### Maven ###
+**/target/
+!**/.mvn/wrapper/maven-wrapper.jar
+
+### Maven Wrapper ###
+**/.mvn/wrapper/maven-wrapper.properties
+**/.mvn/wrapper/MavenWrapperDownloader.java
+
+### IDEs ###
+# IntelliJ IDEA
+**/.idea/
+**/*.iws
+**/*.iml
+**/*.ipr
+**/out/
+
+# Eclipse
+**/.project
+**/.classpath
+**/.settings/
+**/bin/
+
+# NetBeans
+**/nbproject/private/
+**/build/
+**/nbbuild/
+**/dist/
+**/nbdist/
+**/.nb-gradle/
+
+### OS generated files ###
+**/.DS_Store
+**/Thumbs.db
+
+### Logs & temp ###
+**/*.log
+**/*.tmp
+**/*.bak
+**/*.swp
+**/*.swo
+**/*.class
