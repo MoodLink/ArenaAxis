@@ -18,19 +18,39 @@ export async function login(email: string, password: string) {
 export async function logout() {
   const token = localStorage.getItem('token');
 
-  const response = await fetch(`${AUTH_API_URL}/logout`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ token })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Đăng xuất thất bại');
+  if (!token) {
+    // If no token, just clear storage - already logged out
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return { success: true };
   }
 
-  return response.json();
+  try {
+    const response = await fetch(`${AUTH_API_URL}/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+
+    // Accept both 200 and 204 as success
+    if (response.ok || response.status === 204) {
+      return { success: true };
+    }
+
+    // Even if the response is not ok, attempt to parse it
+    try {
+      const data = await response.json();
+      throw new Error(data.message || data.error || 'Đăng xuất thất bại');
+    } catch (e) {
+      throw new Error('Đăng xuất thất bại');
+    }
+  } catch (error) {
+    console.warn('Logout request failed:', error instanceof Error ? error.message : 'Unknown error');
+    // Even if logout fails, clear local storage so user can proceed
+    return { success: true };
+  }
 }

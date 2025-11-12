@@ -209,7 +209,7 @@ export default function StoreBookingGrid({
                                                         {(parseFloat(field.defaultPrice) / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}K
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {fieldPricings[field._id]?.length > 0 ? "Giá linh hoạt" : "VNĐ/giờ"}
+                                                        {fieldPricings[field._id]?.length > 0 }
                                                     </div>
                                                 </div>
                                             </div>
@@ -258,7 +258,7 @@ export default function StoreBookingGrid({
                                     {/* Offset spacer - dịch slot sang phải */}
                                     <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
 
-                                    {timeSlots.map((slot, slotIndex) => {
+                                    {timeSlots.slice(0, -1).map((slot, slotIndex) => {
                                         const status = getSlotStatus(field._id, slot)
                                         const slotKey = `${field._id}:${slot}`
                                         const price = getPriceForSlot(field._id, slot)
@@ -289,11 +289,7 @@ export default function StoreBookingGrid({
                                                     type="button"
                                                 >
                                                     {/* Special Price Icon - ở ngoài góc trên trái */}
-                                                    {isSpecialPrice && status === "available" && (
-                                                        <div className="absolute -top-2 -left-2 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
-                                                            <span className="text-xs">🔥</span>
-                                                        </div>
-                                                    )}
+                                                   
                                                     {/* Background animation */}
                                                     {status === "available" && (
                                                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>

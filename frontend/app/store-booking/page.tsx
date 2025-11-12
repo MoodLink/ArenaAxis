@@ -92,13 +92,15 @@ export default function StoreBookingPage() {
                 // Generate time slots based on store opening hours
                 const slots: string[] = []
                 const startHour = storeData?.startTime ? parseInt(storeData.startTime.split(':')[0]) : 5
-                const endHour = storeData?.endTime ? parseInt(storeData.endTime.split(':')[0]) : 22
+                const endHour = storeData?.endTime ? parseInt(storeData.endTime.split(':')[0]) : 24
 
-                for (let hour = startHour; hour <= endHour; hour++) {
+                for (let hour = startHour; hour < endHour; hour++) {
                     slots.push(`${hour.toString().padStart(2, "0")}:00`)
-                    if (hour < endHour) {
-                        slots.push(`${hour.toString().padStart(2, "0")}:30`)
-                    }
+                    slots.push(`${hour.toString().padStart(2, "0")}:30`)
+                }
+                // Add the final hour if it exists
+                if (endHour > startHour) {
+                    slots.push(`${endHour.toString().padStart(2, "0")}:00`)
                 }
                 setTimeSlots(slots)
 
@@ -110,9 +112,7 @@ export default function StoreBookingPage() {
                             const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
                             console.log(`📅 Raw booking data for field ${field._id}:`, fieldBookingData)
 
-                            // Flatten the nested court structure into a flat timeSlot map
-                            // fieldBookingData is { courtId: { timeSlot: status } }
-                            // We need { timeSlot: status } by taking first court's data
+
                             const flatBookingData: { [timeSlot: string]: string } = {}
                             Object.values(fieldBookingData).forEach((courtData: any) => {
                                 Object.assign(flatBookingData, courtData)
@@ -323,6 +323,7 @@ export default function StoreBookingPage() {
                     onClearSlots={handleClearSlots}
                     storeName={store.name}
                     sportName={sport.name}
+                    storeId={storeId || '0'}
                     fieldPricings={fieldPricings}
                 />
             </div>

@@ -12,42 +12,51 @@ export async function POST(request: NextRequest) {
 		);
 	}
 
-	let response: Response;
 	const responseHeaders = { 'Content-Type': 'application/json' }
 
 	try {
-		const body = await request.json();
-		const fetchResponse = await fetch(`${API_BASE_URL}/logout`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',	
-				'Authorization': `Bearer ${token}`
-			},
-			body: JSON.stringify(body),
-		});
-
-		if (fetchResponse.status === 204) {
-      response = new NextResponse(null, { 
-        status: 204 
-      });
-    } else {
-			const data = await fetchResponse.json();
-
-			if (!fetchResponse.ok) {
-				console.error(`[API Proxy] Logout error (${fetchResponse.status}):`, data);
-				response = new NextResponse(JSON.stringify(data), { status: fetchResponse.status, headers: responseHeaders });
-			} else {
-				response = new NextResponse(JSON.stringify(data), { status: 200, headers: responseHeaders });
-			}
+		let body = {};
+		try {
+			body = await request.json();
+		} catch {
+			body = {};
 		}
+
+		try {
+			const fetchResponse = await fetch(`${API_BASE_URL}/logout`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				},
+				body: JSON.stringify(body),
+				signal: AbortSignal.timeout(5000) // 5 second timeout
+			});
+
+			if (fetchResponse.status === 204 || fetchResponse.status === 200) {
+				return new NextResponse(JSON.stringify({ success: true }), {
+					status: 200,
+					headers: responseHeaders
+				});
+			}
+		} catch (backendError) {
+			console.warn('[API Proxy] Backend logout failed, but allowing frontend logout:',
+				backendError instanceof Error ? backendError.message : 'Unknown error');
+		}
+
+		// Even if backend fails, we consider logout successful for the frontend
+		return new NextResponse(JSON.stringify({ success: true }), {
+			status: 200,
+			headers: responseHeaders
+		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Failed to logout';
 		console.error('[API Proxy] Logout error:', errorMessage);
-		response = new NextResponse(
-			JSON.stringify({ message: errorMessage, error: 'Internal Server Error' }),
-			{ status: 500, headers: responseHeaders }
+
+		// Return 200 anyway so frontend can proceed with logout
+		return new NextResponse(
+			JSON.stringify({ success: true, message: 'Logout processed' }),
+			{ status: 200, headers: responseHeaders }
 		);
 	}
-
-	return response
 }
