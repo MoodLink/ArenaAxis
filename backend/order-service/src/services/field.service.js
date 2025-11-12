@@ -36,14 +36,6 @@ export const getFields = async (filter) => {
   for (let field of data) {
     const sport = await getSportDetails(field.sportId);
     field.sport_name = sport ? sport.name : "Unknown Sport";
-    const store = await getStoreDetails(field.storeId);
-    field.address = store ? store.address : "Field Address";
-    field.avatar = store
-      ? store.avatarUrl
-      : "https://i.pinimg.com/1200x/d4/29/1e/d4291ea760fcbf77ef282cb83ab7127b.jpg";
-    field.cover_image = store
-      ? store.coverImageUrl
-      : "https://i.pinimg.com/736x/53/d1/a5/53d1a5c4d0b705c714e0cec6ebe582e3.jpg";
   }
   console.log("Fields with details:", data);
   return data;
@@ -54,14 +46,6 @@ export const getFieldById = async (fieldId) => {
   for (let field of data) {
     const sport = await getSportDetails(field.sportId);
     field.sport_name = sport ? sport.name : "Unknown Sport";
-    const store = await getStoreDetails(field.storeId);
-    field.address = store ? store.address : "Field Address";
-    field.avatar = store
-      ? store.avatarUrl
-      : "https://i.pinimg.com/1200x/d4/29/1e/d4291ea760fcbf77ef282cb83ab7127b.jpg";
-    field.cover_image = store
-      ? store.coverImageUrl
-      : "https://i.pinimg.com/736x/53/d1/a5/53d1a5c4d0b705c714e0cec6ebe582e3.jpg";
   }
   return data;
 };
