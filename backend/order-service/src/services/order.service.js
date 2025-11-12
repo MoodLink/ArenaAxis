@@ -13,8 +13,10 @@ const payOS = new PayOS({
   checksumKey: process.env.PAYOS_CHECKSUM_KEY,
 });
 
-const RETURN_URL = process.env.RETURN_URL || "http://localhost:3000/payment/success";
-const CANCEL_URL = process.env.CANCEL_URL || "http://localhost:3000/payment/failure";
+const RETURN_URL =
+  process.env.RETURN_URL || "http://localhost:3000/payment/success";
+const CANCEL_URL =
+  process.env.CANCEL_URL || "http://localhost:3000/payment/failure";
 
 export const createOrderService = async (paymentData) => {
   try {
@@ -127,6 +129,30 @@ export const getOrderService = async (orderId) => {
     order._doc.address = store ? store.address : "Field Address";
 
     return order;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
+  try {
+    const filter = { storeId: storeId };
+    if (startTime && endTime) {
+      filter.createdAt = {
+        $gte: new Date(startTime).setHours(0, 0, 0, 0),
+        $lte: new Date(endTime).setHours(23, 59, 59, 999),
+      };
+    }
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
+
+    for (let order of orders) {
+      const orderDetails = await OrderDetail.find({ orderId: order._id });
+      const plainDetails = orderDetails.map((item) => item.toObject());
+      const mergedDetails = mergeOrderDetails(plainDetails);
+      order._doc.orderDetails = mergedDetails;
+    }
+
+    return orders;
   } catch (error) {
     throw new Error(error.message);
   }
