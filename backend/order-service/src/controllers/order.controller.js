@@ -15,8 +15,12 @@ export const createOrder = async (req, res) => {
 
 export const getOrder = async (req, res) => {
   try {
+    const filter = {};
     const orderId = req.params.order_id;
-    const data = await getOrderService(orderId);
+    filter.orderId = orderId;
+    const statusPayment = req.query.status_payment;
+    if (statusPayment) filter.statusPayment = statusPayment;
+    const data = await getOrderService(filter);
     res.status(200).send({ message: "Order retrieved successfully", data });
   } catch (error) {
     res.status(500).send({ message: error.message });

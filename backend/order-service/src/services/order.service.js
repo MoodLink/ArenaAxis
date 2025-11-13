@@ -112,9 +112,20 @@ export const payosWebhookHandler = async (req, res) => {
   }
 };
 
-export const getOrderService = async (orderId) => {
+export const getOrderService = async (filter) => {
   try {
-    const order = await Order.findById(orderId);
+    let order = null;
+    if (filter.statusPayment) {
+      order = await Order.findByIdAndUpdate(
+        filter.orderId,
+        {
+          statusPayment: filter.statusPayment,
+        },
+        { new: true }
+      );
+    } else {
+      order = await Order.findById(filter.orderId);
+    }
     if (!order) {
       throw new Error("Order not found");
     }
@@ -124,10 +135,6 @@ export const getOrderService = async (orderId) => {
     const mergedDetails = mergeOrderDetails(plainDetails);
     order._doc.orderDetails = mergedDetails;
 
-    const store = await getStoreDetails(order.storeId);
-    order._doc.name = store ? store.name : "Store Name";
-    order._doc.address = store ? store.address : "Field Address";
-
     return order;
   } catch (error) {
     throw new Error(error.message);
@@ -136,7 +143,10 @@ export const getOrderService = async (orderId) => {
 
 export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
   try {
-    const filter = { storeId: storeId };
+    const filter = {
+      storeId: storeId,
+      statusPayment: "PAID",
+    };
     if (startTime && endTime) {
       filter.createdAt = {
         $gte: new Date(startTime).setHours(0, 0, 0, 0),
