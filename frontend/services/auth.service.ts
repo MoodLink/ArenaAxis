@@ -35,7 +35,10 @@ export async function login(email: string, password: string) {
     throw new Error(error.message || 'Đăng nhập thất bại');
   }
 
-  return response.json();
+  const data = await response.json();
+  document.cookie = `token=${data.token}; path=/;`;
+  
+  return data;
 }
 
 export async function logout() {
