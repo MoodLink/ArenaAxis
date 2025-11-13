@@ -1,5 +1,28 @@
 const AUTH_API_URL = '/api/auth';
 
+export async function validate() {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    return false;
+  }
+
+  const response = await fetch(`${AUTH_API_URL}/validate`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    localStorage.removeItem('token');
+    return false;
+  }
+
+  return true;
+}
+
 export async function login(email: string, password: string) {
   const response = await fetch(`${AUTH_API_URL}/login`, {
     method: 'POST',
@@ -32,25 +55,37 @@ export async function logout() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({}),
-      signal: AbortSignal.timeout(10000) // 10 second timeout
+      body: JSON.stringify({})
     });
 
-    // Accept both 200 and 204 as success
     if (response.ok || response.status === 204) {
       return { success: true };
     }
 
-    // Even if the response is not ok, attempt to parse it
-    try {
-      const data = await response.json();
-      throw new Error(data.message || data.error || 'Đăng xuất thất bại');
-    } catch (e) {
-      throw new Error('Đăng xuất thất bại');
-    }
   } catch (error) {
     console.warn('Logout request failed:', error instanceof Error ? error.message : 'Unknown error');
-    // Even if logout fails, clear local storage so user can proceed
     return { success: true };
   }
+  return true;
+}
+
+export async function refresh() {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${AUTH_API_URL}/refresh`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Refresh token thất bại');
+  }
+
+  const data = await response.json();
+  localStorage.setItem('token', data.token);
+
+  return data;
 }

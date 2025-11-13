@@ -12,31 +12,32 @@ export async function POST(request: NextRequest) {
 		);
 	}
 
-	let response: NextResponse;
+	let response: Response;
 	const responseHeaders = { 'Content-Type': 'application/json' }
 
 	try {
 		const body = await request.json();
-		const fetchResponse = await fetch(`${API_BASE_URL}/logout`, {
+		const fetchResponse = await fetch(`${API_BASE_URL}/validate`, {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify(body),
 		});
-		if (fetchResponse.status === 204) {
-      response = new NextResponse(null, { 
-        status: 204 
-      });
-    } else {
-			const data = await fetchResponse.json();
 
-			if (!fetchResponse.ok) {
-				console.error(`[API Proxy] Logout error (${fetchResponse.status}):`, data);
-				response = new NextResponse(JSON.stringify(data), { status: fetchResponse.status, headers: responseHeaders });
-			} else {
-				response = new NextResponse(JSON.stringify(data), { status: 200, headers: responseHeaders });
-			}
+		const data = await fetchResponse.json();
+		if (!fetchResponse.ok) {
+			console.error(`[API Proxy] Validate error (${fetchResponse.status}):`, data);
+			response = new NextResponse(JSON.stringify(data), {
+				status: fetchResponse.status,
+				headers: responseHeaders,
+			});
+		} else {
+			response = new NextResponse(JSON.stringify(data), {
+				status: 200,
+				headers: responseHeaders,
+			});
 		}
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : 'Failed to logout';

@@ -5,8 +5,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    debugger
-    const response = await fetch(`${API_BASE_URL}/client`, {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
