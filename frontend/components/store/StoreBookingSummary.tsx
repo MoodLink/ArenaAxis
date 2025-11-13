@@ -7,6 +7,12 @@ import { Badge } from "@/components/ui/badge"
 import { Star } from "lucide-react"
 import { FieldPricingService } from "@/services/field-pricing.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
+import { OrderService } from "@/services/order.service"
+import { useState } from "react"
+import { toast } from "@/hooks/use-toast"
+import { validatePaymentOrderRequest, logValidationResult } from "@/utils/request-validator"
+import { useUserId } from "@/hooks/use-user-id"
+import { formatVNDWithSymbol, formatDateVN } from "@/utils/data-formatter"
 
 interface StoreBookingSummaryProps {
     selectedSlots: string[]
@@ -15,6 +21,7 @@ interface StoreBookingSummaryProps {
     onClearSlots: () => void
     storeName: string
     sportName: string
+    storeId?: string
     fieldPricings?: {
         [fieldId: string]: any[]
     }
@@ -27,9 +34,12 @@ export default function StoreBookingSummary({
     onClearSlots,
     storeName,
     sportName,
+    storeId = '0',
     fieldPricings = {},
 }: StoreBookingSummaryProps) {
     const router = useRouter()
+    const [isProcessing, setIsProcessing] = useState(false)
+    const userId = useUserId()  // ✅ Sử dụng hook để lấy user ID
 
     if (selectedSlots.length === 0) {
         return null
@@ -71,51 +81,112 @@ export default function StoreBookingSummary({
         }
     })
 
-    const handleCheckout = () => {
-        // Prepare booking data to pass to payment page
-        const bookingData = {
-            storeId: fields[0]?.storeId,
-            storeName,
-            sportName,
-            selectedDate,
-            slots: Object.entries(groupedSlots).map(([fieldId, timeSlots]) => {
-                const field = fields.find((f) => f._id === fieldId)
-                const pricings = fieldPricings[fieldId] || []
-                const defaultPrice = parseFloat(field?.defaultPrice || "0")
+    const handleCheckout = async () => {
+        if (isProcessing) return
 
-                // Calculate price for this field
-                let fieldTotalPrice = 0
-                timeSlots.forEach((timeSlot) => {
-                    if (pricings.length > 0) {
-                        const selectedDateObj = new Date(selectedDate)
-                        const dayOfWeek = FieldPricingService.getDayOfWeek(selectedDateObj)
-                        const specialPrice = FieldPricingService.getSpecialPriceForSlot(
-                            pricings,
-                            timeSlot,
-                            dayOfWeek
-                        )
-                        fieldTotalPrice += specialPrice || defaultPrice
-                    } else {
-                        fieldTotalPrice += defaultPrice
+        try {
+            setIsProcessing(true)
+
+            console.log('🔍 DEBUG - selectedSlots:', selectedSlots)
+            console.log('🔍 DEBUG - groupedSlots:', groupedSlots)
+            console.log('🔍 DEBUG - totalPrice:', totalPrice)
+            console.log('👤 Using user_id:', userId)
+
+            // Build items array with new format - each time slot is 30 minutes
+            const items = Object.entries(groupedSlots).flatMap(([fieldId, timeSlots]) => {
+                const field = fields.find((f) => f._id === fieldId)
+                const fieldIndex = fields.findIndex((f) => f._id === fieldId)
+                const fieldLetter = String.fromCharCode(65 + fieldIndex)
+
+                return timeSlots.map((timeSlot) => {
+                    const price = getPriceForSlot(fieldId, timeSlot)
+                    // Calculate end time (30 minutes after start)
+                    const [hours, minutes] = timeSlot.split(':').map(Number)
+                    const endMinutes = hours * 60 + minutes + 30
+                    const endHours = Math.floor(endMinutes / 60)
+                    const endMins = endMinutes % 60
+                    const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
+
+                    return {
+                        field_id: fieldId,
+                        start_time: timeSlot,
+                        end_time: endTime,
+                        name: field?.name || `Sân ${fieldLetter}`,
+                        quantity: 1,
+                        price: price,
                     }
                 })
+            })
 
-                return {
-                    fieldId,
-                    fieldName: field?.name || `Sân ${fieldId.slice(-4)}`,
-                    timeSlots,
-                    price: defaultPrice,
-                    actualPrice: fieldTotalPrice,
-                }
-            }),
-            totalPrice,
+            console.log('🔍 DEBUG - items:', items)
+
+            if (items.length === 0) {
+                throw new Error('Vui lòng chọn ít nhất một khung giờ')
+            }
+
+            if (totalPrice <= 0) {
+                throw new Error('Tổng tiền không hợp lệ')
+            }
+
+            // Format date as YYYY-MM-DD (for backend)
+            const formattedDate = selectedDate
+
+            // Create payment order request with new format
+            const orderRequest = {
+                store_id: storeId,
+                user_id: userId,
+                amount: totalPrice,
+                description: `Ngày: ${formattedDate}`,
+                date: formattedDate,
+                items: items,
+            }
+
+            console.log('🎯 Creating payment order:', JSON.stringify(orderRequest, null, 2))
+
+            // ✅ Validate request format before sending
+            const validation = validatePaymentOrderRequest(orderRequest)
+            logValidationResult(validation)
+
+            if (!validation.isValid) {
+                const errorMessage = validation.errors.join('\n')
+                throw new Error(`Request validation failed:\n${errorMessage}`)
+            }
+
+            console.log('✅ Request validation passed!')
+
+            // Call API to create payment order
+            const response = await OrderService.createPaymentOrder(orderRequest)
+
+            console.log('✅ Payment order response:', response)
+
+            // Save order data to sessionStorage for success page
+            sessionStorage.setItem('pendingOrderData', JSON.stringify({
+                orderCode: response.data?.orderCode,
+                amount: totalPrice,
+                description: `Ngày: ${formattedDate}`,
+                date: formattedDate,
+                items: items,
+            }))
+
+            // Redirect to checkout URL
+            if (response.data?.checkoutUrl) {
+                // Save order code to sessionStorage for later reference
+                sessionStorage.setItem('pendingOrderCode', String(response.data.orderCode))
+
+                // Redirect to payment gateway
+                window.location.href = response.data.checkoutUrl
+            } else {
+                throw new Error('Không nhận được URL thanh toán')
+            }
+        } catch (error: any) {
+            console.error('❌ Error creating payment order:', error)
+            toast({
+                title: "Lỗi thanh toán",
+                description: error.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
+                variant: "destructive",
+            })
+            setIsProcessing(false)
         }
-
-        // Store in sessionStorage to pass to payment page
-        sessionStorage.setItem("pendingBooking", JSON.stringify(bookingData))
-
-        // Navigate to payment page
-        router.push("/payment")
     }
 
     const getPriceForSlot = (fieldId: string, timeSlot: string): number => {
@@ -282,7 +353,7 @@ export default function StoreBookingSummary({
                                                                 key={`${fieldId}:${range.start}-${range.end}`}
                                                                 variant="outline"
                                                                 className="bg-gradient-to-r from-emerald-100 to-blue-100 border-emerald-300 text-emerald-700 px-4 py-1.5 text-sm font-semibold"
-                                                                title={`${rangePrice.toLocaleString('vi-VN')}₫`}
+                                                                title={`${formatVNDWithSymbol(rangePrice)}`}
                                                             >
                                                                 🕐 {range.start} - {range.end}
                                                             </Badge>
@@ -299,9 +370,8 @@ export default function StoreBookingSummary({
                                         {/* Price Display */}
                                         <div className="text-right">
                                             <div className="text-2xl font-black text-emerald-600">
-                                                {timeSlots.reduce((sum, time) => sum + getPriceForSlot(fieldId, time), 0).toLocaleString('vi-VN')}
+                                                {formatVNDWithSymbol(timeSlots.reduce((sum, time) => sum + getPriceForSlot(fieldId, time), 0))}
                                             </div>
-                                            <div className="text-sm text-gray-500 font-medium">VNĐ</div>
                                         </div>
                                     </div>
                                 </div>
@@ -317,11 +387,11 @@ export default function StoreBookingSummary({
                             <div>
                                 <div className="text-lg font-semibold text-gray-700 mb-1">Tổng thanh toán</div>
                                 <div className="text-sm text-gray-500">
-                                    {selectedSlots.length} khung giờ • Ngày {selectedDate}
+                                    {selectedSlots.length} khung giờ • Ngày {formatDateVN(selectedDate)}
                                 </div>
                             </div>
                             <div className="text-3xl font-black text-emerald-600">
-                                {totalPrice.toLocaleString('vi-VN')} VNĐ
+                                {formatVNDWithSymbol(totalPrice)}
                             </div>
                         </div>
                     </div>
@@ -337,9 +407,10 @@ export default function StoreBookingSummary({
                         </Button>
                         <Button
                             onClick={handleCheckout}
-                            className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold py-3 text-lg"
+                            disabled={isProcessing}
+                            className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
-                            💳 Thanh toán ngay →
+                            {isProcessing ? '⏳ Đang xử lý...' : '💳 Thanh toán ngay →'}
                         </Button>
                     </div>
                 </div>

@@ -164,7 +164,7 @@ export default function StoreOwnerDetailPage() {
     };
 
     const handleBookingClick = () => {
-        setIsSportModalOpen(true);
+        router.push(`/store/bookings?store_id=${storeId}`);
     };
 
     const handleSportSelected = (sportId: string) => {
@@ -560,7 +560,7 @@ export default function StoreOwnerDetailPage() {
                                     Chỉnh sửa thông tin
                                 </Button>
                                 <Button variant="outline" className="w-full justify-start" asChild>
-                                    <a href="/store/bookings">
+                                    <a href={`/store/bookings?store_id=${storeId}`}>
                                         Quản lý đặt sân
                                     </a>
                                 </Button>

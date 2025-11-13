@@ -1015,7 +1015,7 @@ export async function getMyStore(): Promise<StoreAdminDetailResponse | null> {
 
     const currentUser = getMyProfile()
     if (!currentUser?.id) {
-        throw new Error('User ID is undefined');
+      throw new Error('User ID is undefined');
     }
     const stores = await getStoresByOwnerId(currentUser.id);
 
@@ -2412,9 +2412,23 @@ export async function getStoreRatings(
   perPage: number = 20
 ): Promise<any[]> {
   try {
+    // ✅ FIX: Pass Authorization token if available
+    const token = getToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     // SỬ DỤNG PROXY để bypass CORS
     const response = await fetch(
-      `/api/ratings/store/${storeId}?page=${page}&perPage=${perPage}`
+      `/api/ratings/store/${storeId}?page=${page}&perPage=${perPage}`,
+      {
+        method: 'GET',
+        headers,
+      }
     );
 
     const data = await response.json();
@@ -2430,3 +2444,6 @@ export async function getStoreRatings(
     return [];
   }
 }
+
+// ✅ Re-export getMyProfile từ get-my-profile.ts
+export { getMyProfile } from './get-my-profile';
