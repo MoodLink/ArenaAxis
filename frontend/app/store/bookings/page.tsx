@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { FieldService, Field as APIField } from '@/services/field.service';
 import { FieldPricingService, FieldPricing } from '@/services/field-pricing.service';
 import { StoreService } from '@/services/store.service';
+import { OrderService } from '@/services/order.service';
 import StoreLayout from '@/components/store/StoreLayout';
 import { useToast } from '@/hooks/use-toast';
 import { getStoreById } from '@/services/api-new';
@@ -61,6 +62,11 @@ export default function StoreBookingsPage() {
     const [selectedDate, setSelectedDate] = useState<string>(
         new Date().toISOString().split('T')[0]
     );
+    const [bookingData, setBookingData] = useState<{
+        [fieldId: string]: {
+            [timeSlot: string]: "available" | "booked" | "locked" | "selected"
+        }
+    }>({});
 
     // Modal states
     const [selectedBooking, setSelectedBooking] = useState<BookingInfo | null>(null);
@@ -89,6 +95,121 @@ export default function StoreBookingsPage() {
 
     // State for time slots
     const [timeSlots, setTimeSlots] = useState<string[]>([]);
+
+    // 🔄 Helper function to refresh booking data from store orders
+    const refreshBookingData = useCallback(async () => {
+        console.log('🔄 refreshBookingData called with:', { storeId, fields: fields.length, selectedDate })
+
+        if (!storeId || fields.length === 0) {
+            console.log('⏭️ Skipping refresh - no storeId or fields yet')
+            return
+        }
+
+        try {
+            console.log('🔄 Fetching orders from store for date:', selectedDate)
+
+            // ✅ Use date as-is for start and end time
+            const startDateStr = selectedDate  // e.g., "2025-11-13"
+            const endDateStr = selectedDate    // Same day
+
+            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
+            console.log(`✅ Final API params: start_time=${startDateStr}&end_time=${endDateStr}`)
+
+            // Fetch all orders for the store on this date
+            const orders = await OrderService.getOrdersByStore(
+                storeId,
+                startDateStr,
+                endDateStr
+            )
+
+            console.log('📦 Orders received:', { count: orders.length, orders })
+
+            // Build bookingData from paid orders
+            const bookingMap: { [fieldId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" } } = {}
+
+            // Initialize all fields with empty booking data
+            fields.forEach(field => {
+                bookingMap[field._id] = {}
+            })
+
+            // Filter PAID orders only and extract booked slots
+            const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
+            console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+
+            // For each paid order, mark the booked slots
+            paidOrders.forEach(order => {
+                console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
+                order.orderDetails.forEach((detail, idx) => {
+                    const fieldId = detail.fieldId
+                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+
+                    // Parse start and end times
+                    // Support both formats:
+                    // 1. "2025-11-13 05:00" (YYYY-MM-DD HH:MM)
+                    // 2. "05:00" (HH:MM)
+                    let startTimeStr = ""
+                    let endTimeStr = ""
+                    let orderDate = ""  // Extract date from startTime if available
+
+                    if (detail.startTime.includes(" ")) {
+                        // Format: "2025-11-13 05:00"
+                        const dateMatch = detail.startTime.match(/(\d{4}-\d{2}-\d{2})/)
+                        const timeMatch = detail.startTime.match(/(\d{2}):(\d{2})$/)
+
+                        if (dateMatch) {
+                            orderDate = dateMatch[1]  // e.g., "2025-11-13"
+                        }
+
+                        if (timeMatch) {
+                            const endTimeMatch = detail.endTime.match(/(\d{2}):(\d{2})$/)
+                            startTimeStr = `${timeMatch[1]}:${timeMatch[2]}`
+                            endTimeStr = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : ""
+                        }
+                    } else {
+                        // Format: "05:00"
+                        startTimeStr = detail.startTime
+                        endTimeStr = detail.endTime
+                    }
+
+                    // ⚠️ IMPORTANT: Only process orderDetails that match the selected date
+                    const formattedSelectedDate = selectedDate
+                    if (orderDate && orderDate !== formattedSelectedDate) {
+                        console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
+                        return  // Skip this detail
+                    }
+
+                    if (startTimeStr && endTimeStr && fieldId) {
+                        if (!bookingMap[fieldId]) {
+                            bookingMap[fieldId] = {}
+                        }
+
+                        // Generate all 30-minute slots between start and end time
+                        const startMinutes = parseInt(startTimeStr.split(':')[0]) * 60 + parseInt(startTimeStr.split(':')[1])
+                        const endMinutes = parseInt(endTimeStr.split(':')[0]) * 60 + parseInt(endTimeStr.split(':')[1])
+
+                        console.log(`  🔢 Start: ${startMinutes} min, End: ${endMinutes} min`)
+
+                        for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                            const hours = Math.floor(minutes / 60)
+                            const mins = minutes % 60
+                            const slotTime = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+                            bookingMap[fieldId][slotTime] = 'booked'
+                            console.log(`    ✅ Marking slot as booked: ${slotTime}`)
+                        }
+                    }
+                })
+            })
+
+            setBookingData(bookingMap)
+            console.log('📊 Final booking data:', bookingMap)
+            Object.entries(bookingMap).forEach(([fieldId, slots]) => {
+                const bookedCount = Object.values(slots).filter(s => s === 'booked').length
+                console.log(`  Field ${fieldId}: ${bookedCount} booked slots`)
+            })
+        } catch (error) {
+            console.error('❌ Error refreshing booking data:', error)
+        }
+    }, [storeId, fields, selectedDate])
 
     // Generate time slots based on store opening hours
     const generateTimeSlots = (startHour: number, endHour: number) => {
@@ -126,6 +247,65 @@ export default function StoreBookingsPage() {
 
         loadStoreAndFields();
     }, [storeId]);
+
+    // 🔄 Trigger refresh when fields are first loaded
+    useEffect(() => {
+        if (fields.length > 0 && storeId) {
+            console.log('✅ Fields loaded - refreshing booking data immediately')
+            refreshBookingData()
+        }
+    }, [fields.length, storeId]);
+
+    // Update booking data when date changes
+    useEffect(() => {
+        if (fields.length > 0 && selectedDate && storeId) {
+            console.log('📅 Date changed - refreshing booking data')
+            refreshBookingData()
+        }
+    }, [selectedDate, fields.length, storeId]);
+
+    // 🔄 Re-fetch booking data when page is focused
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                console.log('👁️ Page focused - refreshing booking data')
+                refreshBookingData()
+            }
+        }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'paymentCompleted' && e.newValue === 'true') {
+                console.log('💳 Payment completed - refreshing booking data')
+                refreshBookingData()
+            }
+        }
+
+        const handlePopState = () => {
+            console.log('🔙 Back button - refreshing booking data')
+            refreshBookingData()
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('popstate', handlePopState)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('popstate', handlePopState)
+        }
+    }, [refreshBookingData]);
+
+    // 🔄 Auto-refresh every 30 seconds
+    useEffect(() => {
+        console.log('⏰ Setting up auto-refresh interval')
+        const interval = setInterval(() => {
+            console.log('⏰ Auto-refresh...')
+            refreshBookingData()
+        }, 30000)
+
+        return () => clearInterval(interval)
+    }, [refreshBookingData]);
 
     const loadStoreAndFields = async () => {
         try {
@@ -325,7 +505,9 @@ export default function StoreBookingsPage() {
 
     // Get slot status
     const getSlotStatus = (fieldId: string, timeSlot: string): 'available' | 'booked' => {
-        return mockBookingData[fieldId]?.includes(timeSlot) ? 'booked' : 'available';
+        const status = bookingData[fieldId]?.[timeSlot]
+        if (status === 'booked') return 'booked'
+        return 'available'
     };
 
     // Handle slot click

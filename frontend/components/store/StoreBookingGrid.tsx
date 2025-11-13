@@ -42,7 +42,16 @@ export default function StoreBookingGrid({
         timeSlotsCount: timeSlots.length,
         selectedSlotsCount: selectedSlots.length,
         bookingDataKeys: Object.keys(bookingData),
-        onSlotClickType: typeof onSlotClick
+        onSlotClickType: typeof onSlotClick,
+        selectedDate: selectedDate,
+    })
+
+    // Debug: Log booking status for each field
+    console.log('📊 Booking data details:')
+    Object.entries(bookingData).forEach(([fieldId, slots]) => {
+        const bookedCount = Object.values(slots).filter(s => s === 'booked').length
+        const availableCount = Object.values(slots).filter(s => s === 'available').length
+        console.log(`   Field ${fieldId}: ${bookedCount} booked, ${availableCount} available`)
     })
 
     const getSlotStatus = (fieldId: string, timeSlot: string) => {
@@ -209,7 +218,7 @@ export default function StoreBookingGrid({
                                                         {(parseFloat(field.defaultPrice) / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}K
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {fieldPricings[field._id]?.length > 0 }
+                                                        {fieldPricings[field._id]?.length > 0}
                                                     </div>
                                                 </div>
                                             </div>
@@ -289,7 +298,7 @@ export default function StoreBookingGrid({
                                                     type="button"
                                                 >
                                                     {/* Special Price Icon - ở ngoài góc trên trái */}
-                                                   
+
                                                     {/* Background animation */}
                                                     {status === "available" && (
                                                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-blue-400/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>

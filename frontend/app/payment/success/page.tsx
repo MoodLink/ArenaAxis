@@ -39,6 +39,22 @@ export default function PaymentSuccessPage() {
                         const order = await OrderService.getOrderByCode(id)
                         console.log('✅ Order data received:', order)
                         setOrderData(order)
+
+                        // 🔄 Signal to store-booking page to refresh booking data and jump to booking date
+                        console.log('📢 Saving booking date and payment flag')
+                        if (order.orderDetails && order.orderDetails.length > 0) {
+                            // Extract date from first order detail (format: "2025-11-12 HH:MM")
+                            const bookingDateStr = order.orderDetails[0].startTime.split(' ')[0]
+                            sessionStorage.setItem('lastBookingDate', bookingDateStr)
+                            console.log('📅 Saved last booking date:', bookingDateStr)
+                        }
+
+                        sessionStorage.setItem('paymentCompleted', 'true')
+                        window.dispatchEvent(new StorageEvent('storage', {
+                            key: 'paymentCompleted',
+                            newValue: 'true',
+                            oldValue: null
+                        }))
                     } catch (apiErr: any) {
                         console.warn('⚠️ Could not fetch order from API:', apiErr.message)
                         // If API fails, we'll just show success page without detailed order info

@@ -2,101 +2,57 @@
 // Hiển thị bảng danh sách sân thể thao
 
 import AdminTable, { TableColumn, TableAction, renderBadge, renderCurrency } from "../shared/AdminTable"
-import { Eye, Edit, Play, Pause, Shield, CheckCircle, AlertCircle, Trash2 } from "lucide-react"
+import { Eye, Edit, Play, Pause, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AdminField } from "@/data/mockDataAdmin"
 
 interface FieldTableProps {
     fields: AdminField[]
-    onFieldAction: (fieldId: string, action: 'view' | 'edit' | 'activate' | 'deactivate' | 'verify' | 'delete') => void
+    onFieldAction: (fieldId: string, action: 'view' | 'edit' | 'activate' | 'deactivate' | 'delete') => void
 }
 
 export default function FieldTable({ fields, onFieldAction }: FieldTableProps) {
     const statusColorMap = {
         'available': 'bg-green-100 text-green-800',
-        'unavailable': 'bg-red-100 text-red-800',
-        'maintenance': 'bg-yellow-100 text-yellow-800'
+        'unavailable': 'bg-red-100 text-red-800'
     }
 
     const statusLabelMap = {
         'available': 'Hoạt động',
-        'unavailable': 'Không khả dụng',
-        'maintenance': 'Bảo trì'
-    }
-
-    const getVerificationBadge = (isVerified: boolean) => {
-        return isVerified ? (
-            <Badge className="bg-blue-100 text-blue-800">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Đã xác minh
-            </Badge>
-        ) : (
-            <Badge className="bg-gray-100 text-gray-800">
-                <AlertCircle className="w-3 h-3 mr-1" />
-                Chưa xác minh
-            </Badge>
-        )
+        'unavailable': 'Không khả dụng'
     }
 
     const columns: TableColumn[] = [
         {
             key: 'name',
             label: 'Tên sân',
-            render: (name, field) => (
-                <div>
-                    <div className="font-medium">{name}</div>
-                    <div className="text-sm text-gray-500">{field.sport}</div>
-                </div>
+            render: (name) => (
+                <div className="font-medium">{name}</div>
             )
         },
         {
-            key: 'location',
-            label: 'Vị trí',
-            render: (location) => <span className="text-sm text-gray-600">{location}</span>
-        },
-        {
-            key: 'ownerName',
-            label: 'Chủ sân',
-            render: (ownerName, field) => (
-                <div>
-                    <div className="font-medium">{ownerName}</div>
-                    <div className="text-sm text-gray-500">{field.ownerPhone}</div>
-                </div>
-            )
+            key: 'sport_name',
+            label: 'Môn thể thao',
+            render: (sport) => <span className="text-sm text-gray-600">{sport}</span>
         },
         {
             key: 'price',
             label: 'Giá/giờ',
-            render: (price) => renderCurrency(price)
+            render: (price) => renderCurrency(Number(price) || 0)
         },
-        {
-            key: 'rating',
-            label: 'Đánh giá',
-            render: (rating, field) => (
-                <div className="text-center">
-                    <div className="font-medium">⭐ {rating}</div>
-                    <div className="text-sm text-gray-500">({field.reviewCount} đánh giá)</div>
-                </div>
-            )
-        },
+
         {
             key: 'status',
             label: 'Trạng thái',
             render: (status) => renderBadge(statusLabelMap[status as keyof typeof statusLabelMap], statusColorMap)
         },
         {
-            key: 'isVerified',
-            label: 'Xác minh',
-            render: (isVerified) => getVerificationBadge(isVerified)
-        },
-        {
-            key: 'bookingsThisMonth',
-            label: 'Booking/tháng',
-            render: (bookings, field) => (
-                <div className="text-center">
-                    <div className="font-medium">{bookings}</div>
-                    <div className="text-sm text-gray-500">{renderCurrency(field.revenueThisMonth)}</div>
-                </div>
+            key: 'createdAt',
+            label: 'Ngày tạo',
+            render: (createdAt) => (
+                <span className="text-sm text-gray-600">
+                    {new Date(createdAt).toLocaleDateString('vi-VN')}
+                </span>
             )
         }
     ]
@@ -128,13 +84,6 @@ export default function FieldTable({ fields, onFieldAction }: FieldTableProps) {
             onClick: (field) => onFieldAction(field.id, 'deactivate'),
             show: (field) => field.status === 'available',
             variant: 'destructive'
-        },
-        {
-            key: 'verify',
-            label: 'Xác minh',
-            icon: <Shield className="mr-2 h-4 w-4" />,
-            onClick: (field) => onFieldAction(field.id, 'verify'),
-            show: (field) => !field.isVerified
         },
         {
             key: 'delete',

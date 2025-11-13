@@ -77,6 +77,14 @@ export interface OrderResponse {
 }
 
 /**
+ * Orders by store response
+ */
+export interface OrdersByStoreResponse {
+    message: string;
+    data: OrderResponse[];
+}
+
+/**
  * Create a payment order and get checkout URL
  * POST /api/orders/create-payment
  */
@@ -216,7 +224,62 @@ export async function getOrderByCode(orderId: string): Promise<OrderResponse> {
     }
 }
 
+/**
+ * Get all orders for a store within date range
+ * GET /api/v1/orders/store/{storeId}?start_time={startDate}&end_time={endDate}
+ */
+export async function getOrdersByStore(
+    storeId: string,
+    startDate: string,
+    endDate: string
+): Promise<OrderResponse[]> {
+    try {
+        const token = getToken();
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add Authorization if token is available
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Format dates as YYYY-MM-DD
+        const formattedStartDate = startDate.split('T')[0];
+        const formattedEndDate = endDate.split('T')[0];
+
+        console.log('📤 Fetching orders for store:', { storeId, startDate: formattedStartDate, endDate: formattedEndDate });
+
+        // Call frontend proxy route (which will forward to backend)
+        const apiUrl = `/api/orders/store/${storeId}?start_time=${formattedStartDate}&end_time=${formattedEndDate}`;
+
+        console.log('📍 API URL:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn(`⚠️ Failed to fetch orders: ${response.status}`, errorData);
+            return [];
+        }
+
+        const data: OrdersByStoreResponse = await response.json();
+        console.log('✅ Orders fetched for store:', { count: data.data.length, orders: data.data });
+
+        return data.data || [];
+    } catch (error) {
+        console.error('❌ Error fetching orders by store:', error);
+        // Return empty array on error instead of throwing
+        return [];
+    }
+}
+
 export const OrderService = {
     createPaymentOrder,
     getOrderByCode,
+    getOrdersByStore,
 };
