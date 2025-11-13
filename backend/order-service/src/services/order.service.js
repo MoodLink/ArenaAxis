@@ -157,3 +157,20 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
     throw new Error(error.message);
   }
 };
+
+export const getOrdersByUserService = async (userId) => {
+  try {
+    const orders = await Order.find({ userId: userId }).sort({
+      createdAt: -1,
+    });
+    for (let order of orders) {
+      const orderDetails = await OrderDetail.find({ orderId: order._id });
+      const plainDetails = orderDetails.map((item) => item.toObject());
+      const mergedDetails = mergeOrderDetails(plainDetails);
+      order._doc.orderDetails = mergedDetails;
+    }
+    return orders;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
