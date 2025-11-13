@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Calendar, MapPin, ArrowLeft } from "lucide-react"
 import { getStoreById, getSportById } from "@/services/api-new"
 import { getFieldBookingGrid } from "@/services/api"
 import { FieldService } from "@/services/field.service"
 import { FieldPricingService } from "@/services/field-pricing.service"
+import { OrderService } from "@/services/order.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
 import type { StoreClientDetailResponse, Sport } from "@/types"
 import PageHeader from "@/components/layout/PageHeader"
@@ -25,6 +26,15 @@ export default function StoreBookingPage() {
     const sportId = searchParams.get('sport_id')
 
     const [selectedDate, setSelectedDate] = useState(() => {
+        // Check if user just returned from payment with a booking date
+        if (typeof window !== 'undefined') {
+            const lastBookingDate = sessionStorage.getItem('lastBookingDate')
+            if (lastBookingDate) {
+                console.log('📅 Using last booking date:', lastBookingDate)
+                sessionStorage.removeItem('lastBookingDate')
+                return lastBookingDate
+            }
+        }
         return new Date().toISOString().split('T')[0]
     })
     const [selectedSlots, setSelectedSlots] = useState<string[]>([])
@@ -42,6 +52,149 @@ export default function StoreBookingPage() {
         [fieldId: string]: any[]
     }>({})
 
+    // 🔄 Helper function to refresh booking data from store orders - DEFINED FIRST before useEffects that use it
+    const refreshBookingData = useCallback(async () => {
+        console.log('🔄 refreshBookingData called with:', { storeId, fields: fields.length, selectedDate })
+
+        if (!storeId || fields.length === 0) {
+            console.log('⏭️ Skipping refresh - no storeId or fields yet')
+            return
+        }
+
+        try {
+            console.log('🔄 Fetching orders from store for date:', selectedDate)
+            console.log('🔍 Type of selectedDate:', typeof selectedDate)
+            console.log('🔍 selectedDate value:', JSON.stringify(selectedDate))
+
+            // ✅ CORRECT: Parse date WITHOUT timezone conversion
+            // selectedDate is in format "2025-11-13" (YYYY-MM-DD)
+            // Simply use it as-is for both start and end
+            const startDateStr = selectedDate  // e.g., "2025-11-13"
+            const endDateStr = selectedDate    // Same day - start and end are same
+
+            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
+            console.log(`✅ Final API params: start_time=${startDateStr}&end_time=${endDateStr}`)
+
+            // Fetch all orders for the store on this date
+            const orders = await OrderService.getOrdersByStore(
+                storeId,
+                startDateStr,
+                endDateStr
+            )
+
+            console.log('📦 Orders received:', { count: orders.length, orders })
+
+            // Build bookingData from paid orders
+            const bookingMap: { [fieldId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" } } = {}
+
+            // Initialize all fields with empty booking data
+            fields.forEach(field => {
+                bookingMap[field._id] = {}
+            })
+
+            // Filter PAID orders only and extract booked slots
+            const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
+            console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+
+            // For each paid order, mark the booked slots
+            paidOrders.forEach(order => {
+                console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
+                order.orderDetails.forEach((detail, idx) => {
+                    const fieldId = detail.fieldId
+                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+
+                    // Parse start and end times
+                    // Support both formats:
+                    // 1. "2025-11-13 05:00" (YYYY-MM-DD HH:MM)
+                    // 2. "05:00" (HH:MM)
+                    let startTimeStr = ""
+                    let endTimeStr = ""
+                    let orderDate = ""  // Extract date from startTime if available
+
+                    if (detail.startTime.includes(" ")) {
+                        // Format: "2025-11-13 05:00"
+                        const dateMatch = detail.startTime.match(/(\d{4}-\d{2}-\d{2})/)
+                        const timeMatch = detail.startTime.match(/(\d{2}):(\d{2})$/)
+
+                        if (dateMatch) {
+                            orderDate = dateMatch[1]  // e.g., "2025-11-13"
+                        }
+
+                        if (timeMatch) {
+                            const endTimeMatch = detail.endTime.match(/(\d{2}):(\d{2})$/)
+                            startTimeStr = `${timeMatch[1]}:${timeMatch[2]}`
+                            endTimeStr = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : ""
+                        }
+                    } else {
+                        // Format: "05:00"
+                        startTimeStr = detail.startTime
+                        endTimeStr = detail.endTime
+                    }
+
+                    // ⚠️ IMPORTANT: Only process orderDetails that match the selected date
+                    const formattedSelectedDate = selectedDate  // e.g., "2025-11-14"
+                    if (orderDate && orderDate !== formattedSelectedDate) {
+                        console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
+                        return  // Skip this detail
+                    } if (startTimeStr && endTimeStr && fieldId) {
+                        if (!bookingMap[fieldId]) {
+                            bookingMap[fieldId] = {}
+                        }
+
+                        // Generate all 30-minute slots between start and end time
+                        const startMinutes = parseInt(startTimeStr.split(':')[0]) * 60 + parseInt(startTimeStr.split(':')[1])
+                        const endMinutes = parseInt(endTimeStr.split(':')[0]) * 60 + parseInt(endTimeStr.split(':')[1])
+
+                        console.log(`  🔢 Start: ${startMinutes} min, End: ${endMinutes} min`)
+
+                        for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                            const hours = Math.floor(minutes / 60)
+                            const mins = minutes % 60
+                            const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+
+                            bookingMap[fieldId][slotTime] = 'booked'
+                            console.log(`    ✅ Marked as booked: Field ${fieldId} @ ${slotTime}`)
+                        }
+                    } else {
+                        console.warn(`  ⚠️ Could not parse time from: ${detail.startTime} - ${detail.endTime}`)
+                    }
+                })
+            })
+
+            // For all fields, get their available slots from API and merge with booked slots
+            await Promise.all(
+                fields.map(async (field: FieldServiceType) => {
+                    try {
+                        const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
+                        const flatBookingData: { [timeSlot: string]: string } = {}
+                        Object.values(fieldBookingData).forEach((courtData: any) => {
+                            Object.assign(flatBookingData, courtData)
+                        })
+                        // Merge with existing booking data (booked slots take precedence over available)
+                        bookingMap[field._id] = { ...flatBookingData as any, ...bookingMap[field._id] }
+
+                        const bookedCount = Object.values(bookingMap[field._id]).filter(s => s === 'booked').length
+                        const availableCount = Object.values(bookingMap[field._id]).filter(s => s === 'available').length
+                        const totalSlots = Object.keys(bookingMap[field._id]).length
+                        console.log(`✅ Merged booking grid for field ${field._id}: ${totalSlots} total slots (${bookedCount} booked, ${availableCount} available)`)
+                    } catch (error) {
+                        console.warn(`⚠️ Failed to get booking grid for field ${field._id}:`, error)
+                        // Field will still have booked slots from orders, which is fine
+                    }
+                })
+            )
+
+            setBookingData(bookingMap)
+            console.log('📊 Final booking data:', bookingMap)
+            Object.entries(bookingMap).forEach(([fieldId, slots]) => {
+                const booked = Object.entries(slots).filter(([_, status]) => status === 'booked').map(([time, _]) => time)
+                const available = Object.entries(slots).filter(([_, status]) => status === 'available').map(([time, _]) => time)
+                console.log(`   Field ${fieldId}: Booked [${booked.join(', ')}], Available [${available.length} slots]`)
+            })
+        } catch (error) {
+            console.error('❌ Error refreshing booking data:', error)
+        }
+    }, [storeId, fields, selectedDate])
 
     // Fetch initial data
     useEffect(() => {
@@ -98,20 +251,19 @@ export default function StoreBookingPage() {
                     slots.push(`${hour.toString().padStart(2, "0")}:00`)
                     slots.push(`${hour.toString().padStart(2, "0")}:30`)
                 }
-                // Add the final hour if it exists
                 if (endHour > startHour) {
                     slots.push(`${endHour.toString().padStart(2, "0")}:00`)
                 }
                 setTimeSlots(slots)
 
-                // Fetch booking data from API for each field
+                // ✅ Initial booking data fetch for selectedDate
+                console.log('📅 Fetching initial booking data for date:', selectedDate)
                 const bookingMap: { [fieldId: string]: any } = {}
                 await Promise.all(
                     activeFields.map(async (field: FieldServiceType) => {
                         try {
                             const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
                             console.log(`📅 Raw booking data for field ${field._id}:`, fieldBookingData)
-
 
                             const flatBookingData: { [timeSlot: string]: string } = {}
                             Object.values(fieldBookingData).forEach((courtData: any) => {
@@ -122,7 +274,6 @@ export default function StoreBookingPage() {
                             console.log(`✅ Flattened booking data for field ${field._id}:`, bookingMap[field._id])
                         } catch (error) {
                             console.warn(`⚠️ Failed to fetch booking for field ${field._id}:`, error)
-                            // Default all slots as available
                             bookingMap[field._id] = {}
                             slots.forEach((slot: string) => {
                                 bookingMap[field._id][slot] = "available"
@@ -141,7 +292,7 @@ export default function StoreBookingPage() {
         }
 
         fetchInitialData()
-    }, [storeId, sportId])
+    }, [storeId, sportId, selectedDate])
 
     // Update booking data when date changes
     useEffect(() => {
@@ -154,13 +305,10 @@ export default function StoreBookingPage() {
                     fields.map(async (field: FieldServiceType) => {
                         try {
                             const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
-
-                            // Flatten the nested court structure into a flat timeSlot map
                             const flatBookingData: { [timeSlot: string]: string } = {}
                             Object.values(fieldBookingData).forEach((courtData: any) => {
                                 Object.assign(flatBookingData, courtData)
                             })
-
                             bookingMap[field._id] = flatBookingData
                         } catch (error) {
                             console.warn(`⚠️ Failed to fetch booking for field ${field._id}:`, error)
@@ -175,6 +323,58 @@ export default function StoreBookingPage() {
             fetchBookingData()
         }
     }, [selectedDate, fields])
+
+    // 🔄 Trigger refresh when fields are first loaded
+    useEffect(() => {
+        if (fields.length > 0) {
+            console.log('✅ Fields loaded - refreshing booking data immediately')
+            refreshBookingData()
+        }
+    }, [fields, refreshBookingData])
+
+    // 🔄 Re-fetch booking data when page is focused
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                console.log('👁️ Page focused again - re-fetching booking data')
+                refreshBookingData()
+            }
+        }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'paymentCompleted' && e.newValue === 'true') {
+                console.log('💳 Payment completed - refreshing booking data')
+                refreshBookingData()
+                sessionStorage.removeItem('paymentCompleted')
+            }
+        }
+
+        const handlePopState = () => {
+            console.log('🔙 Back button - refreshing booking data')
+            refreshBookingData()
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('popstate', handlePopState)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('popstate', handlePopState)
+        }
+    }, [refreshBookingData])
+
+    // 🔄 Auto-refresh every 30 seconds
+    useEffect(() => {
+        console.log('⏰ Setting up auto-refresh interval')
+        const interval = setInterval(() => {
+            console.log('⏰ Auto-refresh...')
+            refreshBookingData()
+        }, 30000)
+
+        return () => clearInterval(interval)
+    }, [refreshBookingData])
 
     const handleSlotClick = (fieldId: string, timeSlot: string) => {
         const status = bookingData[fieldId]?.[timeSlot]
@@ -265,12 +465,6 @@ export default function StoreBookingPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="container mx-auto px-4 py-8">
-                {/* Breadcrumb */}
-
-
-
-
-                {/* Page Header */}
                 <PageHeader
                     title={`Đặt sân ${sport.name}`}
                     subtitle={`Chọn thời gian phù hợp tại ${store.name}`}
@@ -293,16 +487,13 @@ export default function StoreBookingPage() {
                     }
                 />
 
-                {/* Date Selector */}
                 <BookingDateSelector
                     selectedDate={selectedDate}
                     onDateChange={setSelectedDate}
                 />
 
-                {/* Legend */}
                 <BookingLegend />
 
-                {/* Store Booking Grid */}
                 <StoreBookingGrid
                     selectedDate={selectedDate}
                     selectedSlots={selectedSlots}
@@ -315,7 +506,6 @@ export default function StoreBookingPage() {
                     fieldPricings={fieldPricings}
                 />
 
-                {/* Selected Slots Summary */}
                 <StoreBookingSummary
                     selectedSlots={selectedSlots}
                     selectedDate={selectedDate}

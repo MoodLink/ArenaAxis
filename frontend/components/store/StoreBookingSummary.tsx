@@ -49,11 +49,15 @@ export default function StoreBookingSummary({
     const groupedSlots: { [fieldId: string]: string[] } = {}
     let totalPrice = 0
 
+    console.log('🔍 StoreBookingSummary - Processing selectedSlots:', selectedSlots)
+
     selectedSlots.forEach((slotKey) => {
-        // slotKey format: "fieldId:HH:MM" -> need to split correctly
-        const lastColonIndex = slotKey.lastIndexOf(':')
-        const fieldId = slotKey.substring(0, slotKey.indexOf(':'))
-        const timeSlot = slotKey.substring(slotKey.indexOf(':') + 1) // "HH:MM"
+        // slotKey format: "fieldId:HH:MM"
+        const colonIndex = slotKey.indexOf(':')
+        const fieldId = slotKey.substring(0, colonIndex)
+        const timeSlot = slotKey.substring(colonIndex + 1) // "HH:MM"
+
+        console.log(`  📌 Parsing slot: "${slotKey}" -> fieldId="${fieldId}", timeSlot="${timeSlot}"`)
 
         if (!groupedSlots[fieldId]) {
             groupedSlots[fieldId] = []
@@ -66,6 +70,7 @@ export default function StoreBookingSummary({
             const pricings = fieldPricings[fieldId] || []
             const defaultPrice = parseFloat(field.defaultPrice || "0")
 
+            let slotPrice = defaultPrice
             if (pricings.length > 0) {
                 const selectedDateObj = new Date(selectedDate)
                 const dayOfWeek = FieldPricingService.getDayOfWeek(selectedDateObj)
@@ -74,12 +79,17 @@ export default function StoreBookingSummary({
                     timeSlot,
                     dayOfWeek
                 )
-                totalPrice += specialPrice || defaultPrice
-            } else {
-                totalPrice += defaultPrice
+                slotPrice = specialPrice || defaultPrice
             }
+            totalPrice += slotPrice
+            console.log(`    💰 Field: ${field.name}, TimeSlot: ${timeSlot}, Price: ${slotPrice}, Running Total: ${totalPrice}`)
+        } else {
+            console.warn(`    ⚠️ Field not found for fieldId: ${fieldId}`)
         }
     })
+
+    console.log('✅ Final groupedSlots:', groupedSlots)
+    console.log('✅ Final totalPrice:', totalPrice)
 
     const handleCheckout = async () => {
         if (isProcessing) return

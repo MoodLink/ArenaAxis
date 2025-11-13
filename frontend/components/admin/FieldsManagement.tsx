@@ -7,19 +7,51 @@ import { Button } from "@/components/ui/button"
 import { Plus, Loader2 } from "lucide-react"
 import AdminHeader from "./shared/AdminHeader"
 import AdminFilters from "./shared/AdminFilters"
-import FieldCard from "./fields/FieldCard"
+import FieldTable from "./fields/FieldTable"
+import FieldStats from "./fields/FieldStats"
 import FieldForm from "./fields/FieldForm"
+import FieldDetail from "./fields/FieldDetail"
 import { FieldService, Field } from "@/services/field.service"
+import { AdminField } from "@/data/mockDataAdmin"
+
+// Helper function để fetch store name từ storeId
+const fetchStoreName = async (storeId: string): Promise<string> => {
+  try {
+    // Thử API: /api/stores/{storeId} hoặc /api/v1/stores/{storeId}
+    const response = await fetch(`/api/v1/stores/${storeId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data?.data?.name || data?.name || storeId
+    }
+
+    // Fallback: thử API route khác
+    return storeId
+  } catch (error) {
+    console.error('Error fetching store name:', error)
+    return storeId
+  }
+}
 
 export default function FieldsManagement() {
   const [fields, setFields] = useState<Field[]>([])
+  const [stores, setStores] = useState<Map<string, string>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedField, setSelectedField] = useState<Field | null>(null)
+  const [isActionLoading, setIsActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     fetchFields()
@@ -31,6 +63,27 @@ export default function FieldsManagement() {
       setError(null)
       const response = await FieldService.getFields()
       setFields(response.data || [])
+
+      // Fetch store names từ storeId
+      const storeMap = new Map<string, string>()
+      if (response.data) {
+        // Collect unique storeIds
+        const uniqueStoreIds = [...new Set(response.data.map(f => f.storeId))]
+
+        // Fetch store names in parallel
+        const storePromises = uniqueStoreIds.map(async (storeId) => {
+          const storeName = await fetchStoreName(storeId)
+          return { storeId, storeName }
+        })
+
+        const storeResults = await Promise.all(storePromises)
+
+        // Build map
+        storeResults.forEach(({ storeId, storeName }) => {
+          storeMap.set(storeId, storeName)
+        })
+      }
+      setStores(storeMap)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Lỗi khi tải dữ liệu sân"
       setError(errorMessage)
@@ -69,8 +122,10 @@ export default function FieldsManagement() {
       try {
         await FieldService.deleteField(fieldId)
         setFields(fields.filter(f => f._id !== fieldId))
+        setActionSuccess("Đã xóa sân thành công")
+        setTimeout(() => setActionSuccess(null), 3000)
       } catch (err) {
-        alert("Lỗi khi xóa sân: " + (err instanceof Error ? err.message : "Unknown error"))
+        setActionError("Lỗi khi xóa sân: " + (err instanceof Error ? err.message : "Unknown error"))
       }
     }
   }
@@ -79,8 +134,40 @@ export default function FieldsManagement() {
     try {
       const updatedField = await FieldService.toggleFieldStatus(fieldId, currentStatus)
       setFields(fields.map(f => (f._id === fieldId ? updatedField.data : f)))
+      setActionSuccess("Đã cập nhật trạng thái sân thành công")
+      setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
-      alert("Lỗi khi cập nhật trạng thái: " + (err instanceof Error ? err.message : "Unknown error"))
+      setActionError("Lỗi khi cập nhật trạng thái: " + (err instanceof Error ? err.message : "Unknown error"))
+    }
+  }
+
+  const handleFieldAction = (fieldId: string, action: 'view' | 'edit' | 'activate' | 'deactivate' | 'delete') => {
+    const field = fields.find(f => f._id === fieldId)
+
+    switch (action) {
+      case 'view':
+        if (field) {
+          setSelectedField(field)
+          setIsViewDialogOpen(true)
+        }
+        break
+      case 'edit':
+        if (field) {
+          setSelectedField(field)
+          setIsEditDialogOpen(true)
+        }
+        break
+      case 'activate':
+        handleToggleStatus(fieldId, false)
+        break
+      case 'deactivate':
+        handleToggleStatus(fieldId, true)
+        break
+      case 'delete':
+        handleDelete(fieldId)
+        break
+      default:
+        console.log(`${action} field ${fieldId}`)
     }
   }
 
@@ -144,6 +231,30 @@ export default function FieldsManagement() {
     }
   ]
 
+  // Map fields to AdminField format - chỉ lấy dữ liệu thực từ server
+  const mapFieldToAdminField = (field: Field): AdminField => {
+    return {
+      ...field,
+      id: field._id,
+      name: field.name || "",
+      sport_name: field.sport_name || "",
+      price: Number(field.defaultPrice) || 0,
+      rating: field.rating || 0,
+      status: field.activeStatus ? 'available' : 'unavailable',
+      createdAt: field.createdAt,
+      // Lấy tên chủ sân từ stores map (store name, không phải ID)
+      ownerName: stores.get(field.storeId) || field.storeId || "Chưa cập nhật",
+      // Bỏ các dữ liệu không cần thiết từ server
+      bookingsThisMonth: 0,
+      revenueThisMonth: 0,
+      lastBooking: "",
+      ownerPhone: ""
+    } as unknown as AdminField
+  }
+
+  const fieldsForTable = fields.map(mapFieldToAdminField)
+  const filteredFieldsForTable = filteredFields.map(mapFieldToAdminField)
+
   return (
     <div className="space-y-6">
       <AdminHeader
@@ -171,51 +282,86 @@ export default function FieldsManagement() {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách sân thể thao</CardTitle>
-          <CardDescription>
-            {isLoading ? "Đang tải..." : `Quản lý ${filteredFields.length} sân thể thao trong hệ thống`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <AdminFilters
-            searchValue={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filterOptions}
-          />
+      {/* Stats Cards */}
+      {!isLoading && <FieldStats fields={fieldsForTable} />}
 
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-              {error}
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
-          ) : filteredFields.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              Không tìm thấy sân thể thao nào phù hợp
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredFields.map(field => (
-                <FieldCard
-                  key={field._id}
-                  field={field}
-                  onView={() => { }}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleStatus={handleToggleStatus}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Error State */}
+      {actionError && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <p className="text-red-600">{actionError}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActionError(null)}
+            >
+              ✕
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Success State */}
+      {actionSuccess && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <p className="text-green-600">✓ {actionSuccess}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActionSuccess(null)}
+            >
+              ✕
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filters and Table */}
+      {!isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Danh sách sân thể thao</CardTitle>
+            <CardDescription>
+              {`Quản lý ${filteredFields.length} sân thể thao trong hệ thống`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AdminFilters
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              filters={filterOptions}
+            />
+
+            <FieldTable
+              fields={filteredFieldsForTable}
+              onFieldAction={handleFieldAction}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Field Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -248,6 +394,19 @@ export default function FieldsManagement() {
               }}
               isEdit={true}
             />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Field Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Thông tin chi tiết sân thể thao</DialogTitle>
+            <DialogDescription>Xem chi tiết thông tin sân</DialogDescription>
+          </DialogHeader>
+          {selectedField && (
+            <FieldDetail field={mapFieldToAdminField(selectedField)} />
           )}
         </DialogContent>
       </Dialog>

@@ -35,73 +35,73 @@ const sidebarItems = [
     title: 'Dashboard',
     icon: LayoutDashboard,
     href: '/admin',
-    badge: null
+
   },
   {
     title: 'Quản lý Users',
     icon: Users,
     href: '/admin/users',
-    badge: '125'
+
   },
   {
     title: 'Quản lý Sân',
     icon: MapPin,
     href: '/admin/fields',
-    badge: '24'
+
   },
   {
     title: 'Quản lý Booking',
     icon: Calendar,
     href: '/admin/bookings',
-    badge: '8'
+
   },
   {
     title: 'Quản lý cửa hàng',
     icon: Store,
     href: '/admin/stores',
-    badge: null
+
   },
   {
     title: 'Cộng đồng',
     icon: MessageSquare,
     href: '/admin/community',
-    badge: '3'
+
   },
   {
     title: 'Gói khuyến mãi',
     icon: Tag,
     href: '/admin/promotions',
-    badge: '8'
+
   },
   {
     title: 'Analytics',
     icon: BarChart3,
     href: '/admin/analytics',
-    badge: null
+
   },
   {
     title: 'Doanh thu',
     icon: DollarSign,
     href: '/admin/revenue',
-    badge: null
+
   },
   {
     title: 'Đánh giá',
     icon: Star,
     href: '/admin/reviews',
-    badge: '12'
+
   },
   {
     title: 'Báo cáo',
     icon: FileText,
     href: '/admin/reports',
-    badge: null
+
   },
   {
     title: 'Cài đặt',
     icon: Settings,
     href: '/admin/settings',
-    badge: null
+
   }
 ]
 
@@ -142,11 +142,7 @@ function Sidebar({ className = '' }: { className?: string }) {
                 <Icon className="h-4 w-4" />
                 <span>{item.title}</span>
               </div>
-              {item.badge && (
-                <Badge variant="secondary" className="text-xs">
-                  {item.badge}
-                </Badge>
-              )}
+
             </Link>
           )
         })}

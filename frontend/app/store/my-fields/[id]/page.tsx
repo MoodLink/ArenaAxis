@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Star, ChevronLeft, ChevronRight, Clock, Edit2, Trash2, MoreHorizontal, AlertCircle, Pause, X, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { FieldService, Field as APIField } from '@/services/field.service'
 import { FieldPricingService, FieldPricing } from '@/services/field-pricing.service'
 import { StoreService } from '@/services/store.service'
+import { OrderService } from '@/services/order.service'
 import StoreLayout from '@/components/store/StoreLayout'
 import { useToast } from '@/hooks/use-toast'
 
@@ -102,6 +103,121 @@ export default function FieldDetailPage() {
 
     // Toast notification
     const { toast } = useToast()
+
+    // 🔄 Helper function to refresh booking data from store orders
+    const refreshBookingData = useCallback(async () => {
+        console.log('🔄 refreshBookingData called for field:', fieldId)
+
+        if (!fieldId || !field?.storeId) {
+            console.log('⏭️ Skipping refresh - no fieldId or storeId yet')
+            return
+        }
+
+        try {
+            console.log('🔄 Fetching orders from store for date:', selectedDate)
+
+            // ✅ Use date as-is for start and end time
+            const startDateStr = selectedDate
+            const endDateStr = selectedDate
+
+            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
+
+            // Fetch all orders for the store on this date
+            const orders = await OrderService.getOrdersByStore(
+                field.storeId,
+                startDateStr,
+                endDateStr
+            )
+
+            console.log('📦 Orders received:', { count: orders.length, orders })
+
+            // Build bookingData from paid orders for this specific field
+            // Initialize with empty slots for all subcourts
+            const bookingMap: BookingStatus = {}
+
+            // We need to get all subfield IDs from field data
+            // For now, initialize standard subcourt keys
+            const subcourts = ['subcourt-001', 'subcourt-002', 'subcourt-003']
+            subcourts.forEach(subcourt => {
+                bookingMap[subcourt] = {}
+            })
+
+            // Filter PAID orders only and extract booked slots
+            const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
+            console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+
+            // For each paid order, mark the booked slots
+            paidOrders.forEach(order => {
+                console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
+                order.orderDetails.forEach((detail, idx) => {
+                    // Only process details for this specific field
+                    if (detail.fieldId !== fieldId) {
+                        console.log(`  ⏭️ Skipping - different field (${detail.fieldId} vs ${fieldId})`)
+                        return
+                    }
+
+                    console.log(`  Detail ${idx}: fieldId=${detail.fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+
+                    // Parse start and end times
+                    let startTimeStr = ""
+                    let endTimeStr = ""
+                    let orderDate = ""
+
+                    if (detail.startTime.includes(" ")) {
+                        // Format: "2025-11-13 05:00"
+                        const dateMatch = detail.startTime.match(/(\d{4}-\d{2}-\d{2})/)
+                        const timeMatch = detail.startTime.match(/(\d{2}):(\d{2})$/)
+
+                        if (dateMatch) {
+                            orderDate = dateMatch[1]
+                        }
+
+                        if (timeMatch) {
+                            const endTimeMatch = detail.endTime.match(/(\d{2}):(\d{2})$/)
+                            startTimeStr = `${timeMatch[1]}:${timeMatch[2]}`
+                            endTimeStr = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : ""
+                        }
+                    } else {
+                        // Format: "05:00"
+                        startTimeStr = detail.startTime
+                        endTimeStr = detail.endTime
+                    }
+
+                    // ⚠️ IMPORTANT: Only process orderDetails that match the selected date
+                    const formattedSelectedDate = selectedDate
+                    if (orderDate && orderDate !== formattedSelectedDate) {
+                        console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
+                        return
+                    }
+
+                    if (startTimeStr && endTimeStr) {
+                        // Generate all 30-minute slots between start and end time
+                        const startMinutes = parseInt(startTimeStr.split(':')[0]) * 60 + parseInt(startTimeStr.split(':')[1])
+                        const endMinutes = parseInt(endTimeStr.split(':')[0]) * 60 + parseInt(endTimeStr.split(':')[1])
+
+                        console.log(`  🔢 Start: ${startMinutes} min, End: ${endMinutes} min`)
+
+                        // Mark the first subcourt with these bookings
+                        // In real scenario, this would come from order details
+                        const targetSubcourt = 'subcourt-001'
+
+                        for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                            const hours = Math.floor(minutes / 60)
+                            const mins = minutes % 60
+                            const slotTime = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+                            bookingMap[targetSubcourt][slotTime] = 'booked'
+                            console.log(`    ✅ Marking slot as booked: ${slotTime}`)
+                        }
+                    }
+                })
+            })
+
+            setBookingData(bookingMap)
+            console.log('📊 Final booking data:', bookingMap)
+        } catch (error) {
+            console.error('❌ Error refreshing booking data:', error)
+        }
+    }, [fieldId, field?.storeId, selectedDate])
 
     // Fetch field details
     useEffect(() => {
@@ -207,6 +323,65 @@ export default function FieldDetailPage() {
 
         fetchFieldData()
     }, [fieldId])
+
+    // 🔄 Trigger refresh when field is loaded
+    useEffect(() => {
+        if (field && field.storeId && !loading) {
+            console.log('✅ Field loaded - refreshing booking data immediately')
+            refreshBookingData()
+        }
+    }, [field?._id, loading])
+
+    // Update booking data when date changes
+    useEffect(() => {
+        if (field && field.storeId && selectedDate && !loading) {
+            console.log('📅 Date changed - refreshing booking data')
+            refreshBookingData()
+        }
+    }, [selectedDate, field?._id, loading])
+
+    // 🔄 Re-fetch booking data when page is focused
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                console.log('👁️ Page focused - refreshing booking data')
+                refreshBookingData()
+            }
+        }
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'paymentCompleted' && e.newValue === 'true') {
+                console.log('💳 Payment completed - refreshing booking data')
+                refreshBookingData()
+            }
+        }
+
+        const handlePopState = () => {
+            console.log('🔙 Back button - refreshing booking data')
+            refreshBookingData()
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('popstate', handlePopState)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('popstate', handlePopState)
+        }
+    }, [refreshBookingData])
+
+    // 🔄 Auto-refresh every 30 seconds
+    useEffect(() => {
+        console.log('⏰ Setting up auto-refresh interval')
+        const interval = setInterval(() => {
+            console.log('⏰ Auto-refresh...')
+            refreshBookingData()
+        }, 30000)
+
+        return () => clearInterval(interval)
+    }, [refreshBookingData])
 
     if (loading) {
         return (
