@@ -160,7 +160,10 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
 
 export const getOrdersByUserService = async (userId) => {
   try {
-    const orders = await Order.find({ userId: userId }).sort({
+    const orders = await Order.find({
+      userId: userId,
+      statusPayment: "PAID",
+    }).sort({
       createdAt: -1,
     });
     for (let order of orders) {
