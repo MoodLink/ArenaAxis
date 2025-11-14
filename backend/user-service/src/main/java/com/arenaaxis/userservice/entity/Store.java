@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Set;
@@ -28,11 +29,18 @@ public class Store {
   String id;
   String name;
   String address;
+
+  @Column(columnDefinition = "TEXT")
   String linkGoogleMap;
+
+  @Column(columnDefinition = "TEXT")
   String introduction;
 
-  Float latitude;
-  Float longitude;
+  @Column(precision = 10, scale = 7)
+  BigDecimal latitude;
+
+  @Column(precision = 10, scale = 7)
+  BigDecimal longitude;
 
   LocalTime startTime;
   LocalTime endTime;

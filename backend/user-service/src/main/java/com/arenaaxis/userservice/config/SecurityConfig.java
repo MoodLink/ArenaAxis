@@ -39,15 +39,21 @@ public class SecurityConfig {
       "/main-plans",
       "/main-plans/**",
       "/ratings",
-      "/ratings/**"
-    ),
+      "/ratings/**",
+      "/users/myself",
+      "/users/**",
+      "/favourites",
+      "/favourites/**"),
     HttpMethod.POST, List.of(
       "/users",
       "/auth",
       "/auth/**",
-      "/stores/search"
-    )
-  );
+      "/stores/search",
+      "/favourites",
+      "recommends/**"),
+    HttpMethod.DELETE, List.of(
+      "/favourites",
+      "/favourites/**"));
 
   CustomJwtDecoder customJwtDecoder;
 
@@ -60,17 +66,16 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .csrf(AbstractHttpConfigurer::disable)
+      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .authorizeHttpRequests(auth -> {
-        PUBLIC_ENDPOINTS.forEach((method, paths) ->
-          paths.forEach(path -> auth.requestMatchers(method, path).permitAll())
-        );
+        PUBLIC_ENDPOINTS
+          .forEach((method, paths) -> paths.forEach(path -> auth.requestMatchers(method, path).permitAll()));
         auth.anyRequest().authenticated();
       })
       .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-          .decoder(customJwtDecoder)
-          .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-        .authenticationEntryPoint(new JwtAuthenticationEntry())
-      );
+        .decoder(customJwtDecoder)
+        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        .authenticationEntryPoint(new JwtAuthenticationEntry()));
 
     return http.build();
   }

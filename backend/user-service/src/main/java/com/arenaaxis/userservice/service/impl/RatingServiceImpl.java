@@ -2,6 +2,13 @@ package com.arenaaxis.userservice.service.impl;
 
 import java.util.List;
 
+import com.arenaaxis.userservice.dto.request.RatingUpdateRequest;
+import com.arenaaxis.userservice.specification.RatingSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -69,15 +76,40 @@ public class RatingServiceImpl implements RatingService {
   }
 
   @Override
-  public RatingRequest update(RatingRequest request, User current) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'update'");
+  public RatingResponse update(String ratingId, RatingUpdateRequest request, List<MultipartFile> medias, User current) {
+    Rating rating = ratingRepository.findById(ratingId)
+      .orElseThrow(() -> new AppException(ErrorCode.RATING_NOT_EXISTS));
+
+    Sport newSport = sportRepository.findById(request.getSportId())
+      .orElseThrow(() -> new AppException(ErrorCode.SPORT_NOT_FOUND));
+
+    if (!rating.getUser().getId().equals(current.getId())) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    int oldStar = rating.getStar();
+    Sport oldSport = rating.getSport();
+
+    ratingMediaService.delete(request.getDeleteMediaIds());
+    ratingMediaService.createMultiple(rating, medias);
+    recalcAverageRatingAfterDelete(rating);
+
+    rating.setComment(request.getComment());
+    rating.setStar(request.getStar());
+    rating.setSport(newSport);
+    ratingRepository.save(rating);
+    recalcAverageRating(rating);
+
+    recalcAverageRatingAfterUpdate(rating, oldSport, oldStar);
+    return ratingMapper.toResponse(rating);
   }
 
   @Override
   public List<RatingResponse> getPageRatingForStore(SearchRatingRequest request, int page, int perPage) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'getPageRatingForStore'");
+    Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Specification<Rating> spec = RatingSpecification.searchRating(request);
+    Page<Rating> ratings = ratingRepository.findAll(spec, pageable);
+    return ratings.map(ratingMapper::toResponse).stream().toList();
   }
 
   @Override
@@ -125,6 +157,16 @@ public class RatingServiceImpl implements RatingService {
     }
 
     updateAverageRating(store, allRatings);
+  }
+
+  private void recalcAverageRatingAfterUpdate(Rating rating, Sport oldSport, int oldStar) {
+    List<RatingStoreSport> allRatings = ratingStoreSportRepository.findByStoreId(rating.getStore().getId());
+    RatingStoreSport oldRating = findOrThrowException(allRatings, oldSport);
+    RatingStoreSport newRating = findOrCreateRatingForSport(allRatings, rating.getStore(), rating.getSport());
+
+    decreaseRating(oldRating, oldStar);
+    increaseRating(newRating, rating.getStar());
+    updateAverageRating(rating.getStore(), allRatings);
   }
 
   private RatingStoreSport findOrCreateRatingForSport(
