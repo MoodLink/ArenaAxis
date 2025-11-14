@@ -19,6 +19,7 @@ public class RatingSpecification {
       List<Predicate> predicates = new ArrayList<>();
       settingSport(predicates, request, root, cb);
       settingStore(predicates, request, root, cb);
+      settingStar(predicates, request, root, cb);
 
       Objects.requireNonNull(query).distinct(true);
       return cb.and(predicates.toArray(new Predicate[0]));
@@ -35,7 +36,14 @@ public class RatingSpecification {
   private static void settingStore(List<Predicate> predicates, SearchRatingRequest request,
                                    Root<Rating> root, CriteriaBuilder cb) {
     if (request.getStoreId() != null) {
-      predicates.add(cb.equal(root.get("store").get("id"), request.getSportId()));
+      predicates.add(cb.equal(root.get("store").get("id"), request.getStoreId()));
+    }
+  }
+
+  private static void settingStar(List<Predicate> predicates, SearchRatingRequest request,
+                                  Root<Rating> root, CriteriaBuilder cb) {
+    if (request.getStar() != null) {
+      predicates.add(cb.equal(root.get("star"), request.getStar()));
     }
   }
 }

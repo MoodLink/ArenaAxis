@@ -22,6 +22,7 @@ import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,13 +33,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class StoreServiceImpl implements StoreService {
   StoreRepository storeRepository;
   UserRepository userRepository;
@@ -66,6 +70,13 @@ public class StoreServiceImpl implements StoreService {
       .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     store.setWard(ward);
     store.setProvince(ward.getProvince());
+
+    if (request.getLinkGoogleMap() != null) {
+      List<BigDecimal> coordinates = extractLocationFromLink(request.getLinkGoogleMap());
+      store.setLatitude(coordinates.get(0));
+      store.setLongitude(coordinates.get(1));
+    }
+
     store = storeRepository.save(store);
 
     return storeMapper.toAdminDetailResponse(store, newToken);
@@ -188,5 +199,25 @@ public class StoreServiceImpl implements StoreService {
       .store(store)
       .build();
     storeViewHistoryRepository.save(storeViewHistory);
+  }
+  
+  private List<BigDecimal> extractLocationFromLink(String linkGoogleMap) {
+    List<BigDecimal> coordinates = new ArrayList<>();
+    try {
+      int atIndex = linkGoogleMap.indexOf('@');
+      if (atIndex != -1) {
+        String substring = linkGoogleMap.substring(atIndex + 1);
+        String[] parts = substring.split(",");
+        if (parts.length >= 2) {
+          BigDecimal lat = BigDecimal.valueOf(Float.parseFloat(parts[0]));
+          BigDecimal lng = BigDecimal.valueOf(Float.parseFloat(parts[1]));
+          coordinates.add(lat);
+          coordinates.add(lng);
+        }
+      }
+    } catch (Exception e) {
+      log.info("Invalid Google Maps link: {}", e.getMessage());
+    }
+    return coordinates;
   }
 }

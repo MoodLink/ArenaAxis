@@ -9,8 +9,10 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SearchRatingRequest {
-  String storeId;
-  String sportId;
-  Integer star;
+public class NearbyRequest {
+  Float latitude;
+  Float longitude;
+  Float distance;
+  String wardName;
+  String provinceName;
 }
