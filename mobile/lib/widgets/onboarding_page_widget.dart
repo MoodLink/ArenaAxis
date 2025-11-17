@@ -14,7 +14,7 @@ class OnboardingPageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 30),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -32,7 +32,7 @@ class OnboardingPageWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(140),
             ),
             child: Container(
-              margin: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(120),
@@ -44,15 +44,17 @@ class OnboardingPageWidget extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
-                _getIconForPage(currentPage),
-                size: 100,
-                color: data.color,
-              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(120),
+                child: Image.asset(
+                  'assets/images/on_boarding_${currentPage + 1}.webp',
+                  fit: BoxFit.contain,
+                ),
+              )
             ),
           ),
           
-          const SizedBox(height: 50),
+          const SizedBox(height: 20),
           
           // Title
           Text(
@@ -71,21 +73,18 @@ class OnboardingPageWidget extends StatelessWidget {
           Text(
             data.subtitle,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
             textAlign: TextAlign.center,
           ),
-          
-          const SizedBox(height: 25),
-          
           // Description
           Text(
             data.description,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey[800],
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -93,20 +92,5 @@ class OnboardingPageWidget extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  IconData _getIconForPage(int index) {
-    switch (index) {
-      case 0:
-        return Icons.sports_soccer;
-      case 1:
-        return Icons.location_on;
-      case 2:
-        return Icons.group;
-      case 3:
-        return Icons.calendar_today;
-      default:
-        return Icons.sports_soccer;
-    }
   }
 }

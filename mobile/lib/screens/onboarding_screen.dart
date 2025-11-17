@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/utils.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/screens/home_screen.dart';
+import 'package:mobile/screens/login_screen.dart';
+import 'package:mobile/utilities/location_helper.dart';
 import '../models/onboarding_data.dart';
 import '../widgets/onboarding_page_widget.dart';
 import '../widgets/page_indicator.dart';
-import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -14,34 +19,37 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   PageController _pageController = PageController();
   int _currentPage = 0;
-
   final List<OnboardingData> _pages = [
     OnboardingData(
       title: "Chào mừng đến với ArenaAxis",
       subtitle: "Ứng dụng đặt sân thể thao thông minh",
-      description: "Kết nối với cộng đồng thể thao, đặt sân dễ dàng và tìm đối thủ xứng tầm chỉ với vài cú chạm!",
-      image: "assets/images/onboarding_1.png",
+      description:
+          "Kết nối với cộng đồng thể thao, đặt sân dễ dàng và tìm đối thủ xứng tầm chỉ với vài cú chạm!",
+      image: "assets/images/onboarding_1.webp",
       color: Colors.blue,
     ),
     OnboardingData(
       title: "Đặt sân mọi lúc mọi nơi",
       subtitle: "Hàng trăm sân thể thao chất lượng",
-      description: "Tìm và đặt sân bóng đá, bóng rổ, cầu lông, tennis gần bạn với giá cả hợp lý nhất.",
-      image: "assets/images/onboarding_2.png",
+      description:
+          "Tìm và đặt sân bóng đá, bóng rổ, cầu lông, tennis gần bạn với giá cả hợp lý nhất.",
+      image: "assets/images/onboarding_2.webp",
       color: Colors.green,
     ),
     OnboardingData(
       title: "Ghép đội & Tìm đối thủ",
       subtitle: "Kết nối cộng đồng thể thao",
-      description: "Tham gia các nhóm, ghép đội với những người chơi cùng trình độ và tổ chức những trận đấu thú vị.",
-      image: "assets/images/onboarding_3.png",
+      description:
+          "Tham gia các nhóm, ghép đội với những người chơi cùng trình độ và tổ chức những trận đấu thú vị.",
+      image: "assets/images/onboarding_3.webp",
       color: Colors.orange,
     ),
     OnboardingData(
       title: "Quản lý lịch thi đấu",
       subtitle: "Theo dõi hoạt động thể thao",
-      description: "Lưu lịch sử các trận đấu, thống kê thành tích và xây dựng danh tiếng trong cộng đồng.",
-      image: "assets/images/onboarding_4.png",
+      description:
+          "Lưu lịch sử các trận đấu, thống kê thành tích và xây dựng danh tiếng trong cộng đồng.",
+      image: "assets/images/onboarding_4.webp",
       color: Colors.purple,
     ),
   ];
@@ -66,25 +74,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               // Skip button
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(15.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const SizedBox(width: 60),
-                    TextButton(
-                      onPressed: _goToLogin,
-                      child: const Text(
+                    Text(
+                      'ArenaAxis',
+                      style: GoogleFonts.workbench(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(4, 5),
+                            blurRadius: 4,
+                            color: _pages[_currentPage].color,
+                          ),
+                        ],
+                        letterSpacing: 2,
+                      ),
+                    ),
+
+                    InkWell(
+                      key: const Key('skipOnboardingButton'), // thêm key
+                      onTap: _goToLogin,
+                      child: Text(
                         'Bỏ qua',
                         style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 16,
+                          color: Colors.white70,
+                          fontSize: 20,
+                          shadows: [
+                            Shadow(
+                              offset: const Offset(2, 3),
+                              blurRadius: 3,
+                              color: _pages[_currentPage].color,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // PageView
               Expanded(
                 child: PageView.builder(
@@ -103,16 +135,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                 ),
               ),
-              
+
               // Page indicator
               PageIndicator(
                 currentPage: _currentPage,
                 pageCount: _pages.length,
                 activeColor: _pages[_currentPage].color,
               ),
-              
-              const SizedBox(height: 40),
-              
+
+              const SizedBox(height: 25),
+
               // Bottom buttons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -132,11 +164,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           )
                         : const SizedBox(width: 80),
-                    
+
                     // Next/Get Started button
                     ElevatedButton(
-                      onPressed: _currentPage == _pages.length - 1 
-                          ? _goToLogin 
+                      onPressed: _currentPage == _pages.length - 1
+                          ? _goToLogin
                           : _nextPage,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _pages[_currentPage].color,
@@ -154,8 +186,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _currentPage == _pages.length - 1 
-                                ? 'Bắt đầu' 
+                            _currentPage == _pages.length - 1
+                                ? 'Bắt đầu'
                                 : 'Tiếp theo',
                             style: const TextStyle(
                               fontSize: 16,
@@ -170,7 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 30),
             ],
           ),
@@ -198,10 +230,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _goToLogin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    Get.to(() => LoginScreen());
   }
 
   @override

@@ -1,4 +1,15 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
+import 'package:get/utils.dart';
+import 'package:mobile/controller/home_controller.dart';
+import 'package:mobile/models/Authentiacate.dart';
+import 'package:mobile/screens/home_screen.dart';
+import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/utilities/token_storage.dart';
+import 'package:mobile/widgets/loading.dart';
 import '../widgets/login_form.dart';
 import '../widgets/login_header.dart';
 import '../widgets/social_login_buttons.dart';
@@ -8,141 +19,99 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1976D2),
-              Color(0xFF42A5F5),
-              Color(0xFF90CAF9),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-                
-                // Header
-                const LoginHeader(),
-                
-                const SizedBox(height: 60),
-                
-                // Form đăng nhập
-                LoginForm(
-                  formKey: _formKey,
-                  emailController: _emailController,
-                  passwordController: _passwordController,
-                  isPasswordVisible: _isPasswordVisible,
-                  onPasswordVisibilityChanged: (isVisible) {
-                    setState(() {
-                      _isPasswordVisible = isVisible;
-                    });
-                  },
-                  onForgotPassword: _showForgotPasswordDialog,
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.background,
+            ),
+            child: ScrollConfiguration(
+              behavior: ScrollBehavior().copyWith(overscroll: false),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const LoginHeader(),
+                    const SizedBox(height: 30),
+                    // Social login
+                    SocialLoginButtons(
+                      onGoogleLogin: () {
+                        // Handle Google login
+                      },
+                      onFacebookLogin: () {
+                        // Handle Facebook login
+                      },
+                    ),
+                    const SizedBox(height: 30),
+              
+                    // Form đăng nhập
+                    LoginForm(
+                      formKey: _formKey,
+                      emailController: emailController,
+                      passwordController:passwordController,
+                      isPasswordVisible: _isPasswordVisible,
+                      onPasswordVisibilityChange: (isVisible) {
+                        setState(() {
+                          _isPasswordVisible = isVisible;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+              
+                    // Nút đăng nhập
+                    _buildLoginButton(),
+                    const SizedBox(height: 30),
+              
+                    // Đăng ký
+                    _buildRegisterSection(),
+                  ],
                 ),
-                
-                const SizedBox(height: 20),
-                
-                // Nút đăng nhập
-                _buildLoginButton(),
-                
-                const SizedBox(height: 20),
-                
-                // Divider
-                _buildDivider(),
-                
-                const SizedBox(height: 20),
-                
-                // Social login
-                SocialLoginButtons(
-                  onGoogleLogin: () {
-                    // Handle Google login
-                  },
-                  onFacebookLogin: () {
-                    // Handle Facebook login
-                  },
-                ),
-                
-                const SizedBox(height: 30),
-                
-                // Đăng ký
-                _buildRegisterSection(),
-                
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
-        ),
+          if (_isLoading) (loadingIndicator()),
+        ],
       ),
     );
   }
 
   Widget _buildLoginButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _handleLogin,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF1976D2),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.all(10.0),
+      child: ElevatedButton(
+        key: const Key('loginButton'),
+        onPressed: _isLoading ? null : _handleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFFFD6326),
+          foregroundColor: Theme.of(context).colorScheme.onError,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
         ),
-        elevation: 2,
-      ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : const Text(
-              'Đăng nhập',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return const Row(
-      children: [
-        Expanded(child: Divider(color: Colors.white54)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'HOẶC',
-            style: TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
+        child: Text(
+          'Đăng nhập',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
-        Expanded(child: Divider(color: Colors.white54)),
-      ],
+      ),
     );
   }
 
@@ -150,11 +119,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Chưa có tài khoản? ',
           style: TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
+            color: Theme.of(context).colorScheme.onBackground,
+            fontSize: 18,
           ),
         ),
         TextButton(
@@ -164,11 +133,11 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(builder: (context) => const RegisterScreen()),
             );
           },
-          child: const Text(
+          child: Text(
             'Đăng ký ngay',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+              color: Color(0xFFFD6326),
+              fontSize: 17,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -177,21 +146,38 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+void _handleLogin() async {
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      _isLoading = true;
+    });
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+    final authService = AuthService();
+    final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
 
-      setState(() {
-        _isLoading = false;
-      });
+    try {
+      final authResponse = await authService.login(
+        emailController.text.trim(),
+       passwordController.text.trim(),
+      );
 
-      // Handle login success
-      if (mounted) {
+      if (authResponse == null) {
+        // ❌ Sai email hoặc mật khẩu
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email hoặc mật khẩu không chính xác!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else {
+        // ✅ Lưu token
+        await tokenStorage.saveTokens(authResponse);
+
+        // ✅ Chuyển qua trang chủ
+        final HomeController controller = Get.find<HomeController>();
+        controller.selectedIndex.value = 0;
+        Get.offAll(() => HomeScreen());
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Đăng nhập thành công!'),
@@ -199,29 +185,26 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+    } catch (e, stack) {
+      log('Lỗi đăng nhập: $e\n$stack');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Có lỗi xảy ra: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
-
-  void _showForgotPasswordDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Quên mật khẩu'),
-        content: const Text('Vui lòng liên hệ support để được hỗ trợ đặt lại mật khẩu.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
+}
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    emailController.dispose();
+   passwordController.dispose();
     super.dispose();
   }
 }

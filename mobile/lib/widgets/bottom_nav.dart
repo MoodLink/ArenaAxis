@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:lottie/lottie.dart';
+
+class myBottomNav extends StatelessWidget {
+  void Function(int)? onTabChange;
+  myBottomNav({super.key, required this.onTabChange});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: GNav(
+        mainAxisAlignment: MainAxisAlignment.center,
+        color: Colors.grey[800],
+        activeColor: Colors.grey[900],
+        tabActiveBorder: Border.all(color: Colors.grey.shade200),
+        tabBackgroundColor: Color.fromARGB(255, 247, 223, 216),
+        tabBorderRadius: 18,
+        onTabChange: (value) => onTabChange!(value),
+        tabs: [
+          GButton(
+            icon: Icons.space_bar, // không dùng icon mặc định
+            text: ' F I E L D S',
+            padding: EdgeInsets.all(10),
+            textSize: 20,
+            leading: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: Image.asset(
+                    'assets/icons/field.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GButton(
+            icon: Icons.space_bar, // không dùng icon mặc định
+            text: ' O R D E R S',
+            padding: EdgeInsets.all(10),
+            textSize: 20,
+            leading: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: Image.asset(
+                    'assets/icons/order.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+           GButton(
+            icon: Icons.space_bar, // không dùng icon mặc định
+            text: 'T E A M M A T E',
+            padding: EdgeInsets.all(10),
+            textSize: 20,
+            leading: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: Image.asset(
+                    'assets/icons/community.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GButton(
+            icon: Icons.person,
+            text: ' P R O F I L E',
+            padding: EdgeInsets.all(10),
+            textSize: 20,
+            textColor: Colors.black,
+          ),
+        ],
+      ),
+    );
+  }
+}
