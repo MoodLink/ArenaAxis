@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 	const responseHeaders = { 'Content-Type': 'application/json' }
 
 	try {
-		const body = await request.json();
+		const body = { token };
 		const fetchResponse = await fetch(`${API_BASE_URL}/validate`, {
 			method: 'POST',
 			headers: {
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
 			});
 		}
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : 'Failed to logout';
-		console.error('[API Proxy] Logout error:', errorMessage);
+		const errorMessage = error instanceof Error ? error.message : 'Failed to validate';
+		console.error('[API Proxy] Validate error:', errorMessage);
 		response = new NextResponse(
 			JSON.stringify({ message: errorMessage, error: 'Internal Server Error' }),
 			{ status: 500, headers: responseHeaders }

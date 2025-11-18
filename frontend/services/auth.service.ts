@@ -8,7 +8,7 @@ export async function validate() {
   }
 
   const response = await fetch(`${AUTH_API_URL}/validate`, {
-    method: 'GET',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -17,6 +17,7 @@ export async function validate() {
 
   if (!response.ok) {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     return false;
   }
 
