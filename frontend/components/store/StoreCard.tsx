@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Star, Eye, ShoppingCart, Heart, Share2, Phone } from 'lucide-react';
@@ -12,12 +13,14 @@ import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-syn
 
 interface StoreCardProps {
   store: StoreSearchItemResponse;
+  selectedSportId?: string;
 }
 
-export function StoreCard({ store }: StoreCardProps) {
+export function StoreCard({ store, selectedSportId }: StoreCardProps) {
   const [isFav, setIsFav] = useState(false);
   const [isLoadingFav, setIsLoadingFav] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   // Listen to favourite changes from other components
   useFavouriteSync(store.id, (newState) => {
@@ -89,8 +92,28 @@ export function StoreCard({ store }: StoreCardProps) {
     });
   };
 
+  const handleBooking = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!selectedSportId) return;
+
+    router.push(`/store-booking?store_id=${store.id}&sport_id=${selectedSportId}`);
+  };
+
   return (
-    <Link href={`/list-store/${store.id}`}>
+    <div
+      onClick={(e) => {
+        // If sport is selected and user clicks on the card, treat it as a regular click
+        // Button clicks will be handled by the button handler
+        if (!selectedSportId) {
+          // No sport selected, treat as normal link
+          const link = document.createElement('a');
+          link.href = `/list-store/${store.id}`;
+          link.click();
+        }
+      }}
+    >
       <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer overflow-hidden border-2 hover:border-primary h-[520px] flex flex-col">
         {/* Cover Image */}
         <div className="relative h-60 overflow-hidden bg-gradient-to-br from-blue-400 via-purple-400 to-pink-300 flex-shrink-0">
@@ -160,14 +183,28 @@ export function StoreCard({ store }: StoreCardProps) {
         </div>
 
         <CardContent className="p-5 flex-1 flex flex-col">
-          {/* Location */}
-          <div className="flex items-start gap-3 text-sm text-gray-600 flex-shrink-0">
-            <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" />
-            <span className="line-clamp-1 font-medium">{getLocationText()}</span>
+          {/* Location, Time and Book Button Row */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Location */}
+            <div className="flex items-center gap-2 text-sm text-gray-600 flex-1 min-w-0">
+              <MapPin className="w-5 h-5 flex-shrink-0 text-red-500" />
+              <span className="line-clamp-1 font-medium">{getLocationText()}</span>
+            </div>
+
+            {/* Book Button - when sport is selected */}
+            {selectedSportId && (
+              <button
+                onClick={handleBooking}
+                title="Đặt ngay"
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 text-white font-bold text-xs hover:shadow-lg transition-all transform hover:scale-110 flex items-center justify-center"
+              >
+                🛒
+              </button>
+            )}
           </div>
 
           {/* Opening Hours */}
-          <div className="flex items-center gap-3 text-sm flex-shrink-0 mt-2">
+          <div className="flex items-center gap-2 text-sm flex-shrink-0 mt-2">
             <Clock className="w-5 h-5 text-blue-500 flex-shrink-0" />
             <span className="text-gray-700 font-semibold truncate">
               {formatTime(store.startTime)} - {formatTime(store.endTime)}
@@ -206,11 +243,20 @@ export function StoreCard({ store }: StoreCardProps) {
           </div>
 
           {/* View Details Button */}
-          <button className="w-full mt-3 bg-gradient-to-r from-primary to-primary/80 text-white py-2.5 px-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all group-hover:shadow-xl flex-shrink-0">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!selectedSportId) {
+                router.push(`/list-store/${store.id}`);
+              }
+            }}
+            className="w-full mt-3 bg-gradient-to-r from-primary to-primary/80 text-white py-2.5 px-3 rounded-lg font-bold text-sm hover:shadow-lg transition-all group-hover:shadow-xl flex-shrink-0"
+          >
             Xem chi tiết
           </button>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }

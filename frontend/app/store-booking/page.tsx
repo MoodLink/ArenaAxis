@@ -11,7 +11,7 @@ import { OrderService } from "@/services/order.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
 import type { StoreClientDetailResponse, Sport } from "@/types"
 import PageHeader from "@/components/layout/PageHeader"
-import BreadcrumbNav from "@/components/common/BreadcrumbNav"
+
 import {
     BookingLoadingState,
     BookingDateSelector,
@@ -66,16 +66,18 @@ export default function StoreBookingPage() {
             console.log('🔍 Type of selectedDate:', typeof selectedDate)
             console.log('🔍 selectedDate value:', JSON.stringify(selectedDate))
 
-            // ✅ CORRECT: Parse date WITHOUT timezone conversion
-            // selectedDate is in format "2025-11-13" (YYYY-MM-DD)
-            // Simply use it as-is for both start and end
-            const startDateStr = selectedDate  // e.g., "2025-11-13"
-            const endDateStr = selectedDate    // Same day - start and end are same
+            // ✅ IMPORTANT: Get ALL orders from store (not filtered by date)
+            // Because orders are created on one date but can be booked for future dates
+            // We'll filter based on orderDetails.startTime instead
+            const farFutureDate = new Date(selectedDate)
+            farFutureDate.setFullYear(farFutureDate.getFullYear() + 1)
+            const startDateStr = '2000-01-01'  // Far past
+            const endDateStr = farFutureDate.toISOString().split('T')[0]  // Far future
 
-            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
-            console.log(`✅ Final API params: start_time=${startDateStr}&end_time=${endDateStr}`)
+            console.log(`📅 Fetching orders for store: ${startDateStr} to ${endDateStr}`)
+            console.log(`✅ This gets ALL orders so we can filter by booking date (not payment date)`)
 
-            // Fetch all orders for the store on this date
+            // Fetch all orders for the store
             const orders = await OrderService.getOrdersByStore(
                 storeId,
                 startDateStr,
@@ -95,13 +97,14 @@ export default function StoreBookingPage() {
             // Filter PAID orders only and extract booked slots
             const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
             console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+            console.log('🔍 All orders:', orders.map(o => ({ code: o.orderCode, status: o.statusPayment, details: o.orderDetails.map(d => ({ startTime: d.startTime, endTime: d.endTime })) })))
 
             // For each paid order, mark the booked slots
             paidOrders.forEach(order => {
                 console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
                 order.orderDetails.forEach((detail, idx) => {
                     const fieldId = detail.fieldId
-                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}", type: ${typeof detail.startTime}`)
 
                     // Parse start and end times
                     // Support both formats:
@@ -136,7 +139,9 @@ export default function StoreBookingPage() {
                     if (orderDate && orderDate !== formattedSelectedDate) {
                         console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
                         return  // Skip this detail
-                    } if (startTimeStr && endTimeStr && fieldId) {
+                    }
+
+                    if (startTimeStr && endTimeStr && fieldId) {
                         if (!bookingMap[fieldId]) {
                             bookingMap[fieldId] = {}
                         }
@@ -326,44 +331,74 @@ export default function StoreBookingPage() {
 
     // 🔄 Trigger refresh when fields are first loaded
     useEffect(() => {
-        if (fields.length > 0) {
+        if (fields.length > 0 && storeId && selectedDate) {
             console.log('✅ Fields loaded - refreshing booking data immediately')
             refreshBookingData()
         }
-    }, [fields, refreshBookingData])
+    }, [fields.length, storeId, selectedDate, refreshBookingData])
 
-    // 🔄 Re-fetch booking data when page is focused
+    // 🔄 Re-fetch booking data when page is focused or payment completed
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 console.log('👁️ Page focused again - re-fetching booking data')
-                refreshBookingData()
+                if (fields.length > 0 && storeId) {
+                    refreshBookingData()
+                }
             }
         }
 
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'paymentCompleted' && e.newValue === 'true') {
-                console.log('💳 Payment completed - refreshing booking data')
-                refreshBookingData()
+                console.log('💳 Payment completed (storage event) - refreshing booking data')
+                if (fields.length > 0 && storeId) {
+                    // Refresh immediately and repeatedly for first 3 seconds
+                    refreshBookingData()
+                    const refreshInterval = setInterval(() => {
+                        if (fields.length > 0 && storeId) {
+                            refreshBookingData()
+                        }
+                    }, 1000)
+                    setTimeout(() => clearInterval(refreshInterval), 3000)
+                }
                 sessionStorage.removeItem('paymentCompleted')
+            }
+        }
+
+        // ✅ Listen to custom event for same-tab payment completion
+        const handlePaymentCompleted = (e: any) => {
+            console.log('💳 Payment completed (custom event) - refreshing booking data', e.detail)
+            if (fields.length > 0 && storeId) {
+                // Refresh immediately and repeatedly for first 3 seconds
+                refreshBookingData()
+                const refreshInterval = setInterval(() => {
+                    if (fields.length > 0 && storeId) {
+                        refreshBookingData()
+                    }
+                }, 1000)
+                setTimeout(() => clearInterval(refreshInterval), 3000)
             }
         }
 
         const handlePopState = () => {
             console.log('🔙 Back button - refreshing booking data')
-            refreshBookingData()
+            if (fields.length > 0 && storeId) {
+                refreshBookingData()
+            }
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
         window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('paymentCompleted', handlePaymentCompleted)
         window.addEventListener('popstate', handlePopState)
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange)
             window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('paymentCompleted', handlePaymentCompleted)
             window.removeEventListener('popstate', handlePopState)
         }
-    }, [refreshBookingData])
+    }, [refreshBookingData, fields.length, storeId])
 
     // 🔄 Auto-refresh every 30 seconds
     useEffect(() => {

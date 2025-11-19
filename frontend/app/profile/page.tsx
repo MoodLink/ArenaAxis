@@ -22,6 +22,14 @@ export default function ProfilePage() {
   useEffect(() => {
     async function fetchUser() {
       try {
+        // Kiểm tra token trước
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push("/login")
+          return
+        }
+
+        // Lấy user từ localStorage (đã lưu từ login)
         const userData = getMyProfile()
 
         if (!userData) {

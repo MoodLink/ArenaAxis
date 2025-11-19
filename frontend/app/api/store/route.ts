@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
         };
 
         console.log(`[API Proxy] POST /stores`);
+        console.log(`[API Proxy] Request body:`, JSON.stringify(body, null, 2));
 
         const response = await fetch(`${API_BASE_URL}/stores`, {
             method: 'POST',
@@ -83,14 +84,29 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(body),
         });
 
+        const responseText = await response.text();
+        console.log(`[API Proxy] Response status (${response.status}):`, responseText);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
-            throw new Error(`API responded with status: ${response.status}`);
+            console.error(`[API Proxy] Backend error (${response.status}):`, responseText);
+
+            // Try to parse error response
+            try {
+                const errorData = JSON.parse(responseText);
+                return NextResponse.json(errorData, { status: response.status });
+            } catch {
+                return NextResponse.json(
+                    {
+                        error: 'Backend error',
+                        message: responseText,
+                        status: response.status
+                    },
+                    { status: response.status }
+                );
+            }
         }
 
-        const data = await response.json();
-
+        const data = JSON.parse(responseText);
         return NextResponse.json(data, { status: response.status });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to register store';

@@ -67,12 +67,12 @@ export default function LoginPage() {
       {/* Form đăng nhập */}
       <Card className="w-full max-w-md mx-4 z-10 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl transform-gpu perspective-1000 hover:scale-105 transition-all duration-500 hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] card-3d">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white animate-fade-in">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white animate-fade-in">Đăng nhập</CardTitle>
           <p className="text-white/80 text-sm animate-fade-in-delay">
             {/* Link chuyển sang trang đăng ký nếu chưa có tài khoản */}
-            Don't have an account?{" "}
+            Bạn chưa có tài khoản?{" "}
             <Link href="/signup" className="text-white underline hover:text-white/80 transition-colors">
-              Create Account
+              Tạo tài khoản
             </Link>
           </p>
         </CardHeader>
@@ -86,7 +86,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Nhập email của bạn"
                 className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -102,7 +102,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Nhập mật khẩu của bạn"
                 className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 transition-all duration-300 hover:bg-white/30 focus:scale-105"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -121,7 +121,7 @@ export default function LoginPage() {
             {/* Link quên mật khẩu */}
             <div className="text-center animate-slide-up-delay-2">
               <Link href="/forgot-password" className="text-white/80 text-sm hover:text-white underline transition-colors">
-                Forgot Password?
+                Quên mật khẩu
               </Link>
             </div>
             {/* Nút submit đăng nhập */}
@@ -130,7 +130,7 @@ export default function LoginPage() {
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold transform hover:scale-105 transition-all duration-300 hover:shadow-lg animate-slide-up-delay-3"
               disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Signing in..." : "Đăng nhập"}
             </Button>
           </form>
 

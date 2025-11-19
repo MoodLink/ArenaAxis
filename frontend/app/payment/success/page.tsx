@@ -5,6 +5,17 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Check, Download, Printer, Calendar, MapPin, Clock, DollarSign, Phone, AlertCircle } from "lucide-react"
 import { OrderService, type OrderResponse } from "@/services/order.service"
+import { FieldService } from "@/services/field.service"
+import { StoreService } from "@/services/store.service"
+import { getMyProfile } from "@/services/get-my-profile"
+
+interface OrderDetailWithFieldName {
+    fieldId: string;
+    fieldName: string;
+    startTime: string;
+    endTime: string;
+    price: number;
+}
 
 export default function PaymentSuccessPage() {
     const router = useRouter()
@@ -13,6 +24,9 @@ export default function PaymentSuccessPage() {
     const [orderId, setOrderId] = useState<string>("")
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [enrichedOrderDetails, setEnrichedOrderDetails] = useState<OrderDetailWithFieldName[]>([])
+    const [storeAddress, setStoreAddress] = useState<string>("")
+    const [customerInfo, setCustomerInfo] = useState({ name: "", address: "" })
 
     useEffect(() => {
         const fetchOrderData = async () => {
@@ -40,21 +54,79 @@ export default function PaymentSuccessPage() {
                         console.log('✅ Order data received:', order)
                         setOrderData(order)
 
-                        // 🔄 Signal to store-booking page to refresh booking data and jump to booking date
-                        console.log('📢 Saving booking date and payment flag')
+                        // 🔄 Get customer info from profile or order
+                        const profile = getMyProfile()
+                        const customerName = profile?.name || order.name || "Khách hàng"
+                        const customerAddress = order.address || ""
+
+                        setCustomerInfo({
+                            name: customerName,
+                            address: customerAddress
+                        })
+                        console.log('👤 Customer info:', { name: customerName, address: customerAddress })
+
+                        // 📍 Get store info for address if not in order
+                        if (order.storeId && !order.address) {
+                            try {
+                                const storeInfo = await StoreService.getMyStore()
+                                if (storeInfo?.address) {
+                                    setStoreAddress(storeInfo.address)
+                                    console.log('🏪 Store address:', storeInfo.address)
+                                }
+                            } catch (storeErr: any) {
+                                console.warn('⚠️ Could not fetch store info:', storeErr.message)
+                            }
+                        }
+
+                        // 🏐 Enrich order details with field names
                         if (order.orderDetails && order.orderDetails.length > 0) {
+                            console.log('🔄 Enriching order details with field names...')
+                            const enrichedDetails: OrderDetailWithFieldName[] = []
+
+                            for (const detail of order.orderDetails) {
+                                try {
+                                    const fieldResponse = await FieldService.getFieldById(detail.fieldId)
+                                    const fieldName = fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`
+                                    console.log(`✅ Field ${detail.fieldId}: ${fieldName}`)
+
+                                    enrichedDetails.push({
+                                        fieldId: detail.fieldId,
+                                        fieldName: fieldName,
+                                        startTime: detail.startTime,
+                                        endTime: detail.endTime,
+                                        price: detail.price
+                                    })
+                                } catch (fieldErr: any) {
+                                    console.warn(`⚠️ Could not fetch field ${detail.fieldId}:`, fieldErr.message)
+                                    enrichedDetails.push({
+                                        fieldId: detail.fieldId,
+                                        fieldName: `Sân ${detail.fieldId.slice(-4)}`,
+                                        startTime: detail.startTime,
+                                        endTime: detail.endTime,
+                                        price: detail.price
+                                    })
+                                }
+                            }
+
+                            setEnrichedOrderDetails(enrichedDetails)
+                            console.log('✅ Enriched order details:', enrichedDetails)
+
                             // Extract date from first order detail (format: "2025-11-12 HH:MM")
-                            const bookingDateStr = order.orderDetails[0].startTime.split(' ')[0]
+                            const bookingDateStr = enrichedDetails[0].startTime.split(' ')[0]
                             sessionStorage.setItem('lastBookingDate', bookingDateStr)
                             console.log('📅 Saved last booking date:', bookingDateStr)
                         }
 
                         sessionStorage.setItem('paymentCompleted', 'true')
+                        // ✅ Dispatch storage event to notify other tabs/windows
                         window.dispatchEvent(new StorageEvent('storage', {
                             key: 'paymentCompleted',
                             newValue: 'true',
-                            oldValue: null
+                            oldValue: null,
+                            storageArea: sessionStorage
                         }))
+                        // ✅ Also dispatch custom event for same-tab listeners
+                        window.dispatchEvent(new CustomEvent('paymentCompleted', { detail: { orderCode: id } }))
                     } catch (apiErr: any) {
                         console.warn('⚠️ Could not fetch order from API:', apiErr.message)
                         // If API fails, we'll just show success page without detailed order info
@@ -128,12 +200,12 @@ export default function PaymentSuccessPage() {
     // Parse order data if available, otherwise use generic data
     const orderCode = orderData?.orderCode || searchParams.get("orderCode") || "N/A"
     const cost = orderData?.cost || 0
-    const name = orderData?.name || "Khách hàng"
-    const address = orderData?.address || ""
-    const orderDetails = orderData?.orderDetails || []
+    const name = customerInfo.name
+    const address = customerInfo.address || storeAddress
+    const orderDetails = enrichedOrderDetails.length > 0 ? enrichedOrderDetails : []
     const createdAt = orderData?.createdAt || new Date().toISOString()
 
-    // Format date from createdAt
+    // Format date from createdAt (payment date, not booking date)
     const bookingDate = new Date(createdAt).toLocaleDateString('vi-VN')
 
     return (
@@ -157,7 +229,7 @@ export default function PaymentSuccessPage() {
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-800">HÓA ĐƠN THANH TOÁN</h2>
-                                <p className="text-gray-600 text-sm">Invoice</p>
+
                             </div>
                             <div className="text-right">
                                 <p className="text-gray-600">
@@ -179,7 +251,7 @@ export default function PaymentSuccessPage() {
                                 <p className="font-semibold text-gray-800">{name}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-600">Địa chỉ</p>
+
                                 <p className="font-semibold text-gray-800">{address}</p>
                             </div>
                         </div>
@@ -199,6 +271,7 @@ export default function PaymentSuccessPage() {
                                         hour: '2-digit',
                                         minute: '2-digit'
                                     })
+                                    const bookingDateDetail = new Date(detail.startTime).toLocaleDateString('vi-VN')
 
                                     return (
                                         <div key={index} className="flex justify-between items-center py-3 border-b">
@@ -207,9 +280,9 @@ export default function PaymentSuccessPage() {
                                                     <span className="text-green-600 text-lg">🏐</span>
                                                     <div>
                                                         <p className="font-semibold text-gray-800">
-                                                            {detail.fieldName || `Sân ${index + 1}`}
+                                                            {detail.fieldName}
                                                         </p>
-                                                        <p className="text-sm text-gray-600">{startTime} - {endTime}</p>
+                                                        <p className="text-sm text-gray-600">{bookingDateDetail} {startTime} - {endTime}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -233,10 +306,7 @@ export default function PaymentSuccessPage() {
                                 <span>Tổng tiền sân ({orderDetails && orderDetails.length > 0 ? orderDetails.length : 0} khung giờ)</span>
                                 <span className="font-semibold">{cost !== undefined && cost > 0 ? cost.toLocaleString('vi-VN') : '0'} ₫</span>
                             </div>
-                            <div className="flex justify-between text-green-600">
-                                <span>Ưu đãi</span>
-                                <span className="font-semibold">0 ₫</span>
-                            </div>
+
                             <div className="border-t-2 pt-3 flex justify-between text-lg font-bold text-gray-800">
                                 <span>Tổng cộng</span>
                                 <span className="text-green-600">{cost !== undefined && cost > 0 ? cost.toLocaleString('vi-VN') : '0'} ₫</span>
@@ -255,9 +325,7 @@ export default function PaymentSuccessPage() {
                         <p>
                             Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.
                         </p>
-                        <p className="mt-2">
-                            Vé đặt sân của bạn đã được gửi tới email. Vui lòng kiểm tra email hoặc liên hệ với chúng tôi nếu có vấn đề.
-                        </p>
+
                     </div>
                 </div>
 

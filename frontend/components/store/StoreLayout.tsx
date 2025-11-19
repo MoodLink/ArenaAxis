@@ -55,12 +55,12 @@ const sidebarItems = [
 		href: '/store/my-fields',
 
 	},
-	{
-		title: 'Lịch đặt sân',
-		icon: Calendar,
-		href: '/store/bookings',
+	// {
+	// 	title: 'Lịch đặt sân',
+	// 	icon: Calendar,
+	// 	href: '/store/bookings',
 
-	},
+	// },
 	{
 		title: 'Doanh thu',
 		icon: DollarSign,

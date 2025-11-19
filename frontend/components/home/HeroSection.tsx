@@ -40,7 +40,7 @@ export default function HeroSection() {
                 <h1 className="text-5xl font-bold mb-4">ArenaAxis</h1>
 
                 {/* Mô tả */}
-                <p className="text-xl mb-8">Choose the ideal court according to your playing style and budget</p>
+                <p className="text-xl mb-8">Chọn sân lý tưởng theo phong cách chơi và khả năng của bạn</p>
 
                 {/* Các nút call-to-action */}
                 <div className="flex gap-4 justify-center">
@@ -49,7 +49,7 @@ export default function HeroSection() {
                             {/* Nút đăng nhập */}
                             <Link href="/login">
                                 <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                                    Sign In
+                                    Đăng nhập
                                 </Button>
                             </Link>
                             {/* Nút đăng ký */}
@@ -59,14 +59,14 @@ export default function HeroSection() {
                                     variant="outline"
                                     className="text-white border-white hover:bg-white hover:text-black bg-transparent"
                                 >
-                                    Sign Up
+                                    Đăng ký
                                 </Button>
                             </Link>
                         </>
                     ) : (
                         <Link href="/profile">
                             <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                                Go to My Profile
+                                Trang cá nhân
                             </Button>
                         </Link>
                     )}

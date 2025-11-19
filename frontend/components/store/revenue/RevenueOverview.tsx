@@ -58,7 +58,7 @@ interface StoreRevenueData {
     // Calculated fields
     monthlyRevenue: number
     avgBookingValue: number
-    growth: number
+    // growth: number
     utilizationRate: number
 }
 
@@ -88,7 +88,7 @@ function StatCard({ title, value, change, changeType, icon: Icon, trend }: {
                             <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
                         </div>
                     </div>
-                    <div className="text-right">
+                    {/* <div className="text-right">
                         <div className={`flex items-center ${changeType === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
                             {changeType === 'increase' ? (
                                 <ArrowUpRight className="h-4 w-4 mr-1" />
@@ -98,7 +98,7 @@ function StatCard({ title, value, change, changeType, icon: Icon, trend }: {
                             <span className="text-sm font-medium">{change}</span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">{trend}</p>
-                    </div>
+                    </div> */}
                 </div>
             </CardContent>
         </Card>
@@ -122,18 +122,18 @@ function StoreRevenueCard({ store }: { store: StoreRevenueData }) {
                                 <MapPin className="h-4 w-4 mr-1" />
                                 <span>{store.address || 'N/A'}</span>
                             </div>
-                            <p className="text-sm text-gray-600">{store.orderCount} đơn hàng</p>
+                            {/* <p className="text-sm text-gray-600">{store.orderCount} đơn hàng</p> */}
                         </div>
                         <div className="text-right">
                             <p className="text-2xl font-bold text-green-600">{formatCurrency(store.monthlyRevenue)}đ</p>
-                            <div className={`flex items-center mt-1 justify-end ${store.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {/* <div className={`flex items-center mt-1 justify-end ${store.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {store.growth >= 0 ? (
                                     <TrendingUp className="h-4 w-4 mr-1" />
                                 ) : (
                                     <TrendingDown className="h-4 w-4 mr-1" />
                                 )}
                                 <span className="text-sm font-medium">{Math.abs(store.growth)}%</span>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
@@ -149,10 +149,10 @@ function StoreRevenueCard({ store }: { store: StoreRevenueData }) {
                     </div>
 
                     <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                             <span className="text-gray-600">Tỷ lệ sử dụng:</span>
                             <span className="font-medium">{store.utilizationRate}%</span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between">
                             <span className="text-gray-600">Doanh thu trung bình:</span>
                             <span className="font-medium">{formatCurrency(store.monthlyRevenue / (store.orderCount || 1))}đ/booking</span>
@@ -205,8 +205,8 @@ export default function RevenueOverview() {
                     const basePrice = 150000
                     const monthlyRevenue = (store.orderCount || 0) * basePrice
 
-                    // Random growth between -5% to +20%
-                    const growth = Math.round((Math.random() * 25 - 5) * 10) / 10
+                    // // Random growth between -5% to +20%
+                    // const growth = Math.round((Math.random() * 25 - 5) * 10) / 10
 
                     // Utilization rate: 30% to 90%
                     const utilizationRate = Math.floor(Math.random() * 60 + 30)
@@ -222,7 +222,7 @@ export default function RevenueOverview() {
                         avatarUrl: store.avatarUrl,
                         monthlyRevenue,
                         avgBookingValue,
-                        growth,
+                        // growth,
                         utilizationRate
                     }
                 })
@@ -255,8 +255,8 @@ export default function RevenueOverview() {
                 return b.monthlyRevenue - a.monthlyRevenue
             case 'bookings':
                 return b.orderCount - a.orderCount
-            case 'growth':
-                return b.growth - a.growth
+            // case 'growth':
+            //     return b.growth - a.growth
             default:
                 return 0
         }
@@ -331,26 +331,26 @@ export default function RevenueOverview() {
                 <StatCard
                     title={`Tổng doanh thu / ${filteredStores.length} store`}
                     value={`${(totalRevenue / 1000000).toFixed(1)}M đ`}
-                    
+
                     changeType="increase"
                     icon={DollarSign}
-                  
+
                 />
                 <StatCard
                     title="Doanh thu trung bình/ngày"
                     value="3.533.000đ"
-                  
-               
+
+
                     icon={Calendar}
-                   
+
                 />
                 <StatCard
                     title="Số giao dịch"
                     value={totalBookings.toString()}
-                  
-                 
+
+
                     icon={CreditCard}
-                  
+
                 />
             </div>
 
@@ -393,7 +393,7 @@ export default function RevenueOverview() {
                                 <SelectContent>
                                     <SelectItem value="revenue">Doanh thu</SelectItem>
                                     <SelectItem value="bookings">Booking</SelectItem>
-                                    <SelectItem value="growth">Tăng trưởng</SelectItem>
+                                    {/* <SelectItem value="growth">Tăng trưởng</SelectItem> */}
                                 </SelectContent>
                             </Select>
                         </div>

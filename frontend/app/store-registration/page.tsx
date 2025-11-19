@@ -25,8 +25,8 @@ export default function StoreRegistrationPage() {
         introduction: string;
         address: string;
         linkGoogleMap: string;
-        latitude: number | string;
-        longitude: number | string;
+        // latitude: number | string;
+        // longitude: number | string;
         startTime: string;
         endTime: string;
         provinceId: string;
@@ -36,8 +36,8 @@ export default function StoreRegistrationPage() {
         introduction: '',
         address: '',
         linkGoogleMap: '',
-        latitude: '',
-        longitude: '',
+        // latitude: '',
+        // longitude: '',
         startTime: '',
         endTime: '',
         provinceId: '',
@@ -201,8 +201,8 @@ export default function StoreRegistrationPage() {
             // Bước 1: Tạo store với JSON data (không có file)
             const request: StoreRegistrationRequest = {
                 ...formData,
-                latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
-                longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
+                // latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
+                // longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
             }
 
             const response = await registerStore(request)
@@ -347,8 +347,8 @@ export default function StoreRegistrationPage() {
             // Bước 1: Tạo store với JSON data (không có file)
             const request: StoreRegistrationRequest = {
                 ...formData,
-                latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
-                longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
+                // latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
+                // longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
             }
 
             const response = await registerStore(request)
@@ -594,7 +594,7 @@ export default function StoreRegistrationPage() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <Label htmlFor="latitude">Vị trí Latitude</Label>
                                             <Input
@@ -623,7 +623,7 @@ export default function StoreRegistrationPage() {
                                                 placeholder="106.7009"
                                             />
                                         </div>
-                                    </div>
+                                    </div> */}
                                 </div>
 
                                 {/* Thời gian hoạt động */}

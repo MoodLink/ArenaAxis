@@ -7,7 +7,7 @@ const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
  * DELETE /api/favourites/[storeId]
  * Xóa cửa hàng khỏi danh sách yêu thích
  */
-export async function DELETE(
+export async function DELETE( 
     request: Request,
     { params }: { params: { storeId: string } }
 ) {

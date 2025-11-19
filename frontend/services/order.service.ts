@@ -278,8 +278,56 @@ export async function getOrdersByStore(
     }
 }
 
+/**
+ * Get all orders of current user
+ * GET /api/orders/user?userId={userId}
+ */
+export async function getUserOrders(userId: string): Promise<OrderResponse[]> {
+    try {
+        const token = getToken();
+
+        if (!token) {
+            console.warn('⚠️ No auth token available');
+            throw new Error('Authentication required');
+        }
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        };
+
+        console.log('📤 Fetching orders for user:', userId);
+
+        // Call frontend proxy route
+        const apiUrl = `/api/orders/user?userId=${userId}`;
+
+        console.log('📍 API URL:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.warn(`⚠️ Failed to fetch user orders: ${response.status}`, errorData);
+            return [];
+        }
+
+        const data: OrdersByStoreResponse = await response.json();
+        console.log('✅ Orders fetched for user:', { count: data.data.length, orders: data.data });
+
+        return data.data || [];
+    } catch (error) {
+        console.error('❌ Error fetching user orders:', error);
+        // Return empty array on error instead of throwing
+        return [];
+    }
+}
+
 export const OrderService = {
     createPaymentOrder,
     getOrderByCode,
     getOrdersByStore,
+    getUserOrders,
 };

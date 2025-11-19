@@ -116,13 +116,13 @@ export default function FieldDetailPage() {
         try {
             console.log('🔄 Fetching orders from store for date:', selectedDate)
 
-            // ✅ Use date as-is for start and end time
-            const startDateStr = selectedDate
-            const endDateStr = selectedDate
+           
+            const startDateStr = '2000-01-01'  // Very old date to get all orders
+            const endDateStr = new Date().toISOString().split('T')[0]  // Today
 
-            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
+            console.log(`📅 Fetching all store orders to filter by booking date: ${selectedDate}`)
 
-            // Fetch all orders for the store on this date
+            // Fetch all orders for the store
             const orders = await OrderService.getOrdersByStore(
                 field.storeId,
                 startDateStr,
@@ -130,33 +130,31 @@ export default function FieldDetailPage() {
             )
 
             console.log('📦 Orders received:', { count: orders.length, orders })
+            console.log('🔍 All orders:', orders.map(o => ({ code: o.orderCode, status: o.statusPayment, details: o.orderDetails.map(d => ({ startTime: d.startTime, endTime: d.endTime })) })))
 
-            // Build bookingData from paid orders for this specific field
-            // Initialize with empty slots for all subcourts
+
             const bookingMap: BookingStatus = {}
 
-            // We need to get all subfield IDs from field data
-            // For now, initialize standard subcourt keys
             const subcourts = ['subcourt-001', 'subcourt-002', 'subcourt-003']
             subcourts.forEach(subcourt => {
                 bookingMap[subcourt] = {}
             })
 
-            // Filter PAID orders only and extract booked slots
+
             const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
             console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
 
-            // For each paid order, mark the booked slots
+
             paidOrders.forEach(order => {
                 console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
                 order.orderDetails.forEach((detail, idx) => {
-                    // Only process details for this specific field
+
                     if (detail.fieldId !== fieldId) {
                         console.log(`  ⏭️ Skipping - different field (${detail.fieldId} vs ${fieldId})`)
                         return
                     }
 
-                    console.log(`  Detail ${idx}: fieldId=${detail.fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+                    console.log(`  Detail ${idx}: fieldId=${detail.fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}", type: ${typeof detail.startTime}`)
 
                     // Parse start and end times
                     let startTimeStr = ""
@@ -693,334 +691,338 @@ export default function FieldDetailPage() {
                             </CardContent>
                         </Card>
                     </div>
-                    {/* Special Pricing Overview */}
-                    <Card className="shadow-lg border-0">
-                        <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
-                            <CardTitle className="flex items-center gap-2 text-yellow-900">
-                                <Calendar className="h-5 w-5" />
-                                Giá đặc biệt
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            {fieldPricings && fieldPricings.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {(() => {
-                                        // Group pricings by day of week
-                                        const pricingsByDay: { [key: string]: FieldPricing[] } = {
-                                            'monday': [],
-                                            'tuesday': [],
-                                            'wednesday': [],
-                                            'thursday': [],
-                                            'friday': [],
-                                            'saturday': [],
-                                            'sunday': []
-                                        }
 
-                                        fieldPricings.forEach(pricing => {
-                                            if (pricingsByDay[pricing.dayOfWeek]) {
-                                                pricingsByDay[pricing.dayOfWeek].push(pricing)
-                                            }
-                                        })
 
-                                        const dayNames: { [key: string]: string } = {
-                                            'monday': 'Thứ 2',
-                                            'tuesday': 'Thứ 3',
-                                            'wednesday': 'Thứ 4',
-                                            'thursday': 'Thứ 5',
-                                            'friday': 'Thứ 6',
-                                            'saturday': 'Thứ 7',
-                                            'sunday': 'Chủ nhật'
-                                        }
+                    {/* Two Column Layout: 75% Left Content + 25% Right Sidebar */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* Left Column - 75% */}
+                        <div className="lg:col-span-3 space-y-6">
+                            {/* Legend/Chú thích */}
+                            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-6 justify-center flex-wrap">
+                                        <h4 className="text-lg font-bold text-gray-800 mr-4">Chú thích:</h4>
 
-                                        return Object.entries(pricingsByDay)
-                                            .filter(([_, pricings]) => pricings.length > 0)
-                                            .map(([day, pricings]) => (
-                                                <div
-                                                    key={`day-pricing-${day}`}
-                                                    className="p-4 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-emerald-200 rounded flex items-center justify-center">
+
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Còn trống</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-red-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded flex items-center justify-center">
+                                                <span className="text-white text-xs">✕</span>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Đã được đặt</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded flex items-center justify-center">
+                                                <span className="text-white text-xs">🔒</span>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Tạm khóa</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-amber-400 rounded flex items-center justify-center">
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Giá đặc biệt</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Booking Grid */}
+                            <Card className="shadow-xl border-0">
+                                <CardContent className="p-0">
+                                    {/* Modern Header */}
+                                    <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white p-4 md:p-6">
+                                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-xl md:text-2xl font-bold mb-2">Quản lý sân</h3>
+                                                <p className="text-emerald-100 text-sm md:text-base">Chọn ngày: {selectedDate} • Chọn khung giờ phù hợp</p>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                                {/* <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setShowMaintenanceModal(true)}
+                                                    className="bg-white/20 border-white/30 text-white hover:bg-white/30 gap-2"
                                                 >
-                                                    <div className="font-bold text-lg text-yellow-900 mb-3">
-                                                        {dayNames[day]}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {pricings.sort((a, b) => {
-                                                            const timeA = a.startAt.hour * 60 + a.startAt.minute
-                                                            const timeB = b.startAt.hour * 60 + b.startAt.minute
-                                                            return timeA - timeB
-                                                        }).map((pricing, idx) => (
+                                                    <Pause className="w-4 h-4" />
+                                                    <span className="hidden sm:inline">Ngừng hoạt động</span>
+                                                </Button> */}
+                                                <input
+                                                    type="date"
+                                                    value={selectedDate}
+                                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                                    className="px-3 py-2 bg-white/20 border border-white/30 rounded text-white placeholder-white/50 text-sm"
+                                                />
+                                                <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span className="text-sm">Cuộn để xem thêm</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={scrollLeft}
+                                                        className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={scrollRight}
+                                                        className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                                                    >
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Grid Layout - Responsive and contained */}
+                                    <div className="relative bg-white">
+                                        {/* Court Selector */}
+                                        {/* <div className="border-b border-gray-200 px-4 md:px-6 py-4 bg-gray-50 flex items-center gap-4">
+                                            <label className="text-sm font-medium text-gray-700">Chọn sân:</label>
+                                            <select
+                                                value={selectedCourt}
+                                                onChange={(e) => setSelectedCourt(e.target.value)}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                            >
+                                                <option value="subcourt-001">Sân A</option>
+                                                <option value="subcourt-002">Sân B</option>
+                                                <option value="subcourt-003">Sân C</option>
+                                            </select>
+                                        </div> */}
+
+                                        {/* Scrollable Time Grid with proper container */}
+                                        <div className="w-full">
+                                            <div
+                                                id="booking-grid"
+                                                className="overflow-x-auto pb-2"
+                                                style={{
+                                                    scrollbarWidth: 'thin',
+                                                    scrollbarColor: '#10b981 #f3f4f6',
+                                                    WebkitOverflowScrolling: 'touch'
+                                                }}
+                                            >
+                                                <div className="inline-block min-w-full">
+                                                    {/* Time Header */}
+                                                    <div className="flex bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200">
+                                                        {timeSlots.map((slot, index) => (
                                                             <div
-                                                                key={`pricing-detail-${pricing._id}-${idx}`}
-                                                                className="flex items-center justify-between bg-white p-2 rounded border border-yellow-100"
+                                                                key={`time-header-${index}-${slot}`}
+                                                                className={`flex-shrink-0 w-20 px-2 text-center border-r border-emerald-200/50 flex flex-col justify-center py-4 ${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/50'
+                                                                    }`}
                                                             >
-                                                                <div className="text-sm text-gray-700">
-                                                                    <span className="font-medium">
-                                                                        {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="font-bold text-emerald-600 text-sm">
-                                                                    {pricing.specialPrice.toLocaleString()}đ
+                                                                <div className="text-sm font-bold text-gray-700">{slot}</div>
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    {parseInt(slot.split(':')[0]) < 12
+                                                                        ? 'Sáng'
+                                                                        : parseInt(slot.split(':')[0]) < 18
+                                                                            ? 'Chiều'
+                                                                            : 'Tối'}
                                                                 </div>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                </div>
-                                            ))
-                                    })()}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-8 text-center">
-                                    <Calendar className="h-12 w-12 text-gray-300 mb-3" />
-                                    <p className="text-gray-500 mb-3">Chưa có giá đặc biệt nào được thiết lập</p>
-                                    <Button
-                                        size="sm"
-                                        className="bg-yellow-600 hover:bg-yellow-700"
-                                        onClick={handleOpenPricingModal}
-                                    >
-                                        Thêm giá đặc biệt
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
 
-                    {/* Booking Grid */}
-                    {/* Legend/Chú thích */}
-                    <Card className="mb-8 shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-6 justify-center flex-wrap">
-                                <h4 className="text-lg font-bold text-gray-800 mr-4">Chú thích:</h4>
+                                                    {/* Single Court Row */}
+                                                    {bookingData[selectedCourt] && (
+                                                        <div className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30">
+                                                            {/* Offset spacer */}
+                                                            <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
+                                                            {timeSlots.slice(0, -1).map((slot, slotIndex) => {
+                                                                const status = (bookingData[selectedCourt][slot] || 'available') as string
+                                                                const bookingId = `${selectedCourt}-${slot}`
+                                                                const bookingInfo = bookingDataWithCustomer[bookingId]
+                                                                const slotPrice = getSlotPrice(slot, selectedDate)
+                                                                const isSpecialPrice = slotPrice !== parseInt(field?.defaultPrice || '0')
 
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-emerald-200 rounded flex items-center justify-center">
-
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Còn trống</span>
-                                </div>
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-red-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded flex items-center justify-center">
-                                        <span className="text-white text-xs">✕</span>
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Đã được đặt</span>
-                                </div>
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded flex items-center justify-center">
-                                        <span className="text-white text-xs">🔒</span>
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Tạm khóa</span>
-                                </div>
-
-
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-amber-400 rounded flex items-center justify-center">
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Giá đặc biệt</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Booking Grid */}
-                    <Card className="shadow-xl border-0">
-                        <CardContent className="p-0">
-                            {/* Modern Header */}
-                            <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white p-4 md:p-6">
-                                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl md:text-2xl font-bold mb-2">Lịch đặt sân</h3>
-                                        <p className="text-emerald-100 text-sm md:text-base">Chọn ngày: {selectedDate} • Chọn khung giờ phù hợp</p>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setShowMaintenanceModal(true)}
-                                            className="bg-white/20 border-white/30 text-white hover:bg-white/30 gap-2"
-                                        >
-                                            <Pause className="w-4 h-4" />
-                                            <span className="hidden sm:inline">Ngừng hoạt động</span>
-                                        </Button>
-                                        <input
-                                            type="date"
-                                            value={selectedDate}
-                                            onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="px-3 py-2 bg-white/20 border border-white/30 rounded text-white placeholder-white/50 text-sm"
-                                        />
-                                        <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
-                                            <Clock className="w-4 h-4" />
-                                            <span className="text-sm">Cuộn để xem thêm</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={scrollLeft}
-                                                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                                            >
-                                                <ChevronLeft className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={scrollRight}
-                                                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                                            >
-                                                <ChevronRight className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-
-                            {/* Grid Layout - Responsive and contained */}
-                            <div className="relative bg-white">
-                                {/* Court Selector */}
-                                {/* <div className="border-b border-gray-200 px-4 md:px-6 py-4 bg-gray-50 flex items-center gap-4">
-                                    <label className="text-sm font-medium text-gray-700">Chọn sân:</label>
-                                    <select
-                                        value={selectedCourt}
-                                        onChange={(e) => setSelectedCourt(e.target.value)}
-                                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    >
-                                        <option value="subcourt-001">Sân A</option>
-                                        <option value="subcourt-002">Sân B</option>
-                                        <option value="subcourt-003">Sân C</option>
-                                    </select>
-                                </div> */}
-
-                                {/* Scrollable Time Grid with proper container */}
-                                <div className="w-full">
-                                    <div
-                                        id="booking-grid"
-                                        className="overflow-x-auto pb-2"
-                                        style={{
-                                            scrollbarWidth: 'thin',
-                                            scrollbarColor: '#10b981 #f3f4f6',
-                                            WebkitOverflowScrolling: 'touch'
-                                        }}
-                                    >
-                                        <div className="inline-block min-w-full">
-                                            {/* Time Header */}
-                                            <div className="flex bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200">
-                                                {timeSlots.map((slot, index) => (
-                                                    <div
-                                                        key={`time-header-${index}-${slot}`}
-                                                        className={`flex-shrink-0 w-20 px-2 text-center border-r border-emerald-200/50 flex flex-col justify-center py-4 ${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/50'
-                                                            }`}
-                                                    >
-                                                        <div className="text-sm font-bold text-gray-700">{slot}</div>
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            {parseInt(slot.split(':')[0]) < 12
-                                                                ? 'Sáng'
-                                                                : parseInt(slot.split(':')[0]) < 18
-                                                                    ? 'Chiều'
-                                                                    : 'Tối'}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Single Court Row */}
-                                            {bookingData[selectedCourt] && (
-                                                <div className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30">
-                                                    {/* Offset spacer */}
-                                                    <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
-                                                    {timeSlots.slice(0, -1).map((slot, slotIndex) => {
-                                                        const status = (bookingData[selectedCourt][slot] || 'available') as string
-                                                        const bookingId = `${selectedCourt}-${slot}`
-                                                        const bookingInfo = bookingDataWithCustomer[bookingId]
-                                                        const slotPrice = getSlotPrice(slot, selectedDate)
-                                                        const isSpecialPrice = slotPrice !== parseInt(field?.defaultPrice || '0')
-
-                                                        return (
-                                                            <div
-                                                                key={`booking-slot-${selectedCourt}-${slotIndex}-${slot}`}
-                                                                className={`flex-shrink-0 w-20 border-r border-gray-100/50 flex items-center justify-center py-3 px-2 ${slotIndex % 2 === 0 ? 'bg-white/30' : 'bg-emerald-50/30'
-                                                                    }`}
-                                                            >
-                                                                <div className="relative group">
-                                                                    <button
-                                                                        disabled={status === 'locked'}
-                                                                        onClick={() => {
-                                                                            if (status === 'booked' && bookingInfo) {
-                                                                                setSelectedBooking(bookingInfo)
-                                                                                setShowBookingModal(true)
-                                                                            }
-                                                                        }}
-                                                                        className={`w-14 h-14 rounded-xl ${getSlotColor(status)} transition-all duration-300 transform ${status === 'available'
-                                                                            ? 'cursor-pointer hover:scale-110 hover:shadow-lg active:scale-95'
-                                                                            : status === 'booked'
-                                                                                ? 'cursor-pointer hover:scale-110 hover:shadow-lg'
-                                                                                : 'cursor-not-allowed'
-                                                                            } flex items-center justify-center text-sm font-bold relative ${isSpecialPrice ? 'ring-2 ring-yellow-400' : ''}`}
-                                                                        title={bookingInfo ? `${bookingInfo.customerName}` : ''}
+                                                                return (
+                                                                    <div
+                                                                        key={`booking-slot-${selectedCourt}-${slotIndex}-${slot}`}
+                                                                        className={`flex-shrink-0 w-20 border-r border-gray-100/50 flex items-center justify-center py-3 px-2 ${slotIndex % 2 === 0 ? 'bg-white/30' : 'bg-emerald-50/30'
+                                                                            }`}
                                                                     >
-                                                                        {status === 'booked' && bookingInfo && (
-                                                                            <span className="text-white text-xs">✕</span>
-                                                                        )}
-                                                                    </button>
-                                                                    {/* Price tooltip */}
-                                                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                                                        <div className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg ${isSpecialPrice ? 'bg-yellow-500 text-white' : 'bg-gray-800 text-white'
-                                                                            }`}>
-                                                                            {slotPrice.toLocaleString()}đ
-                                                                            {isSpecialPrice && <span className="ml-1">⭐</span>}
+                                                                        <div className="relative group">
+                                                                            <button
+                                                                                disabled={status === 'locked'}
+                                                                                onClick={() => {
+                                                                                    if (status === 'booked' && bookingInfo) {
+                                                                                        setSelectedBooking(bookingInfo)
+                                                                                        setShowBookingModal(true)
+                                                                                    }
+                                                                                }}
+                                                                                className={`w-14 h-14 rounded-xl ${getSlotColor(status)} transition-all duration-300 transform ${status === 'available'
+                                                                                    ? 'cursor-pointer hover:scale-110 hover:shadow-lg active:scale-95'
+                                                                                    : status === 'booked'
+                                                                                        ? 'cursor-pointer hover:scale-110 hover:shadow-lg'
+                                                                                        : 'cursor-not-allowed'
+                                                                                    } flex items-center justify-center text-sm font-bold relative ${isSpecialPrice ? 'ring-2 ring-yellow-400' : ''}`}
+                                                                                title={bookingInfo ? `${bookingInfo.customerName}` : ''}
+                                                                            >
+                                                                                {status === 'booked' && bookingInfo && (
+                                                                                    <span className="text-white text-xs">✕</span>
+                                                                                )}
+                                                                            </button>
+                                                                            {/* Price tooltip */}
+                                                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                                                                <div className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg ${isSpecialPrice ? 'bg-yellow-500 text-white' : 'bg-gray-800 text-white'
+                                                                                    }`}>
+                                                                                    {slotPrice.toLocaleString()}đ
+                                                                                    {isSpecialPrice && <span className="ml-1">⭐</span>}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Customer name annotation */}
+                                                                            {status === 'booked' && bookingInfo && (
+                                                                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
-
-                                                                    {/* Customer name annotation */}
-                                                                    {status === 'booked' && bookingInfo && (
-                                                                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )
-                                                    })}
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Additional Info */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Thông tin chi tiết</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-sm text-gray-600">Tên sân</p>
+                                            <p className="font-medium">{field.name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-600">Địa chỉ</p>
+                                            <p className="font-medium">{field.address || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-600">Loại sân</p>
+                                            <p className="font-medium">{field.sport_name || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-600">ID</p>
+                                            <p className="font-medium text-xs text-gray-500">{field._id}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Right Sidebar - 25% */}
+                        <div className="lg:col-span-1">
+                            {/* Special Pricing Overview Sidebar */}
+                            <div className="sticky top-6">
+                                <Card className="shadow-lg border-0 h-full">
+                                    <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
+                                        <CardTitle className="flex items-center gap-2 text-yellow-900">
+                                            <Calendar className="h-5 w-5" />
+                                            Giá đặc biệt
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-6">
+                                        {fieldPricings && fieldPricings.length > 0 ? (
+                                            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                                                {(() => {
+                                                    // Group pricings by day of week
+                                                    const pricingsByDay: { [key: string]: FieldPricing[] } = {
+                                                        'monday': [],
+                                                        'tuesday': [],
+                                                        'wednesday': [],
+                                                        'thursday': [],
+                                                        'friday': [],
+                                                        'saturday': [],
+                                                        'sunday': []
+                                                    }
+
+                                                    fieldPricings.forEach(pricing => {
+                                                        if (pricingsByDay[pricing.dayOfWeek]) {
+                                                            pricingsByDay[pricing.dayOfWeek].push(pricing)
+                                                        }
+                                                    })
+
+                                                    const dayNames: { [key: string]: string } = {
+                                                        'monday': 'Thứ 2',
+                                                        'tuesday': 'Thứ 3',
+                                                        'wednesday': 'Thứ 4',
+                                                        'thursday': 'Thứ 5',
+                                                        'friday': 'Thứ 6',
+                                                        'saturday': 'Thứ 7',
+                                                        'sunday': 'Chủ nhật'
+                                                    }
+
+                                                    return Object.entries(pricingsByDay)
+                                                        .filter(([_, pricings]) => pricings.length > 0)
+                                                        .map(([day, pricings]) => (
+                                                            <div
+                                                                key={`day-pricing-${day}`}
+                                                                className="p-3 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                                                            >
+                                                                <div className="font-bold text-sm text-yellow-900 mb-2">
+                                                                    {dayNames[day]}
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    {pricings.sort((a, b) => {
+                                                                        const timeA = a.startAt.hour * 60 + a.startAt.minute
+                                                                        const timeB = b.startAt.hour * 60 + b.startAt.minute
+                                                                        return timeA - timeB
+                                                                    }).map((pricing, idx) => (
+                                                                        <div
+                                                                            key={`pricing-detail-${pricing._id}-${idx}`}
+                                                                            className="flex items-center justify-between bg-white p-2 rounded border border-yellow-100 text-xs"
+                                                                        >
+                                                                            <div className="text-gray-700">
+                                                                                <span className="font-medium">
+                                                                                    {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="font-bold text-emerald-600">
+                                                                                {pricing.specialPrice.toLocaleString()}đ
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <Calendar className="h-12 w-12 text-gray-300 mb-3" />
+                                                <p className="text-gray-500 mb-3 text-sm">Chưa có giá đặc biệt nào được thiết lập</p>
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                                                    onClick={handleOpenPricingModal}
+                                                >
+                                                    Thêm giá đặc biệt
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </div>
-
-
-                        </CardContent>
-                    </Card>
-
-
-
-                    {/* Additional Info */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Thông tin chi tiết</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-600">Tên sân</p>
-                                    <p className="font-medium">{field.name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600">Địa chỉ</p>
-                                    <p className="font-medium">{field.address || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600">Loại sân</p>
-                                    <p className="font-medium">{field.sport_name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600">ID</p>
-                                    <p className="font-medium text-xs text-gray-500">{field._id}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
 
                     {/* Booking Info Modal */}
                     <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>

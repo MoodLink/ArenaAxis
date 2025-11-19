@@ -4,10 +4,11 @@ const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const response = await fetch(`${API_BASE_URL}/provinces/${params.id}/wards`, {
+        const resolvedParams = await params;
+        const response = await fetch(`${API_BASE_URL}/provinces/${resolvedParams.id}/wards`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'

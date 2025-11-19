@@ -5,6 +5,17 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { X, AlertCircle, ChevronRight } from "lucide-react"
 import { OrderService, type OrderResponse } from "@/services/order.service"
+import { FieldService } from "@/services/field.service"
+import { StoreService } from "@/services/store.service"
+import { getMyProfile } from "@/services/get-my-profile"
+
+interface OrderDetailWithFieldName {
+    fieldId: string;
+    fieldName: string;
+    startTime: string;
+    endTime: string;
+    price: number;
+}
 
 export default function PaymentFailurePage() {
     const router = useRouter()
@@ -14,6 +25,9 @@ export default function PaymentFailurePage() {
     const [loading, setLoading] = useState(true)
     const [errorMessage, setErrorMessage] = useState("")
     const [errorCode, setErrorCode] = useState("")
+    const [enrichedOrderDetails, setEnrichedOrderDetails] = useState<OrderDetailWithFieldName[]>([])
+    const [storeAddress, setStoreAddress] = useState<string>("")
+    const [customerInfo, setCustomerInfo] = useState({ name: "", address: "" })
 
     useEffect(() => {
         const fetchOrderData = async () => {
@@ -48,6 +62,64 @@ export default function PaymentFailurePage() {
                         const order = await OrderService.getOrderByCode(id)
                         console.log('✅ Order data received:', order)
                         setOrderData(order)
+
+                        // 🔄 Get customer info from profile or order
+                        const profile = getMyProfile()
+                        const customerName = profile?.name || order.name || "Khách hàng"
+                        const customerAddress = order.address || ""
+
+                        setCustomerInfo({
+                            name: customerName,
+                            address: customerAddress
+                        })
+                        console.log('👤 Customer info:', { name: customerName, address: customerAddress })
+
+                        // 📍 Get store info for address if not in order
+                        if (order.storeId && !order.address) {
+                            try {
+                                const storeInfo = await StoreService.getMyStore()
+                                if (storeInfo?.address) {
+                                    setStoreAddress(storeInfo.address)
+                                    console.log('🏪 Store address:', storeInfo.address)
+                                }
+                            } catch (storeErr: any) {
+                                console.warn('⚠️ Could not fetch store info:', storeErr.message)
+                            }
+                        }
+
+                        // 🏐 Enrich order details with field names
+                        if (order.orderDetails && order.orderDetails.length > 0) {
+                            console.log('🔄 Enriching order details with field names...')
+                            const enrichedDetails: OrderDetailWithFieldName[] = []
+
+                            for (const detail of order.orderDetails) {
+                                try {
+                                    const fieldResponse = await FieldService.getFieldById(detail.fieldId)
+                                    const fieldName = fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`
+                                    console.log(`✅ Field ${detail.fieldId}: ${fieldName}`)
+
+                                    enrichedDetails.push({
+                                        fieldId: detail.fieldId,
+                                        fieldName: fieldName,
+                                        startTime: detail.startTime,
+                                        endTime: detail.endTime,
+                                        price: detail.price
+                                    })
+                                } catch (fieldErr: any) {
+                                    console.warn(`⚠️ Could not fetch field ${detail.fieldId}:`, fieldErr.message)
+                                    enrichedDetails.push({
+                                        fieldId: detail.fieldId,
+                                        fieldName: `Sân ${detail.fieldId.slice(-4)}`,
+                                        startTime: detail.startTime,
+                                        endTime: detail.endTime,
+                                        price: detail.price
+                                    })
+                                }
+                            }
+
+                            setEnrichedOrderDetails(enrichedDetails)
+                            console.log('✅ Enriched order details:', enrichedDetails)
+                        }
                     } catch (apiErr: any) {
                         console.warn('⚠️ Could not fetch order from API:', apiErr.message)
                         // If API fails, we'll just show the error page without order details
@@ -119,7 +191,7 @@ export default function PaymentFailurePage() {
                                 <div className="flex justify-between items-center border-b pb-4">
                                     <div>
                                         <p className="text-sm text-gray-600">Khách hàng</p>
-                                        <p className="font-semibold text-gray-800">{orderData.name}</p>
+                                        <p className="font-semibold text-gray-800">{customerInfo.name || orderData.name}</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm text-gray-600">Mã đơn</p>
@@ -134,16 +206,33 @@ export default function PaymentFailurePage() {
                                             {new Date(orderData.createdAt).toLocaleDateString('vi-VN')}
                                         </p>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600">📍 Địa chỉ</p>
-                                        <p className="font-semibold text-gray-800">{orderData.address}</p>
-                                    </div>
+
                                 </div>
 
                                 <div>
                                     <p className="text-sm text-gray-600 mb-2">🏐 Chi tiết sân</p>
                                     <div className="space-y-2">
-                                        {orderData.orderDetails && orderData.orderDetails.length > 0 ? (
+                                        {enrichedOrderDetails && enrichedOrderDetails.length > 0 ? (
+                                            enrichedOrderDetails.map((detail: OrderDetailWithFieldName, idx: number) => (
+                                                <div key={idx} className="bg-white p-3 rounded border border-gray-200">
+                                                    <p className="text-sm font-semibold text-gray-800 mb-1">
+                                                        {detail.fieldName}
+                                                    </p>
+                                                    <p className="text-sm text-gray-700">
+                                                        {new Date(detail.startTime).toLocaleDateString('vi-VN')} {new Date(detail.startTime).toLocaleTimeString('vi-VN', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })} - {new Date(detail.endTime).toLocaleTimeString('vi-VN', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                    <p className="text-sm font-semibold text-gray-800">
+                                                        {detail.price.toLocaleString('vi-VN')} ₫
+                                                    </p>
+                                                </div>
+                                            ))
+                                        ) : orderData.orderDetails && orderData.orderDetails.length > 0 ? (
                                             orderData.orderDetails.map((detail, idx) => (
                                                 <div key={idx} className="bg-white p-3 rounded border border-gray-200">
                                                     {detail.fieldName && (
@@ -183,48 +272,7 @@ export default function PaymentFailurePage() {
                         </div>
                     )}
 
-                    {/* Common Issues */}
-                    <div className="bg-yellow-50 rounded-lg p-6 mb-8">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">⚠️ Nguyên Nhân Có Thể</h3>
-                        <ul className="space-y-3">
-                            <li className="flex items-start gap-3">
-                                <span className="text-yellow-600 font-bold">•</span>
-                                <span className="text-gray-700">Số dư tài khoản không đủ</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <span className="text-yellow-600 font-bold">•</span>
-                                <span className="text-gray-700">Thẻ/Ví bị khóa hoặc hạn chế giao dịch</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <span className="text-yellow-600 font-bold">•</span>
-                                <span className="text-gray-700">Sai mã PIN hoặc thông tin thẻ</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <span className="text-yellow-600 font-bold">•</span>
-                                <span className="text-gray-700">Kết nối mạng không ổn định</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <span className="text-yellow-600 font-bold">•</span>
-                                <span className="text-gray-700">Giới hạn giao dịch hàng ngày đã hết</span>
-                            </li>
-                        </ul>
-                    </div>
 
-                    {/* Support Info */}
-                    <div className="bg-blue-50 rounded-lg p-6 mb-8">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">📞 Hỗ Trợ</h3>
-                        <p className="text-gray-700 mb-3">
-                            Nếu vấn đề tiếp tục, vui lòng liên hệ với chúng tôi:
-                        </p>
-                        <div className="space-y-2">
-                            <p className="flex items-center gap-2 text-gray-700">
-                                <span>📧</span> support@arenaaxis.com
-                            </p>
-                            <p className="flex items-center gap-2 text-gray-700">
-                                <span>📞</span> 0905 591 379
-                            </p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Action Buttons */}

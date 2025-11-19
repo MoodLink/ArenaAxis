@@ -30,28 +30,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const validateToken = async () => {
 			try {
 				const token = localStorage.getItem('token')
-				const user = localStorage.getItem('user')
+				const userStr = localStorage.getItem('user')
 
-				if (!token || !user) {
+				// Chỉ cần check token và user trong localStorage, không cần gọi API
+				if (!token || !userStr) {
 					setIsAuthenticated(false)
 					setUser(null)
+					setIsLoading(false)
 					return
 				}
 
-				const response = await validate()
-				if (!response) {
-					localStorage.removeItem('token')
-					localStorage.removeItem('user')
-					setIsAuthenticated(false)
-					setUser(null)
-					return
-				}
-
+				// Parse user data
+				const userData = JSON.parse(userStr)
 				setIsAuthenticated(true)
-				setUser(JSON.parse(user))
+				setUser(userData)
+				setIsLoading(false)
 			} catch (error) {
 				console.error('Auth validation failed:', error)
-			} finally {
+				localStorage.removeItem('token')
+				localStorage.removeItem('user')
+				setIsAuthenticated(false)
+				setUser(null)
 				setIsLoading(false)
 			}
 		}

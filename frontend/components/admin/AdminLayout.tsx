@@ -43,66 +43,66 @@ const sidebarItems = [
     href: '/admin/users',
 
   },
-  {
-    title: 'Quản lý Sân',
-    icon: MapPin,
-    href: '/admin/fields',
+  // {
+  //   title: 'Quản lý Sân',
+  //   icon: MapPin,
+  //   href: '/admin/fields',
 
-  },
-  {
-    title: 'Quản lý Booking',
-    icon: Calendar,
-    href: '/admin/bookings',
+  // },
+  // {
+  //   title: 'Quản lý Booking',
+  //   icon: Calendar,
+  //   href: '/admin/bookings',
 
-  },
+  // },
   {
     title: 'Quản lý cửa hàng',
     icon: Store,
     href: '/admin/stores',
 
   },
-  {
-    title: 'Cộng đồng',
-    icon: MessageSquare,
-    href: '/admin/community',
+  // {
+  //   title: 'Cộng đồng',
+  //   icon: MessageSquare,
+  //   href: '/admin/community',
 
-  },
-  {
-    title: 'Gói khuyến mãi',
-    icon: Tag,
-    href: '/admin/promotions',
+  // },
+  // {
+  //   title: 'Gói khuyến mãi',
+  //   icon: Tag,
+  //   href: '/admin/promotions',
 
-  },
-  {
-    title: 'Analytics',
-    icon: BarChart3,
-    href: '/admin/analytics',
+  // },
+  // {
+  //   title: 'Analytics',
+  //   icon: BarChart3,
+  //   href: '/admin/analytics',
 
-  },
-  {
-    title: 'Doanh thu',
-    icon: DollarSign,
-    href: '/admin/revenue',
+  // },
+  // {
+  //   title: 'Doanh thu',
+  //   icon: DollarSign,
+  //   href: '/admin/revenue',
 
-  },
-  {
-    title: 'Đánh giá',
-    icon: Star,
-    href: '/admin/reviews',
+  // },
+  // {
+  //   title: 'Đánh giá',
+  //   icon: Star,
+  //   href: '/admin/reviews',
 
-  },
-  {
-    title: 'Báo cáo',
-    icon: FileText,
-    href: '/admin/reports',
+  // },
+  // {
+  //   title: 'Báo cáo',
+  //   icon: FileText,
+  //   href: '/admin/reports',
 
-  },
-  {
-    title: 'Cài đặt',
-    icon: Settings,
-    href: '/admin/settings',
+  // },
+  // {
+  //   title: 'Cài đặt',
+  //   icon: Settings,
+  //   href: '/admin/settings',
 
-  }
+  // }
 ]
 
 function Sidebar({ className = '' }: { className?: string }) {

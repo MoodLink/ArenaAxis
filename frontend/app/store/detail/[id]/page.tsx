@@ -30,7 +30,7 @@ import { getStoreById, getSports } from '@/services/api-new';
 import type { StoreAdminDetailResponse } from '@/types';
 import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
-import StoreSportsList from '@/components/store/StoreSportsList';
+import StoreSportsList from '@/components/store/StoreSportsList1';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
 import StoreLayout from '@/components/store/StoreLayout';
 import StoreEditDialog from '@/components/store/StoreEditDialog';
@@ -537,14 +537,14 @@ export default function StoreOwnerDetailPage() {
                     {/* Right Column - Sidebar */}
                     <div className="space-y-6">
                         {/* Action Button - Booking */}
-                        <Button
+                        {/* <Button
                             onClick={handleBookingClick}
                             className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white h-12 font-semibold"
                             size="lg"
                         >
                             <ShoppingCart className="w-5 h-5 mr-2" />
                             Đặt sân ngay
-                        </Button>
+                        </Button> */}
 
                         {/* Quick Actions Card */}
                         <Card className="shadow-lg">

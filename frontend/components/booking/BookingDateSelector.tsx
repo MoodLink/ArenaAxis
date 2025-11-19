@@ -22,6 +22,7 @@ export default function BookingDateSelector({
                 <input
                     type="date"
                     value={selectedDate}
+                    min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => onDateChange(e.target.value)}
                     className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />

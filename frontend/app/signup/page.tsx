@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signupUser } from "@/services/api-new"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -26,6 +27,8 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState("")
   // State kiểm soát trạng thái loading khi gửi request
   const [loading, setLoading] = useState(false)
+  // State kiểm soát hiển thị password
+  const [showPassword, setShowPassword] = useState(false)
 
   // Hàm xử lý đăng ký khi submit form
   const handleSignup = async (e: React.FormEvent) => {
@@ -73,12 +76,12 @@ export default function SignUpPage() {
       {/* Form đăng ký */}
       <Card className="w-full max-w-md mx-4 z-10 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">Sign Up</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">Đăng ký</CardTitle>
           <p className="text-white/80 text-sm">
             {/* Link chuyển sang trang đăng nhập nếu đã có tài khoản */}
-            Already have an account?{" "}
+            Bạn đã có tài khoản?{" "}
             <Link href="/login" className="text-white underline hover:text-white/80">
-              Sign In
+              Đăng nhập
             </Link>
           </p>
         </CardHeader>
@@ -92,7 +95,7 @@ export default function SignUpPage() {
               <Input
                 id="name"
                 type="text"
-                placeholder="Enter your name"
+                placeholder="Nhập tên của bạn"
                 className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -108,7 +111,7 @@ export default function SignUpPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Nhập email của bạn"
                 className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -121,16 +124,30 @@ export default function SignUpPage() {
               <Label htmlFor="password" className="text-white">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu của bạn"
+                  className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
             {/* Trường nhập số điện thoại */}
             <div className="space-y-2">
@@ -140,7 +157,7 @@ export default function SignUpPage() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Enter 10 digit phone number"
+                placeholder="Nhập số điện thoại 10 chữ số"
                 className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -169,7 +186,7 @@ export default function SignUpPage() {
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
               disabled={loading}
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
             </Button>
           </form>
 

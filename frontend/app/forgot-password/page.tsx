@@ -16,11 +16,11 @@ export default function ForgotPasswordPage() {
       {/* Forgot Password Form */}
       <Card className="w-full max-w-md mx-4 z-10 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">Forgot Password</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">Quên mật khẩu</CardTitle>
           <p className="text-white/80 text-sm">
-            Already have an account?{" "}
+            Bạn đã có tài khoản?{" "}
             <Link href="/login" className="text-white underline hover:text-white/80">
-              Sign In
+              Đăng nhập
             </Link>
           </p>
         </CardHeader>

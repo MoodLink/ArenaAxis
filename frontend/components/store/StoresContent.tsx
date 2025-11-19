@@ -6,9 +6,10 @@ import StoreListItem from "./StoreListItem"
 interface StoresContentProps {
     stores: StoreSearchItemResponse[]
     viewMode: "grid" | "list"
+    selectedSportId?: string
 }
 
-export default function StoresContent({ stores, viewMode }: StoresContentProps) {
+export default function StoresContent({ stores, viewMode, selectedSportId }: StoresContentProps) {
     if (stores.length === 0) {
         return (
             <div className="text-center py-20">
@@ -43,7 +44,7 @@ export default function StoresContent({ stores, viewMode }: StoresContentProps) 
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {stores.map((store) => (
-                    <StoreCard key={store.id} store={store} />
+                    <StoreCard key={store.id} store={store} selectedSportId={selectedSportId} />
                 ))}
             </div>
         )

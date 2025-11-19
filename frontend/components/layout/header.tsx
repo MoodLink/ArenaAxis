@@ -60,7 +60,7 @@ export default function Header() {
               Trang chủ
             </Link>
             <Link href="/list-store" className="text-gray-700 hover:text-green-600 transition-colors">
-              Danh sách cửa hàng
+              Tìm kiếm
             </Link>
             <Link href="/community" className="text-gray-700 hover:text-green-600 transition-colors">
               Cộng đồng
@@ -79,12 +79,12 @@ export default function Header() {
               <div className="hidden md:flex items-center gap-2">
                 <Link href="/login">
                   <Button variant="outline" size="sm">
-                    Sign In
+                    Đăng nhập
                   </Button>
                 </Link>
                 <Link href="/signup">
                   <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                    Sign Up
+                    Đăng ký
                   </Button>
                 </Link>
               </div>

@@ -29,7 +29,6 @@ import {
 import {
   Plus,
   Search,
-  Eye,
   Edit,
   Trash2,
   MapPin,
@@ -105,6 +104,11 @@ export default function MyFields() {
     fetchData()
   }, [])
 
+  // Helper function để lấy tên môn thể thao từ ID
+  const getSportName = (sportId: string) => {
+    return sports.find(s => s.id === sportId)?.name || 'N/A'
+  }
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -169,14 +173,22 @@ export default function MyFields() {
     }
 
     try {
-      await FieldService.createField({
+      // Lấy tên môn thể thao từ sports array
+      const selectedSport = sports.find(s => s.id === createForm.sport_id)
+      const sportName = selectedSport?.name || ''
+
+      const newField = await FieldService.createField({
         sport_id: createForm.sport_id,
         store_id: createForm.store_id,
         default_price: createForm.default_price,
         name: createForm.name || undefined,
-        sport_name: createForm.sport_name || undefined,
+        sport_name: sportName || undefined,
         address: createForm.address || undefined,
       })
+
+      // Thêm sân mới vào state thay vì load lại, đảm bảo có sport_name
+      const fieldToAdd = newField.data || newField
+      setFields([...fields, { ...fieldToAdd, sport_name: sportName || fieldToAdd.sport_name }])
 
       toast({
         title: 'Thành công ✅',
@@ -185,7 +197,6 @@ export default function MyFields() {
 
       setIsCreateDialogOpen(false)
       setCreateForm({ sport_id: '', store_id: '', default_price: '', name: '', sport_name: '', address: '' })
-      fetchData()
     } catch (err) {
       toast({
         title: 'Lỗi',
@@ -209,6 +220,21 @@ export default function MyFields() {
         address: editForm.address || undefined,
       })
 
+      // Cập nhật sân trong state thay vì load lại
+      setFields(fields.map(f =>
+        f._id === selectedField._id
+          ? {
+            ...f,
+            sportId: editForm.sport_id || f.sportId,
+            storeId: editForm.store_id || f.storeId,
+            defaultPrice: editForm.default_price || f.defaultPrice,
+            name: editForm.name || f.name,
+            sport_name: editForm.sport_name || f.sport_name,
+            address: editForm.address || f.address,
+          }
+          : f
+      ))
+
       toast({
         title: 'Thành công ✅',
         description: 'Sân đã được cập nhật',
@@ -216,7 +242,6 @@ export default function MyFields() {
 
       setIsEditDialogOpen(false)
       setSelectedField(null)
-      fetchData()
     } catch (err) {
       toast({
         title: 'Lỗi',
@@ -233,6 +258,9 @@ export default function MyFields() {
     try {
       await FieldService.deleteField(deleteFieldId)
 
+      // Xóa sân khỏi state thay vì load lại
+      setFields(fields.filter(f => f._id !== deleteFieldId))
+
       toast({
         title: 'Thành công ✅',
         description: 'Sân đã được xóa',
@@ -240,7 +268,6 @@ export default function MyFields() {
 
       setIsDeleteDialogOpen(false)
       setDeleteFieldId(null)
-      fetchData()
     } catch (err) {
       toast({
         title: 'Lỗi',
@@ -255,12 +282,17 @@ export default function MyFields() {
     try {
       await FieldService.toggleFieldStatus(field._id, field.activeStatus)
 
+      // Cập nhật state local thay vì load lại toàn bộ
+      setFields(fields.map(f =>
+        f._id === field._id
+          ? { ...f, activeStatus: !f.activeStatus }
+          : f
+      ))
+
       toast({
         title: 'Thành công ✅',
         description: `Sân đã được ${field.activeStatus ? 'tắt' : 'bật'}`,
       })
-
-      fetchData()
     } catch (err) {
       toast({
         title: 'Lỗi',
@@ -296,14 +328,8 @@ export default function MyFields() {
             {field.name || 'Sân'}
           </Link>
         </TableCell>
-        <TableCell>{field.sport_name || 'Thể thao'}</TableCell>
-        <TableCell>{fieldStore?.name || 'N/A'}</TableCell>
-        <TableCell className="max-w-xs">
-          <div className="flex items-center gap-1">
-            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <span className="truncate">{field.address || 'Chưa có địa chỉ'}</span>
-          </div>
-        </TableCell>
+        <TableCell>{field.sport_name || getSportName(field.sportId)}</TableCell>
+        <TableCell>{fieldStore?.name}</TableCell>
         <TableCell className="text-right font-medium">
           {parseFloat(field.defaultPrice || '0').toLocaleString()}đ
         </TableCell>
@@ -312,29 +338,8 @@ export default function MyFields() {
         </TableCell>
         <TableCell>
           <div className="flex gap-1 justify-center items-center">
-            <ViewFieldDialog
-              field={field}
-              trigger={
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Eye className="h-4 w-4" />
-                </Button>
-              }
-            />
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditDialog(field)}>
               <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => handleToggleStatus(field)}
-              title={field.activeStatus ? 'Tắt' : 'Bật'}
-            >
-              {field.activeStatus ? (
-                <PowerOff className="h-4 w-4" />
-              ) : (
-                <Power className="h-4 w-4" />
-              )}
             </Button>
             <Button
               variant="ghost"
@@ -454,14 +459,14 @@ export default function MyFields() {
                   <Label>Tên sân</Label>
                   <Input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} placeholder="Sân A, Sân B, ..." />
                 </div>
-                <div>
+                {/* <div>
                   <Label>Tên môn thể thao</Label>
                   <Input value={createForm.sport_name} onChange={(e) => setCreateForm({ ...createForm, sport_name: e.target.value })} placeholder="Cầu lông, Bóng chuyền, ..." />
-                </div>
-                <div>
+                </div> */}
+                {/* <div>
                   <Label>Địa chỉ</Label>
                   <Input value={createForm.address} onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })} placeholder="123 Đường ABC, Quận XYZ" />
-                </div>
+                </div> */}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Hủy</Button>
@@ -527,7 +532,6 @@ export default function MyFields() {
                       <TableHead className="font-semibold">Tên sân</TableHead>
                       <TableHead className="font-semibold">Môn thể thao</TableHead>
                       <TableHead className="font-semibold">Cửa hàng</TableHead>
-                      <TableHead className="font-semibold">Địa chỉ</TableHead>
                       <TableHead className="font-semibold text-right">Giá tiền</TableHead>
                       <TableHead className="font-semibold">Trạng thái</TableHead>
                       <TableHead className="font-semibold text-center">Hành động</TableHead>
@@ -591,14 +595,38 @@ export default function MyFields() {
                 <Label>Tên sân</Label>
                 <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="Sân A, Sân B, ..." />
               </div>
-              <div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
+                <div>
+                  <Label className="text-sm font-medium mb-1">Trạng thái sân</Label>
+                  <p className="text-xs text-gray-600">{selectedField?.activeStatus ? 'Đang hoạt động' : 'Tạm ngừng'}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleToggleStatus(selectedField!)}
+                  className="ml-2"
+                >
+                  {selectedField?.activeStatus ? (
+                    <>
+                      <PowerOff className="h-4 w-4 mr-2" />
+                      Tắt
+                    </>
+                  ) : (
+                    <>
+                      <Power className="h-4 w-4 mr-2" />
+                      Bật
+                    </>
+                  )}
+                </Button>
+              </div>
+              {/* <div>
                 <Label>Tên môn thể thao</Label>
                 <Input value={editForm.sport_name} onChange={(e) => setEditForm({ ...editForm, sport_name: e.target.value })} placeholder="Cầu lông, Bóng chuyền, ..." />
               </div>
               <div>
                 <Label>Địa chỉ</Label>
                 <Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} placeholder="123 Đường ABC, Quận XYZ" />
-              </div>
+              </div> */}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>

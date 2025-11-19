@@ -291,7 +291,7 @@ export default function StoreBookingGrid({
                                                         ? "cursor-pointer hover:scale-110 hover:shadow-lg active:scale-95 hover:rotate-1"
                                                         : "cursor-not-allowed"
                                                         } ${status === "selected"
-                                                            ? "scale-110 shadow-xl ring-4 ring-emerald-300/50 rotate-2"
+                                                            ? `scale-110 shadow-xl ring-4 ${isSpecialPrice ? "ring-yellow-400" : "ring-emerald-300/50"} rotate-2`
                                                             : ""
                                                         } ${isSpecialPrice && status === "available" ? "font-black ring-4 ring-yellow-400" : ""}
                                                         flex items-center justify-center text-sm font-bold relative overflow-visible pointer-events-auto`}

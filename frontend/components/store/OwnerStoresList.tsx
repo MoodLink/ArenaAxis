@@ -8,7 +8,7 @@ import { getMyProfile } from '@/services/get-my-profile'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MapPin, Clock, ShoppingCart, Eye, Star, Edit, Loader2 } from 'lucide-react'
+import { MapPin, Clock, ShoppingCart, Eye, Star, Edit, Loader2, Grid3x3, List } from 'lucide-react'
 import ClientOnly from '@/components/common/ClientOnly'
 
 interface OwnerStoresListProps {
@@ -19,6 +19,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
     const [stores, setStores] = useState<StoreAdminDetailResponse[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
 
     useEffect(() => {
         const fetchStores = async () => {
@@ -144,152 +145,263 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         )
     }
 
+    // Component hiển thị hàng trong bảng
+    const TableRow = ({ store }: { store: StoreAdminDetailResponse }) => (
+        <tr className="border-b hover:bg-gray-50 transition-colors">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-3">
+                    {store.avatarUrl ? (
+                        <img
+                            src={store.avatarUrl}
+                            alt={store.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-sm">
+                            {store.name.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    <span className="font-medium text-gray-900 line-clamp-1">{store.name}</span>
+                </div>
+            </td>
+            <td className="px-6 py-4 text-sm text-gray-600 max-w-xs line-clamp-1">{store.address || '--'}</td>
+            <td className="px-6 py-4 text-sm text-gray-600">
+                {store.startTime && store.endTime
+                    ? `${formatTime(store.startTime)} - ${formatTime(store.endTime)}`
+                    : '--'}
+            </td>
+            <td className="px-6 py-4 text-center">
+                <div className="flex items-center justify-center gap-2">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="font-semibold text-gray-900">
+                        <ClientOnly>{(store as any).averageRating?.toFixed(1) || '0.0'}</ClientOnly>
+                    </span>
+                </div>
+            </td>
+            <td className="px-6 py-4 text-center">
+                <span className="font-semibold text-gray-900">
+                    <ClientOnly>{store.orderCount || 0}</ClientOnly>
+                </span>
+            </td>
+            <td className="px-6 py-4 text-center">
+                <span className="font-semibold text-gray-900">
+                    <ClientOnly>{store.viewCount || 0}</ClientOnly>
+                </span>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                    {store.approved ? (
+                        <Badge className="bg-green-600">✓ Đã duyệt</Badge>
+                    ) : (
+                        <Badge variant="secondary">⏳ Chờ duyệt</Badge>
+                    )}
+                </div>
+            </td>
+            <td className="px-6 py-4 text-center">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    onClick={() => handleStoreSelect(store)}
+                >
+                    <Link href={`/store/detail/${store.id}`}>
+                        <Eye className="w-4 h-4" />
+                    </Link>
+                </Button>
+            </td>
+        </tr>
+    );
+
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                    Cửa hàng của tôi
-                </h2>
-                <p className="text-gray-600 mt-1">Quản lý {stores.length} cửa hàng</p>
-            </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        Cửa hàng của tôi
+                    </h2>
+                    <p className="text-gray-600 mt-1">Quản lý {stores.length} cửa hàng</p>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {stores.map((store) => (
-                    <Card
-                        key={store.id}
-                        className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-2 hover:border-primary h-[520px] flex flex-col"
+                {/* View Mode Toggle */}
+                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                    <Button
+                        size="sm"
+                        variant={viewMode === 'card' ? 'default' : 'ghost'}
+                        onClick={() => setViewMode('card')}
+                        className="gap-2"
                     >
-                        {/* Cover Image */}
-                        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
-                            {store.coverImageUrl ? (
-                                <img
-                                    src={store.coverImageUrl}
-                                    alt={store.name}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                                        />
-                                    </svg>
-                                </div>
-                            )}
-
-                            {/* Status Badges */}
-                            <div className="absolute top-3 right-3 flex flex-col gap-2">
-                                {store.approved ? (
-                                    <Badge className="bg-green-600 shadow-lg">✓ Đã duyệt</Badge>
-                                ) : (
-                                    <Badge variant="secondary" className="shadow-lg">⏳ Chờ duyệt</Badge>
-                                )}
-                                {store.active ? (
-                                    <Badge variant="outline" className="bg-white shadow-lg">Hoạt động</Badge>
-                                ) : (
-                                    <Badge variant="destructive" className="shadow-lg">Tạm ngừng</Badge>
-                                )}
-                            </div>
-
-                            {/* Avatar Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                                <div className="flex items-center gap-2">
-                                    {store.avatarUrl ? (
-                                        <img
-                                            src={store.avatarUrl}
-                                            alt={store.name}
-                                            className="w-12 h-12 rounded-full border-2 border-white shadow-lg object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full border-2 border-white shadow-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-lg">
-                                            {store.name.charAt(0).toUpperCase()}
-                                        </div>
-
-
-                                    )}
-                                    <h3 className="font-bold text-lg text-gray-900 line-clamp-2 flex-shrink-0">
-                                        {store.name}
-                                    </h3>
-                                </div>
-
-                            </div>
-                        </div>
-
-                        <CardContent className="p-4 space-y-2 flex-1 flex flex-col overflow-hidden">
-                            {/* Store Name */}
-                            {/* <h3 className="font-bold text-lg text-gray-900 line-clamp-2 flex-shrink-0">
-                                {store.name}
-                            </h3> */}
-
-                            {/* Introduction */}
-                            {store.introduction && (
-                                <p className="text-sm text-gray-600 line-clamp-2 flex-shrink-0">
-                                    {store.introduction}
-                                </p>
-                            )}
-
-                            {/* Location */}
-                            {store.address && (
-                                <div className="flex items-start gap-2 text-sm text-gray-600 flex-shrink-0">
-                                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
-                                    <span className="line-clamp-1">{store.address}</span>
-                                </div>
-                            )}
-
-                            {/* Opening Hours */}
-                            {(store.startTime || store.endTime) && (
-                                <div className="flex items-center gap-2 text-sm flex-shrink-0">
-                                    <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                    <span className="text-gray-700 font-medium truncate">
-                                        {formatTime(store.startTime)} - {formatTime(store.endTime)}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Stats - Bottom */}
-                            <div className="mt-auto pt-2 border-t space-y-2 flex-shrink-0">
-                                {/* Stats Row */}
-                                <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div className="bg-yellow-50 p-2 rounded">
-                                        <Star className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
-                                        <p className="text-xs font-semibold text-gray-900">
-                                            <ClientOnly>{(store as any).averageRating?.toFixed(1) || '0.0'}</ClientOnly>
-                                        </p>
-                                    </div>
-                                    <div className="bg-green-50 p-2 rounded">
-                                        <ShoppingCart className="w-4 h-4 text-green-500 mx-auto mb-1" />
-                                        <p className="text-xs font-semibold text-gray-900">
-                                            <ClientOnly>{store.orderCount || 0}</ClientOnly>
-                                        </p>
-                                    </div>
-                                    <div className="bg-purple-50 p-2 rounded">
-                                        <Eye className="w-4 h-4 text-purple-500 mx-auto mb-1" />
-                                        <p className="text-xs font-semibold text-gray-900">
-                                            <ClientOnly>{store.viewCount || 0}</ClientOnly>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <Button
-                                    size="sm"
-                                    className="w-full"
-                                    asChild
-                                    onClick={() => handleStoreSelect(store)}
-                                >
-                                    <Link href={`/store/detail/${store.id}`}>
-                                        <Eye className="w-4 h-4 mr-1" />
-                                        Xem chi tiết
-                                    </Link>
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                        <Grid3x3 className="w-4 h-4" />
+                        Thẻ
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant={viewMode === 'table' ? 'default' : 'ghost'}
+                        onClick={() => setViewMode('table')}
+                        className="gap-2"
+                    >
+                        <List className="w-4 h-4" />
+                        Bảng
+                    </Button>
+                </div>
             </div>
+
+            {/* Card View */}
+            {viewMode === 'card' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {stores.map((store) => (
+                        <Card
+                            key={store.id}
+                            className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-2 hover:border-primary h-[520px] flex flex-col"
+                        >
+                            {/* Cover Image */}
+                            <div className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0">
+                                {store.coverImageUrl ? (
+                                    <img
+                                        src={store.coverImageUrl}
+                                        alt={store.name}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                            />
+                                        </svg>
+                                    </div>
+                                )}
+
+                                {/* Status Badges */}
+                                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                                    {store.approved ? (
+                                        <Badge className="bg-green-600 shadow-lg">✓ Đã duyệt</Badge>
+                                    ) : (
+                                        <Badge variant="secondary" className="shadow-lg">⏳ Chờ duyệt</Badge>
+                                    )}
+                                    {store.active ? (
+                                        <Badge variant="outline" className="bg-white shadow-lg">Hoạt động</Badge>
+                                    ) : (
+                                        <Badge variant="destructive" className="shadow-lg">Tạm ngừng</Badge>
+                                    )}
+                                </div>
+
+                                {/* Avatar Overlay */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                                    <div className="flex items-center gap-2">
+                                        {store.avatarUrl ? (
+                                            <img
+                                                src={store.avatarUrl}
+                                                alt={store.name}
+                                                className="w-12 h-12 rounded-full border-2 border-white shadow-lg object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full border-2 border-white shadow-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-lg">
+                                                {store.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <h3 className="font-bold text-lg text-gray-900 line-clamp-2 flex-shrink-0">
+                                            {store.name}
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <CardContent className="p-4 space-y-2 flex-1 flex flex-col overflow-hidden">
+                                {/* Introduction */}
+                                {store.introduction && (
+                                    <p className="text-sm text-gray-600 line-clamp-2 flex-shrink-0">
+                                        {store.introduction}
+                                    </p>
+                                )}
+
+                                {/* Location */}
+                                {store.address && (
+                                    <div className="flex items-start gap-2 text-sm text-gray-600 flex-shrink-0">
+                                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                                        <span className="line-clamp-1">{store.address}</span>
+                                    </div>
+                                )}
+
+                                {/* Opening Hours */}
+                                {(store.startTime || store.endTime) && (
+                                    <div className="flex items-center gap-2 text-sm flex-shrink-0">
+                                        <Clock className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                        <span className="text-gray-700 font-medium truncate">
+                                            {formatTime(store.startTime)} - {formatTime(store.endTime)}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Stats - Bottom */}
+                                <div className="mt-auto pt-2 border-t space-y-2 flex-shrink-0">
+                                    {/* Stats Row */}
+                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div className="bg-yellow-50 p-2 rounded">
+                                            <Star className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
+                                            <p className="text-xs font-semibold text-gray-900">
+                                                <ClientOnly>{(store as any).averageRating?.toFixed(1) || '0.0'}</ClientOnly>
+                                            </p>
+                                        </div>
+                                        <div className="bg-green-50 p-2 rounded">
+                                            <ShoppingCart className="w-4 h-4 text-green-500 mx-auto mb-1" />
+                                            <p className="text-xs font-semibold text-gray-900">
+                                                <ClientOnly>{store.orderCount || 0}</ClientOnly>
+                                            </p>
+                                        </div>
+                                        <div className="bg-purple-50 p-2 rounded">
+                                            <Eye className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+                                            <p className="text-xs font-semibold text-gray-900">
+                                                <ClientOnly>{store.viewCount || 0}</ClientOnly>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <Button
+                                        size="sm"
+                                        className="w-full"
+                                        asChild
+                                        onClick={() => handleStoreSelect(store)}
+                                    >
+                                        <Link href={`/store/detail/${store.id}`}>
+                                            <Eye className="w-4 h-4 mr-1" />
+                                            Xem chi tiết
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* Table View */}
+            {viewMode === 'table' && (
+                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b bg-gray-50">
+                                <th className="px-6 py-3 text-left font-semibold text-gray-900">Tên cửa hàng</th>
+                                <th className="px-6 py-3 text-left font-semibold text-gray-900">Địa chỉ</th>
+                                <th className="px-6 py-3 text-left font-semibold text-gray-900">Giờ mở cửa</th>
+                                <th className="px-6 py-3 text-center font-semibold text-gray-900">Đánh giá</th>
+                                <th className="px-6 py-3 text-center font-semibold text-gray-900">Đơn hàng</th>
+                                <th className="px-6 py-3 text-center font-semibold text-gray-900">Lượt xem</th>
+                                <th className="px-6 py-3 text-center font-semibold text-gray-900">Trạng thái</th>
+                                <th className="px-6 py-3 text-center font-semibold text-gray-900">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stores.map((store) => (
+                                <TableRow key={store.id} store={store} />
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     )
 }

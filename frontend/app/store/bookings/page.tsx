@@ -108,14 +108,18 @@ export default function StoreBookingsPage() {
         try {
             console.log('🔄 Fetching orders from store for date:', selectedDate)
 
-            // ✅ Use date as-is for start and end time
-            const startDateStr = selectedDate  // e.g., "2025-11-13"
-            const endDateStr = selectedDate    // Same day
+            // ✅ IMPORTANT: Get ALL orders from store (not filtered by date)
+            // Because orders are created on one date but can be booked for future dates
+            // We'll filter based on orderDetails.startTime instead
+            const farFutureDate = new Date(selectedDate)
+            farFutureDate.setFullYear(farFutureDate.getFullYear() + 1)
+            const startDateStr = '2000-01-01'  // Far past
+            const endDateStr = farFutureDate.toISOString().split('T')[0]  // Far future
 
-            console.log(`📅 Fetching orders for date range: ${startDateStr} to ${endDateStr}`)
-            console.log(`✅ Final API params: start_time=${startDateStr}&end_time=${endDateStr}`)
+            console.log(`📅 Fetching orders for store: ${startDateStr} to ${endDateStr}`)
+            console.log(`✅ This gets ALL orders so we can filter by booking date (not payment date)`)
 
-            // Fetch all orders for the store on this date
+            // Fetch all orders for the store
             const orders = await OrderService.getOrdersByStore(
                 storeId,
                 startDateStr,
@@ -135,13 +139,14 @@ export default function StoreBookingsPage() {
             // Filter PAID orders only and extract booked slots
             const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
             console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+            console.log('🔍 All orders:', orders.map(o => ({ code: o.orderCode, status: o.statusPayment, details: o.orderDetails.map(d => ({ startTime: d.startTime, endTime: d.endTime })) })))
 
             // For each paid order, mark the booked slots
             paidOrders.forEach(order => {
                 console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
                 order.orderDetails.forEach((detail, idx) => {
                     const fieldId = detail.fieldId
-                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}"`)
+                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}", type: ${typeof detail.startTime}`)
 
                     // Parse start and end times
                     // Support both formats:
@@ -254,7 +259,7 @@ export default function StoreBookingsPage() {
             console.log('✅ Fields loaded - refreshing booking data immediately')
             refreshBookingData()
         }
-    }, [fields.length, storeId]);
+    }, [fields.length, storeId, refreshBookingData])
 
     // Update booking data when date changes
     useEffect(() => {
@@ -262,50 +267,82 @@ export default function StoreBookingsPage() {
             console.log('📅 Date changed - refreshing booking data')
             refreshBookingData()
         }
-    }, [selectedDate, fields.length, storeId]);
+    }, [selectedDate, fields.length, storeId, refreshBookingData])
 
     // 🔄 Re-fetch booking data when page is focused
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
                 console.log('👁️ Page focused - refreshing booking data')
-                refreshBookingData()
+                if (fields.length > 0 && storeId) {
+                    refreshBookingData()
+                }
             }
         }
 
         const handleStorageChange = (e: StorageEvent) => {
             if (e.key === 'paymentCompleted' && e.newValue === 'true') {
-                console.log('💳 Payment completed - refreshing booking data')
+                console.log('💳 Payment completed (storage event) - refreshing booking data')
+                if (fields.length > 0 && storeId) {
+                    // Refresh immediately and repeatedly for first 3 seconds
+                    refreshBookingData()
+                    const refreshInterval = setInterval(() => {
+                        if (fields.length > 0 && storeId) {
+                            refreshBookingData()
+                        }
+                    }, 1000)
+                    setTimeout(() => clearInterval(refreshInterval), 3000)
+                }
+            }
+        }
+
+        // ✅ Listen to custom event for same-tab payment completion
+        const handlePaymentCompleted = (e: any) => {
+            console.log('💳 Payment completed (custom event) - refreshing booking data', e.detail)
+            if (fields.length > 0 && storeId) {
+                // Refresh immediately and repeatedly for first 3 seconds
                 refreshBookingData()
+                const refreshInterval = setInterval(() => {
+                    if (fields.length > 0 && storeId) {
+                        refreshBookingData()
+                    }
+                }, 1000)
+                setTimeout(() => clearInterval(refreshInterval), 3000)
             }
         }
 
         const handlePopState = () => {
             console.log('🔙 Back button - refreshing booking data')
-            refreshBookingData()
+            if (fields.length > 0 && storeId) {
+                refreshBookingData()
+            }
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
         window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('paymentCompleted', handlePaymentCompleted)
         window.addEventListener('popstate', handlePopState)
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange)
             window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('paymentCompleted', handlePaymentCompleted)
             window.removeEventListener('popstate', handlePopState)
         }
-    }, [refreshBookingData]);
+    }, [refreshBookingData, fields.length, storeId])
 
     // 🔄 Auto-refresh every 30 seconds
     useEffect(() => {
         console.log('⏰ Setting up auto-refresh interval')
         const interval = setInterval(() => {
             console.log('⏰ Auto-refresh...')
-            refreshBookingData()
+            if (fields.length > 0 && storeId) {
+                refreshBookingData()
+            }
         }, 30000)
 
         return () => clearInterval(interval)
-    }, [refreshBookingData]);
+    }, [refreshBookingData, fields.length, storeId])
 
     const loadStoreAndFields = async () => {
         try {
@@ -682,324 +719,323 @@ export default function StoreBookingsPage() {
                         </Card>
                     </div>
 
-                    {/* Special Pricing Overview */}
-                    <Card className="shadow-lg border-0">
-                        <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
-                            <CardTitle className="flex items-center gap-2 text-yellow-900">
-                                <Calendar className="h-5 w-5" />
-                                Giá đặc biệt
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            {Object.entries(fieldPricingsMap).some(([_, pricings]) => pricings && pricings.length > 0) ? (
-                                <div className="space-y-4">
-                                    {fields.map((field) => {
-                                        const fieldPricings = fieldPricingsMap[field._id] || [];
-                                        return fieldPricings.length > 0 ? (
-                                            <div key={`pricing-section-${field._id}`}>
-                                                <div className="mb-2 font-semibold text-gray-700 flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
-                                                        {field.name?.charAt(0).toUpperCase() || 'S'}
-                                                    </div>
-                                                    {field.name}
-                                                </div>
-                                                <div className="space-y-2 ml-8">
-                                                    {fieldPricings.map((pricing, idx) => (
-                                                        <div
-                                                            key={`pricing-item-${pricing._id}-${idx}`}
-                                                            className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
-                                                        >
-                                                            <div className="flex-1">
-                                                                <div className="font-medium text-gray-900">
-                                                                    {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
-                                                                </div>
-                                                                <div className="text-sm text-gray-600">
-                                                                    {formatDayOfWeekVietnamese(pricing.dayOfWeek)}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="text-right">
-                                                                    <div className="font-bold text-emerald-600">
-                                                                        {pricing.specialPrice.toLocaleString()}đ
-                                                                    </div>
-                                                                </div>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => handleDeletePricing(pricing._id)}
-                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                    {/* Two Column Layout: 75% Left Content + 25% Right Sidebar */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* Left Column - 75% */}
+                        <div className="lg:col-span-3 space-y-6">
+                            {/* Booking Grid */}
+                            {/* Legend/Chú thích */}
+                            <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-6 justify-center flex-wrap">
+                                        <h4 className="text-lg font-bold text-gray-800 mr-4">Chú thích:</h4>
+
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-emerald-200 rounded flex items-center justify-center">
+
                                             </div>
-                                        ) : null;
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-lg text-center">
-                                    Chưa có giá đặc biệt nào. Bấm "Giá đặc biệt" để thêm.
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                            <span className="text-sm font-medium text-gray-700">Còn trống</span>
+                                        </div>
 
-                    {/* Booking Grid */}
-                    {/* Legend/Chú thích */}
-                    <Card className="mb-8 shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-6 justify-center flex-wrap">
-                                <h4 className="text-lg font-bold text-gray-800 mr-4">Chú thích:</h4>
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-red-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded flex items-center justify-center">
+                                                <span className="text-white text-xs">✕</span>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Đã được đặt</span>
+                                        </div>
 
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-emerald-200 rounded flex items-center justify-center">
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded flex items-center justify-center">
+                                                <span className="text-white text-xs">🔒</span>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Tạm khóa</span>
+                                        </div>
 
+                                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
+                                            <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-amber-400 rounded flex items-center justify-center">
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-700">Giá đặc biệt</span>
+                                        </div>
                                     </div>
-                                    <span className="text-sm font-medium text-gray-700">Còn trống</span>
-                                </div>
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-red-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 rounded flex items-center justify-center">
-                                        <span className="text-white text-xs">✕</span>
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Đã được đặt</span>
-                                </div>
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-gray-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-gray-400 to-gray-500 rounded flex items-center justify-center">
-                                        <span className="text-white text-xs">🔒</span>
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Tạm khóa</span>
-                                </div>
-
-
-
-                                <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-md border border-emerald-100">
-                                    <div className="w-4 h-4 bg-gradient-to-br from-emerald-100 to-blue-100 border-2 border-amber-400 rounded flex items-center justify-center">
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700">Giá đặc biệt</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    {/* Booking Grid */}
-                    <Card className="shadow-xl border-0">
-                        <CardContent className="p-0">
-                            {/* Modern Header */}
-                            <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white p-4 md:p-6">
-                                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl md:text-2xl font-bold mb-2">Lịch đặt sân</h3>
-                                        <p className="text-emerald-100 text-sm md:text-base">Chọn ngày: {selectedDate} • Chọn khung giờ phù hợp</p>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                        <Button
+                                </CardContent>
+                            </Card>
+                            {/* Booking Grid */}
+                            <Card className="shadow-xl border-0">
+                                <CardContent className="p-0">
+                                    {/* Modern Header */}
+                                    <div className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white p-4 md:p-6">
+                                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-xl md:text-2xl font-bold mb-2">Quản lý sân</h3>
+                                                <p className="text-emerald-100 text-sm md:text-base">Chọn ngày: {selectedDate} • Chọn khung giờ phù hợp</p>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                                {/* <Button
                                             variant="outline"
                                             size="sm"
                                             className="bg-white/20 border-white/30 text-white hover:bg-white/30 gap-2"
                                         >
                                             <Pause className="w-4 h-4" />
                                             <span className="hidden sm:inline">Ngừng hoạt động</span>
-                                        </Button>
-                                        <input
-                                            type="date"
-                                            value={selectedDate}
-                                            onChange={(e) => setSelectedDate(e.target.value)}
-                                            className="px-3 py-2 bg-white/20 border border-white/30 rounded text-white placeholder-white/50 text-sm"
-                                        />
-                                        <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
-                                            <Clock className="w-4 h-4" />
-                                            <span className="text-sm">Cuộn để xem thêm</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => scrollLeft('booking-grid-main')}
-                                                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                                            >
-                                                <ChevronLeft className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => scrollRight('booking-grid-main')}
-                                                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                                            >
-                                                <ChevronRight className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-
-                            {/* Scrollable Time Grid with Split Layout */}
-                            <div className="w-full flex">
-                                {/* Fixed Field Names Column - NOT SCROLLABLE */}
-                                <div className="flex-shrink-0 border-r border-gray-200 bg-white">
-                                    {/* Header for field names */}
-                                    <div className="w-48 px-4 py-4 font-bold text-gray-700 bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200" style={{ height: '74px' }}>
-                                        Danh sách sân
-                                    </div>
-
-                                    {/* Field names list */}
-                                    {fields.length > 0 ? (
-                                        fields.map((field: APIField, fieldIdx: number) => (
-                                            <div
-                                                key={`field-name-${field._id}`}
-                                                className="w-48 px-4 border-b border-gray-100 flex items-center gap-3 hover:bg-emerald-50 transition-all duration-300"
-                                                style={{ height: '86px' }}
-                                            >
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                    {field.name?.charAt(0).toUpperCase() || 'S'}
+                                        </Button> */}
+                                                <input
+                                                    type="date"
+                                                    value={selectedDate}
+                                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                                    className="px-3 py-2 bg-white/20 border border-white/30 rounded text-white placeholder-white/50 text-sm"
+                                                />
+                                                <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span className="text-sm">Cuộn để xem thêm</span>
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-semibold text-gray-900 truncate text-sm">
-                                                        {field.name}
-                                                    </p>
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        {field.rating && (
-                                                            <Badge className="text-xs bg-yellow-50 border-yellow-300 text-yellow-800 py-0">
-                                                                ⭐ {field.rating}
-                                                            </Badge>
-                                                        )}
-                                                        <span className="text-xs text-green-600 font-bold">
-                                                            {formatPrice(field.defaultPrice)}
-                                                        </span>
-                                                    </div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => scrollLeft('booking-grid-main')}
+                                                        className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => scrollRight('booking-grid-main')}
+                                                        className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                                                    >
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="w-48 py-12 text-center">
-                                            <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                            <p className="text-xs text-gray-600">Chưa có sân</p>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
 
-                                {/* Scrollable Time Grid Section - INDEPENDENT SCROLL */}
-                                <div
-                                    id="booking-grid-main"
-                                    className="flex-1 overflow-x-auto pb-2"
-                                    style={{
-                                        scrollbarWidth: 'thin',
-                                        scrollbarColor: '#10b981 #f3f4f6',
-                                        WebkitOverflowScrolling: 'touch'
-                                    }}
-                                >
-                                    <div className="inline-block min-w-full">
-                                        {/* Time Header */}
-                                        <div className="flex bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200">
-                                            {timeSlots.map((slot, index) => (
-                                                <div
-                                                    key={`time-header-${index}-${slot}`}
-                                                    className={`flex-shrink-0 w-20 px-2 text-center border-r border-emerald-200/50 flex flex-col justify-center py-4 ${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/50'
-                                                        }`}
-                                                >
-                                                    <div className="text-sm font-bold text-gray-700">{slot}</div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        {parseInt(slot.split(':')[0]) < 12
-                                                            ? 'Sáng'
-                                                            : parseInt(slot.split(':')[0]) < 18
-                                                                ? 'Chiều'
-                                                                : 'Tối'}
+
+
+                                    {/* Scrollable Time Grid with Split Layout */}
+                                    <div className="w-full flex">
+                                        {/* Fixed Field Names Column - NOT SCROLLABLE */}
+                                        <div className="flex-shrink-0 border-r border-gray-200 bg-white">
+                                            {/* Header for field names */}
+                                            <div className="w-48 px-4 py-4 font-bold text-gray-700 bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200" style={{ height: '74px' }}>
+                                                Danh sách sân
+                                            </div>
+
+                                            {/* Field names list */}
+                                            {fields.length > 0 ? (
+                                                fields.map((field: APIField, fieldIdx: number) => (
+                                                    <div
+                                                        key={`field-name-${field._id}`}
+                                                        className="w-48 px-4 border-b border-gray-100 flex items-center gap-3 hover:bg-emerald-50 transition-all duration-300"
+                                                        style={{ height: '86px' }}
+                                                    >
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                                            {field.name?.charAt(0).toUpperCase() || 'S'}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-semibold text-gray-900 truncate text-sm">
+                                                                {field.name}
+                                                            </p>
+                                                            <div className="flex items-center gap-1 mt-1">
+                                                                {field.rating && (
+                                                                    <Badge className="text-xs bg-yellow-50 border-yellow-300 text-yellow-800 py-0">
+                                                                        ⭐ {field.rating}
+                                                                    </Badge>
+                                                                )}
+                                                                <span className="text-xs text-green-600 font-bold">
+                                                                    {formatPrice(field.defaultPrice)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
+                                                ))
+                                            ) : (
+                                                <div className="w-48 py-12 text-center">
+                                                    <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                                    <p className="text-xs text-gray-600">Chưa có sân</p>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
 
-                                        {/* Field Rows */}
-                                        {fields.length > 0 ? (
-                                            fields.map((field: APIField, fieldIdx: number) => (
-                                                <div key={field._id} className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30" style={{ height: '86px' }}>
-                                                    {/* Offset spacer */}
-                                                    <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
-                                                    {timeSlots.slice(0, -1).map((slot, slotIndex) => {
-                                                        const status = getSlotStatus(field._id, slot)
-                                                        const isBooked = status === 'booked'
-                                                        const hasSpecial = hasSpecialPrice(slot, selectedDate, field._id)
+                                        {/* Scrollable Time Grid Section - INDEPENDENT SCROLL */}
+                                        <div
+                                            id="booking-grid-main"
+                                            className="flex-1 overflow-x-auto pb-2"
+                                            style={{
+                                                scrollbarWidth: 'thin',
+                                                scrollbarColor: '#10b981 #f3f4f6',
+                                                WebkitOverflowScrolling: 'touch'
+                                            }}
+                                        >
+                                            <div className="inline-block min-w-full">
+                                                {/* Time Header */}
+                                                <div className="flex bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200">
+                                                    {timeSlots.map((slot, index) => (
+                                                        <div
+                                                            key={`time-header-${index}-${slot}`}
+                                                            className={`flex-shrink-0 w-20 px-2 text-center border-r border-emerald-200/50 flex flex-col justify-center py-4 ${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/50'
+                                                                }`}
+                                                        >
+                                                            <div className="text-sm font-bold text-gray-700">{slot}</div>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                {parseInt(slot.split(':')[0]) < 12
+                                                                    ? 'Sáng'
+                                                                    : parseInt(slot.split(':')[0]) < 18
+                                                                        ? 'Chiều'
+                                                                        : 'Tối'}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
 
-                                                        return (
-                                                            <div
-                                                                key={`booking-slot-${field._id}-${slotIndex}-${slot}`}
-                                                                className={`flex-shrink-0 w-20 border-r border-gray-100/50 flex items-center justify-center px-2 ${slotIndex % 2 === 0 ? 'bg-white/30' : 'bg-emerald-50/30'
-                                                                    }`}
-                                                            >
-                                                                <div className="relative group">
-                                                                    <button
-                                                                        disabled={isBooked}
-                                                                        onClick={() => {
-                                                                            if (isBooked) {
-                                                                                handleSlotClick(field, slot)
-                                                                            }
-                                                                        }}
-                                                                        className={`w-14 h-14 rounded-xl ${getSlotColor(status)} ${hasSpecial ? 'border-4 border-yellow-400 shadow-md' : ''} transition-all duration-300 transform ${status === 'available'
-                                                                            ? 'cursor-default'
-                                                                            : 'cursor-pointer hover:scale-110 hover:shadow-lg'
-                                                                            } flex items-center justify-center text-sm font-bold`}
+                                                {/* Field Rows */}
+                                                {fields.length > 0 ? (
+                                                    fields.map((field: APIField, fieldIdx: number) => (
+                                                        <div key={field._id} className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30" style={{ height: '86px' }}>
+                                                            {/* Offset spacer */}
+                                                            <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
+                                                            {timeSlots.slice(0, -1).map((slot, slotIndex) => {
+                                                                const status = getSlotStatus(field._id, slot)
+                                                                const isBooked = status === 'booked'
+                                                                const hasSpecial = hasSpecialPrice(slot, selectedDate, field._id)
+
+                                                                return (
+                                                                    <div
+                                                                        key={`booking-slot-${field._id}-${slotIndex}-${slot}`}
+                                                                        className={`flex-shrink-0 w-20 border-r border-gray-100/50 flex items-center justify-center px-2 ${slotIndex % 2 === 0 ? 'bg-white/30' : 'bg-emerald-50/30'
+                                                                            }`}
                                                                     >
-                                                                    </button>
-                                                                    {/* Price tooltip */}
-                                                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                                                                        <div className="px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg bg-gray-800 text-white">
-                                                                            {formatPrice(String(getSlotPrice(slot, selectedDate, field._id)))}
-                                                                            {hasSpecial && <span className="block text-yellow-300">(Giá đặc biệt)</span>}
+                                                                        <div className="relative group">
+                                                                            <button
+                                                                                disabled={isBooked}
+                                                                                onClick={() => {
+                                                                                    if (isBooked) {
+                                                                                        handleSlotClick(field, slot)
+                                                                                    }
+                                                                                }}
+                                                                                className={`w-14 h-14 rounded-xl ${getSlotColor(status)} ${hasSpecial ? 'border-4 border-yellow-400 shadow-md' : ''} transition-all duration-300 transform ${status === 'available'
+                                                                                    ? 'cursor-default'
+                                                                                    : 'cursor-pointer hover:scale-110 hover:shadow-lg'
+                                                                                    } flex items-center justify-center text-sm font-bold`}
+                                                                            >
+                                                                            </button>
+                                                                            {/* Price tooltip */}
+                                                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                                                                                <div className="px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg bg-gray-800 text-white">
+                                                                                    {formatPrice(String(getSlotPrice(slot, selectedDate, field._id)))}
+                                                                                    {hasSpecial && <span className="block text-yellow-300">(Giá đặc biệt)</span>}
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="flex items-center justify-center py-12 bg-gray-50">
+                                                        <div className="text-center">
+                                                            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                                            <p className="text-gray-600">Cửa hàng này chưa có sân nào</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Store Details Card */}
+                            {fields.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Thông tin chi tiết</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm text-gray-600">Tên cửa hàng</p>
+                                                <p className="font-medium">{store.name || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Địa chỉ</p>
+                                                <p className="font-medium">{store.address || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Số lượng sân</p>
+                                                <p className="font-medium">{fields.length} sân</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">ID</p>
+                                                <p className="font-medium text-xs text-gray-500">{store.id}</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+
+                        {/* Right Sidebar - 25% */}
+                        <div className="lg:col-span-1">
+                            {/* Special Pricing Overview Sidebar */}
+                            <div className="sticky top-6 h-fit">
+                                <Card className="shadow-lg border-0">
+                                    <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
+                                        <CardTitle className="flex items-center gap-2 text-yellow-900 text-base">
+                                            <Calendar className="h-4 w-4" />
+                                            Giá đặc biệt
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-4 max-h-[calc(100vh-150px)] overflow-y-auto">
+                                        {Object.entries(fieldPricingsMap).some(([_, pricings]) => pricings && pricings.length > 0) ? (
+                                            <div className="space-y-3">
+                                                {fields.map((field) => {
+                                                    const fieldPricings = fieldPricingsMap[field._id] || [];
+                                                    return fieldPricings.length > 0 ? (
+                                                        <div key={`pricing-section-${field._id}`}>
+                                                            <div className="mb-2 font-semibold text-gray-700 flex items-center gap-2 text-xs">
+                                                                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                                                    {field.name?.charAt(0).toUpperCase() || 'S'}
                                                                 </div>
+                                                                <span className="truncate">{field.name}</span>
                                                             </div>
-                                                        )
-                                                    })}
-                                                </div>
-                                            ))
+                                                            <div className="space-y-1 ml-7">
+                                                                {fieldPricings.map((pricing, idx) => (
+                                                                    <div
+                                                                        key={`pricing-item-${pricing._id}-${idx}`}
+                                                                        className="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded text-xs"
+                                                                    >
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="font-medium text-gray-900 truncate">
+                                                                                {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-600">
+                                                                                {formatDayOfWeekVietnamese(pricing.dayOfWeek)}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-right flex-shrink-0">
+                                                                            <div className="font-bold text-emerald-600">
+                                                                                {pricing.specialPrice.toLocaleString()}đ
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
                                         ) : (
-                                            <div className="flex items-center justify-center py-12 bg-gray-50">
-                                                <div className="text-center">
-                                                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                                    <p className="text-gray-600">Cửa hàng này chưa có sân nào</p>
-                                                </div>
+                                            <div className="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg text-center">
+                                                Chưa có giá đặc biệt nào. Bấm "Giá đặc biệt" để thêm.
                                             </div>
                                         )}
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Store Details Card */}
-                    {fields.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Thông tin chi tiết</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-600">Tên cửa hàng</p>
-                                        <p className="font-medium">{store.name || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600">Địa chỉ</p>
-                                        <p className="font-medium">{store.address || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600">Số lượng sân</p>
-                                        <p className="font-medium">{fields.length} sân</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600">ID</p>
-                                        <p className="font-medium text-xs text-gray-500">{store.id}</p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Booking Info Modal */}

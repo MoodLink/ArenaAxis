@@ -12,7 +12,8 @@ export async function validate() {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
-    }
+    },
+    body: JSON.stringify({})
   });
 
   if (!response.ok) {
@@ -37,8 +38,14 @@ export async function login(email: string, password: string) {
   }
 
   const data = await response.json();
+  localStorage.setItem('token', data.token);
   document.cookie = `token=${data.token}; path=/;`;
-  
+
+  // Lưu user data vào localStorage
+  if (data.user) {
+    localStorage.setItem('user', JSON.stringify(data.user));
+  }
+
   return data;
 }
 
@@ -49,6 +56,8 @@ export async function logout() {
     // If no token, just clear storage - already logged out
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Clear cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
     return { success: true };
   }
 
@@ -63,11 +72,17 @@ export async function logout() {
     });
 
     if (response.ok || response.status === 204) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
       return { success: true };
     }
 
   } catch (error) {
     console.warn('Logout request failed:', error instanceof Error ? error.message : 'Unknown error');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
     return { success: true };
   }
   return true;

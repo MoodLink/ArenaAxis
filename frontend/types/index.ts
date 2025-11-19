@@ -163,7 +163,10 @@ export interface Booking {
     fieldId: string // Thêm fieldId
     fieldName: string // Thay đổi từ name sang fieldName
     userId: string // Thêm userId
-    date: string
+    storeId?: string // Thêm storeId
+    storeName?: string // Thêm storeName
+    date: string // Ngày thực tế đặt sân (từ orderDetails[0].startTime)
+    paymentDate?: string // Ngày thanh toán (từ createdAt)
     time: string
     duration: number // Thay đổi sang number (minutes)
     status: "confirmed" | "pending" | "completed" | "cancelled" // Sửa values
@@ -171,6 +174,27 @@ export interface Booking {
     location?: string // Thêm location (optional)
     court?: string // Thêm court (optional)
     image?: string // Thêm image (optional)
+}
+
+// Interface cho Order Response (từ backend API)
+export interface OrderResponse {
+    _id: string;
+    userId: string;
+    storeId: string;
+    orderCode: string | number;
+    statusPayment: string;
+    cost: number;
+    isRated: boolean;
+    createdAt: string;
+    updatedAt: string;
+    __v?: number;
+    orderDetails: Array<{
+        fieldId: string;
+        fieldName?: string;
+        startTime: string;
+        endTime: string;
+        price: number;
+    }>;
 }
 
 // Interface cho user (từ UserResponse DTO)

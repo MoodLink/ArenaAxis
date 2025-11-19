@@ -59,18 +59,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const body = await request.json();
+        const contentType = request.headers.get('content-type');
         const headers: HeadersInit = {
-            'Content-Type': 'application/json',
             'Authorization': authHeader,
         };
 
-        console.log(`[API Proxy] POST /ratings`);
+        let body: BodyInit;
+
+        if (contentType && contentType.includes('multipart/form-data')) {
+            // Để browser tự động set Content-Type với boundary
+            const formData = await request.formData();
+            body = formData;
+        } else {
+            // JSON request
+            headers['Content-Type'] = 'application/json';
+            body = await request.text();
+        }
+
+        console.log(`[API Proxy] POST /ratings`, { contentType });
 
         const response = await fetch(`${API_BASE_URL}/ratings`, {
             method: 'POST',
             headers,
-            body: JSON.stringify(body),
+            body,
         });
 
         if (!response.ok) {

@@ -195,6 +195,7 @@ export default function ListStorePage() {
         <StoresContent
           stores={paginatedStores}
           viewMode={viewMode}
+          selectedSportId={selectedFilters.sportId}
         />
 
         {/* Pagination */}
