@@ -132,16 +132,24 @@ export async function getNearbyStoresFromGeolocation(
 
                     // Lấy thông tin province/ward từ tọa độ
                     const locationInfo = await reverseGeocodeAndFindLocation(latitude, longitude);
-                    console.log('📍 Location info result:', locationInfo);
+                    console.log('📍 Location info result (raw):', locationInfo);
 
+                    // Lấy wardName + provinceName
+                    // IMPORTANT: Gửi giá trị từ locationInfo.wardName + locationInfo.provinceName
+                    // Không phụ thuộc vào việc tìm được ward object hay không
                     let wardName = locationInfo.wardName?.trim();
                     let provinceName = locationInfo.provinceName?.trim();
+
+                    console.log('📍 Extracted from locationInfo:', {
+                        wardName: wardName || 'EMPTY',
+                        provinceName: provinceName || 'EMPTY'
+                    });
 
                     // Log chi tiết
                     if (wardName && provinceName) {
                         console.log(`✅ Using location filter - Province: "${provinceName}", Ward: "${wardName}"`);
                     } else if (provinceName) {
-                        console.log(`⚠️ Using location filter - Province: "${provinceName}" only (Ward not found)`);
+                        console.log(`⚠️ Using location filter - Province: "${provinceName}" only (Ward: "${wardName || 'EMPTY'}")`);
                     } else {
                         console.warn('⚠️ Could not determine province/ward from location - using coordinates only');
                     }
@@ -156,7 +164,7 @@ export async function getNearbyStoresFromGeolocation(
                         ...(provinceName && { provinceName })
                     });
 
-                    console.log(`🎯 Found ${stores.length} nearby stores`);
+                    console.log(`🎯 Final: Got ${stores.length} nearby stores`);
                     resolve(stores);
                 } catch (error) {
                     console.error('❌ Error getting nearby stores:', error);

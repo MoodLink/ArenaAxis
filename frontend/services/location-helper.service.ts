@@ -302,7 +302,7 @@ export async function reverseGeocodeAndFindLocation(
                       addressData.address?.county || 
                       addressData.address?.village;
 
-        console.log('🔍 Extracted ward name:', wardName);
+        console.log('🔍 Extracted ward name (before cleanup):', wardName);
         
         // Nếu vẫn không có ward name từ address/display_name, thử fallback từ các field khác
         if (!wardName && addressData.address?.city) {
@@ -314,16 +314,25 @@ export async function reverseGeocodeAndFindLocation(
             }
         }
 
-        if (wardName && wardName.trim() !== '' && province?.id) {
-            console.log(`🔍 Searching for ward: "${wardName}" in province ID: ${province.id}`);
-            ward = await findWardByName(wardName, province.id);
+        // Cleanup: Remove prefix like "Phường", "Quận" để matching chính xác
+        // Ví dụ: "Phường Thanh Khê" → giữ nguyên vì backend lưu đầy đủ
+        let cleanedWardName = wardName?.trim();
+
+        console.log('🔍 Cleaned ward name:', cleanedWardName);
+
+        if (cleanedWardName && province?.id) {
+            console.log(`🔍 Searching for ward: "${cleanedWardName}" in province ID: ${province.id}`);
+            ward = await findWardByName(cleanedWardName, province.id);
             if (ward) {
-                console.log('✅ Found ward:', ward.name, '(ID:', ward.id, ')');
+                console.log('✅ Found ward in database:', ward.name, '(ID:', ward.id, ')');
             } else {
-                console.warn(`⚠️ Ward "${wardName}" not found in province ${province.name}`);
+                console.warn(`⚠️ Ward "${cleanedWardName}" not found in province database`);
+                console.warn(`   Will still send wardName to backend: "${cleanedWardName}"`);
+                // IMPORTANT: Vẫn gửi wardName ngay cả khi không tìm thấy trong database
+                // Vì backend có thể tìm được
             }
         } else {
-            if (!wardName) {
+            if (!cleanedWardName) {
                 console.warn('⚠️ Could not extract ward name from any source');
             } else if (!province?.id) {
                 console.warn('⚠️ Province ID not found, cannot search for ward');
@@ -333,7 +342,7 @@ export async function reverseGeocodeAndFindLocation(
         return {
             address,
             provinceName: province?.name,
-            wardName: ward?.name,
+            wardName: cleanedWardName,  // Gửi wardName ngay cả khi không tìm thấy trong database
             province,
             ward
         };
