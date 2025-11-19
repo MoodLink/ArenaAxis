@@ -26,8 +26,8 @@ export interface NearbyStoreRequest {
  *   latitude: 15.2312,
  *   longitude: 160.123,
  *   distance: 10000,
- *   wardName: "Khanh",
- *   provinceName: "Ca"
+ *   wardName: "Phường Thanh Khê",
+ *   provinceName: "Đà Nẵng"
  * });
  */
 export async function getNearbyStores(
@@ -53,15 +53,16 @@ export async function getNearbyStores(
         });
 
         // Gọi qua proxy route (NextJS API route)
+        // QUAN TRỌNG: Gửi wardName + provinceName với ưu tiên cao để backend lọc chính xác
         const requestBody = {
             latitude: request.latitude,
             longitude: request.longitude,
             distance: request.distance || 10000, // Default 10km
-            ...(request.wardName && { wardName: request.wardName }),
-            ...(request.provinceName && { provinceName: request.provinceName })
+            ...(request.wardName && { wardName: request.wardName.trim() }),
+            ...(request.provinceName && { provinceName: request.provinceName.trim() })
         };
 
-        console.log('📤 Sending request to backend:', JSON.stringify(requestBody, null, 2));
+        console.log('📤 Sending request body to backend:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch('/api/recommends/near-by', {
             method: 'POST',
@@ -74,22 +75,25 @@ export async function getNearbyStores(
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
-            console.error('❌ Failed to fetch nearby stores (HTTP ' + response.status + '):', errorMessage);
+            console.error(`❌ Failed to fetch nearby stores (HTTP ${response.status}):`, errorMessage);
             console.error('❌ Full error response:', errorData);
             throw new Error(errorMessage);
         }
 
         const data = await response.json();
-        console.log(`✅ Found ${Array.isArray(data) ? data.length : 'unknown'} nearby stores`);
+        console.log(`✅ Backend returned ${Array.isArray(data) ? data.length : 'unknown'} nearby stores`);
 
         // Log thông tin về các cửa hàng trả về để debug
         if (Array.isArray(data) && data.length > 0) {
-            console.log('📋 First store:', {
-                id: data[0].id,
-                name: data[0].name,
-                distance: (data[0] as any).distance,
-                address: data[0].address
+            console.log('📋 Sample stores received:');
+            data.slice(0, 3).forEach((store, idx) => {
+                console.log(`  Store ${idx + 1}: ${store.name} @ ${store.address}`, {
+                    distance: (store as any).distance,
+                    ward: (store as any).ward
+                });
             });
+        } else {
+            console.warn('⚠️ No stores returned by backend');
         }
 
         // Ensure we return an array
@@ -130,22 +134,20 @@ export async function getNearbyStoresFromGeolocation(
                     const locationInfo = await reverseGeocodeAndFindLocation(latitude, longitude);
                     console.log('📍 Location info result:', locationInfo);
 
-                    // Chỉ sử dụng wardName/provinceName nếu được tìm thấy chính xác
-                    // Nếu không, sẽ chỉ sử dụng tọa độ để tìm cửa hàng gần
-                    const wardName = locationInfo.wardName ? locationInfo.wardName.trim() : undefined;
-                    const provinceName = locationInfo.provinceName ? locationInfo.provinceName.trim() : undefined;
+                    let wardName = locationInfo.wardName?.trim();
+                    let provinceName = locationInfo.provinceName?.trim();
 
                     // Log chi tiết
                     if (wardName && provinceName) {
-                        console.log(`✅ Got location info - Province: ${provinceName}, Ward: ${wardName}`);
+                        console.log(`✅ Using location filter - Province: "${provinceName}", Ward: "${wardName}"`);
                     } else if (provinceName) {
-                        console.log(`✅ Got location info - Province: ${provinceName} (Ward not found)`);
+                        console.log(`⚠️ Using location filter - Province: "${provinceName}" only (Ward not found)`);
                     } else {
                         console.warn('⚠️ Could not determine province/ward from location - using coordinates only');
                     }
 
-                    // Gọi API với tọa độ người dùng + ward/province info nếu có
-                    // Nếu không có province/ward, chỉ gửi tọa độ
+                    // LUÔN gửi wardName + provinceName nếu tìm được (ưu tiên lọc chính xác)
+                    // Nếu không, chỉ gửi tọa độ
                     const stores = await getNearbyStores({
                         latitude,
                         longitude,

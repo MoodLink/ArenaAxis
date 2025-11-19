@@ -234,49 +234,54 @@ export async function reverseGeocodeAndFindLocation(
         const address = addressData.address || '';
         console.log('📍 Address from OSM (full data):', JSON.stringify(addressData, null, 2));
 
-        // 2. Tìm province từ address
-        // Nominatim trả về (không nhất quán):
-        // - address.state (code tỉnh như "VN-DN")
-        // - address.province (tên tỉnh)
-        // - address.city (có thể là tên city hoặc ward - không tin được!)
-        // - address.county (huyện/quận)
-        // - address.suburb (quận/phường/xã)
-        // - address.village (xã)
-        // - ISO3166-2-lvl4 (code tỉnh như "VN-DN")
-        // - display_name (chứa toàn bộ địa chỉ)
+        // 2. Parse province + ward từ display_name
+        // Format: "Đường XYZ, Phường ABC, Thành phố Đà Nẵng, 12345, Việt Nam"
+        //         hoặc "Xã XYZ, Huyện ABC, Tỉnh Cà Mau, Việt Nam"
         
         let provinceName: string | undefined;
-        
-        // STRATEGY 1: Parse từ display_name (đáng tin nhất)
-        // Format: "... phường/quận, Thành phố/Tỉnh XYZ, ..."
+        let wardNameFromDisplay: string | undefined;
+
         if (addressData.display_name) {
             const displayStr = addressData.display_name;
             console.log('🔍 Parsing display_name:', displayStr);
-            
-            // Tìm kiếm các mẫu tên thành phố
-            if (displayStr.includes('Thành phố Đà Nẵng') || displayStr.includes('Da Nang')) {
-                provinceName = 'Đà Nẵng';
-            } else if (displayStr.includes('Thành phố Hà Nội') || displayStr.includes('Ha Noi')) {
-                provinceName = 'Hà Nội';
-            } else if (displayStr.includes('Thành phố Hồ Chí Minh') || displayStr.includes('Ho Chi Minh')) {
-                provinceName = 'Hồ Chí Minh';
-            } else if (displayStr.includes('Thành phố Cần Thơ') || displayStr.includes('Can Tho')) {
-                provinceName = 'Cần Thơ';
-            } else if (displayStr.includes('Tỉnh')) {
-                // Nếu không match được TP nào, cố gắng extract tên tỉnh
-                const provinceMatch = displayStr.match(/Tỉnh\s+([^,]+)/);
-                if (provinceMatch) {
-                    provinceName = provinceMatch[1].trim();
-                }
+
+            // Split by comma để parse từng phần
+            const parts = displayStr.split(',').map((p: string) => p.trim());
+            console.log('📊 Display name parts:', parts);
+
+            // PART 1: Tìm province từ display_name
+            // Cách 1: Tìm "Thành phố XXX" hoặc "Tỉnh XXX"
+            const thanhPhoMatch = displayStr.match(/Thành phố\s+([^,]+)/);
+            const tinhMatch = displayStr.match(/Tỉnh\s+([^,]+)/);
+
+            if (thanhPhoMatch) {
+                provinceName = thanhPhoMatch[1].trim();
+                console.log('✅ Found city:', provinceName);
+            } else if (tinhMatch) {
+                provinceName = tinhMatch[1].trim();
+                console.log('✅ Found province:', provinceName);
             }
-        }
 
-        console.log('🔍 Extracted province name from display_name:', provinceName);
+            // PART 2: Tìm ward từ display_name
+            // Cách: Tìm "Phường XXX", "Quận XXX", "Huyện XXX", "Xã XXX", "Thị trấn XXX"
+            const phuongMatch = displayStr.match(/Phường\s+([^,]+)/);
+            const quanMatch = displayStr.match(/Quận\s+([^,]+)/);
+            const huyenMatch = displayStr.match(/Huyện\s+([^,]+)/);
+            const xaMatch = displayStr.match(/Xã\s+([^,]+)/);
+            const thiTranMatch = displayStr.match(/Thị trấn\s+([^,]+)/);
 
-        // STRATEGY 2: Nếu vẫn không có, thử address.province hoặc address.state
-        if (!provinceName) {
-            provinceName = addressData.address?.province || addressData.address?.state;
-            console.log('🔍 Fallback to address.province or address.state:', provinceName);
+            wardNameFromDisplay = 
+                phuongMatch?.[1]?.trim() ||
+                quanMatch?.[1]?.trim() ||
+                huyenMatch?.[1]?.trim() ||
+                xaMatch?.[1]?.trim() ||
+                thiTranMatch?.[1]?.trim();
+
+            if (wardNameFromDisplay) {
+                console.log('✅ Found ward:', wardNameFromDisplay);
+            } else {
+                console.warn('⚠️ No ward pattern found in display_name');
+            }
         }
 
         let province: ProvinceResponse | null = null;
@@ -290,35 +295,39 @@ export async function reverseGeocodeAndFindLocation(
         }
 
         // 3. Tìm ward từ address nếu có province
-        // Nominatim: county → suburb → village
+        // Ưu tiên: wardNameFromDisplay (từ display_name) > address.suburb > address.county > address.village
         let ward: WardResponse | null = null;
-        let wardName = addressData.address?.suburb || 
+        let wardName = wardNameFromDisplay || 
+                      addressData.address?.suburb || 
                       addressData.address?.county || 
                       addressData.address?.village;
 
-        console.log('🔍 Extracted ward name from Nominatim:', wardName);
+        console.log('🔍 Extracted ward name:', wardName);
         
-        // Nếu vẫn không có ward name từ address, thử parse từ display_name
-        if (!wardName && addressData.display_name) {
-            // Format: "Đường XYZ, Phường ABC, ..."
-            const parts = addressData.display_name.split(',').map((s: string) => s.trim());
-            // Phần thứ 2 thường là ward
-            if (parts.length >= 2) {
-                const secondPart = parts[1];
-                // Kiểm tra xem có "Phường", "Quận", "Xã", "Thị trấn" không
-                if (secondPart.match(/^(Phường|Quận|Xã|Thị trấn)\s+/)) {
-                    wardName = secondPart;
-                    console.log('🔍 Extracted ward from display_name:', wardName);
-                }
+        // Nếu vẫn không có ward name từ address/display_name, thử fallback từ các field khác
+        if (!wardName && addressData.address?.city) {
+            // Nếu address.city chứa "Phường", "Quận", "Xã" etc, dùng nó làm ward name
+            const cityStr = addressData.address.city;
+            if (cityStr.match(/^(Phường|Quận|Xã|Huyện|Thị trấn)/)) {
+                wardName = cityStr;
+                console.log('🔍 Extracted ward from address.city (fallback):', wardName);
             }
         }
 
         if (wardName && wardName.trim() !== '' && province?.id) {
             console.log(`🔍 Searching for ward: "${wardName}" in province ID: ${province.id}`);
             ward = await findWardByName(wardName, province.id);
-            console.log('✅ Found ward:', ward?.name, '(ID:', ward?.id, ')');
+            if (ward) {
+                console.log('✅ Found ward:', ward.name, '(ID:', ward.id, ')');
+            } else {
+                console.warn(`⚠️ Ward "${wardName}" not found in province ${province.name}`);
+            }
         } else {
-            console.warn('⚠️ Could not determine ward name or province ID not found');
+            if (!wardName) {
+                console.warn('⚠️ Could not extract ward name from any source');
+            } else if (!province?.id) {
+                console.warn('⚠️ Province ID not found, cannot search for ward');
+            }
         }
 
         return {
