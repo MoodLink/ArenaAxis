@@ -11,13 +11,14 @@ import {
 interface ProfileTabsProps {
     activeTab: string
     onTabChange: (tab: string) => void
+    hasStores?: boolean
 }
 
-export default function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
+export default function ProfileTabs({ activeTab, onTabChange, hasStores = false }: ProfileTabsProps) {
     const tabs = [
         { id: "overview", label: "Tổng quan", icon: User },
         { id: "activities", label: "Hoạt động", icon: Activity },
-        { id: "stores", label: "Cửa hàng", icon: Store },
+        ...(hasStores ? [{ id: "stores", label: "Cửa hàng", icon: Store }] : []),
         // { id: "achievements", label: "Thành tựu", icon: Award },
         { id: "settings", label: "Cài đặt", icon: Settings }
     ]

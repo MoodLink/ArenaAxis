@@ -7,13 +7,43 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Upload, CheckCircle, Clock, X, ChevronRight, ChevronLeft } from "lucide-react"
+import { AlertCircle, Upload, CheckCircle, Clock, X, ChevronRight, ChevronLeft, Wifi, Car, Shield, Droplets, Lock, Lightbulb, Users, Utensils } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getProvinces, getWardsByProvinceId, getMyBankAccount, registerStore, updateStoreImages } from "@/services/api-new"
 import { ProvinceResponse, WardResponse, StoreRegistrationRequest } from "@/types"
 import { useRouter } from "next/navigation"
 
 type RegistrationStep = 1 | 2 | 3
+
+// Danh sách tiện ích có sẵn - Tiếng Việt
+const AVAILABLE_AMENITIES = [
+    "Wifi miễn phí",
+    "Bãi đỗ xe rộng rãi",
+    "Phòng thay đồ",
+    "Nhà vệ sinh",
+    "Đèn chiếu sáng",
+    "Căng tin",
+    "Camera an ninh",
+    "Nước uống miễn phí",
+    "Thiết bị cho thuê",
+    "Huấn luyện viên sẵn có",
+    "Cửa hàng dụng cụ",
+    "Phòng y tế",
+]
+
+// Hàm lấy icon cho tiện ích
+const getAmenityIcon = (amenityName: string) => {
+    const name = amenityName.toLowerCase()
+    if (name.includes('wifi')) return Wifi
+    if (name.includes('parking') || name.includes('bãi đỗ') || name.includes('xe')) return Car
+    if (name.includes('security') || name.includes('camera') || name.includes('an ninh')) return Shield
+    if (name.includes('shower') || name.includes('water') || name.includes('nước uống') || name.includes('vệ sinh')) return Droplets
+    if (name.includes('locker') || name.includes('tủ') || name.includes('thay đồ')) return Lock
+    if (name.includes('lighting') || name.includes('đèn')) return Lightbulb
+    if (name.includes('seat') || name.includes('capacity') || name.includes('huấn luyện')) return Users
+    if (name.includes('food') || name.includes('drink') || name.includes('canteen') || name.includes('căng tin')) return Utensils
+    return Shield
+}
 
 export default function StoreRegistrationPage() {
     const router = useRouter()
@@ -43,6 +73,8 @@ export default function StoreRegistrationPage() {
         provinceId: '',
         wardId: '',
     })
+
+    const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
 
     const [files, setFiles] = useState<{
         businessLicense?: File
@@ -153,6 +185,16 @@ export default function StoreRegistrationPage() {
         }))
     }
 
+    const handleAmenityToggle = (amenity: string) => {
+        setSelectedAmenities(prev => {
+            if (prev.includes(amenity)) {
+                return prev.filter(a => a !== amenity)
+            } else {
+                return [...prev, amenity]
+            }
+        })
+    }
+
     const handleFileChange = (field: 'businessLicense' | 'coverImage' | 'avatar', file: File | null) => {
         if (file) {
             setFiles(prev => ({
@@ -201,6 +243,7 @@ export default function StoreRegistrationPage() {
             // Bước 1: Tạo store với JSON data (không có file)
             const request: StoreRegistrationRequest = {
                 ...formData,
+                amenities: selectedAmenities,
                 // latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
                 // longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
             }
@@ -347,6 +390,7 @@ export default function StoreRegistrationPage() {
             // Bước 1: Tạo store với JSON data (không có file)
             const request: StoreRegistrationRequest = {
                 ...formData,
+                amenities: selectedAmenities,
                 // latitude: formData.latitude === '' ? undefined : Number(formData.latitude),
                 // longitude: formData.longitude === '' ? undefined : Number(formData.longitude)
             }
@@ -467,7 +511,7 @@ export default function StoreRegistrationPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="max-w-3xl mx-auto">
+            <div className="w-full max-w-5xl mx-auto">
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold text-center">
@@ -652,6 +696,52 @@ export default function StoreRegistrationPage() {
                                             />
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Tiện ích */}
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-semibold">Tiện ích & Cơ sở vật chất</h3>
+                                    <p className="text-sm text-gray-600">Chọn các tiện ích có sẵn tại cửa hàng của bạn</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {AVAILABLE_AMENITIES.map((amenity) => {
+                                            const IconComponent = getAmenityIcon(amenity)
+                                            return (
+                                                <label
+                                                    key={amenity}
+                                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAmenities.includes(amenity)
+                                                            ? 'border-emerald-500 bg-emerald-50 shadow-md'
+                                                            : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50 hover:border-emerald-300'
+                                                        }`}
+                                                >
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500 flex-shrink-0">
+                                                        <IconComponent className="w-5 h-5 text-white" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="font-medium text-gray-900 block whitespace-nowrap">
+                                                            {amenity}
+                                                        </span>
+                                                        <div className="text-xs text-emerald-600 font-medium">Có sẵn</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedAmenities.includes(amenity)}
+                                                        onChange={() => handleAmenityToggle(amenity)}
+                                                        className="w-5 h-5 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                                                    />
+                                                </label>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {selectedAmenities.length > 0 && (
+                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                            <p className="text-sm text-blue-800">
+                                                <strong>Đã chọn {selectedAmenities.length} tiện ích:</strong> <br />
+                                                {selectedAmenities.join(", ")}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Submit Buttons */}

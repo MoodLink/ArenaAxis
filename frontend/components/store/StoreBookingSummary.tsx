@@ -4,11 +4,21 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Star } from "lucide-react"
+import { Star, LogIn, UserX } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { FieldPricingService } from "@/services/field-pricing.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
 import { OrderService } from "@/services/order.service"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
 import { validatePaymentOrderRequest, logValidationResult } from "@/utils/request-validator"
 import { useUserId } from "@/hooks/use-user-id"
@@ -39,7 +49,36 @@ export default function StoreBookingSummary({
 }: StoreBookingSummaryProps) {
     const router = useRouter()
     const [isProcessing, setIsProcessing] = useState(false)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [showLoginDialog, setShowLoginDialog] = useState(false)
     const userId = useUserId()  // ✅ Sử dụng hook để lấy user ID
+
+    // ✅ Kiểm tra trạng thái đăng nhập khi component mount và khi userId thay đổi
+    useEffect(() => {
+        const checkAuth = () => {
+            if (typeof window === 'undefined') return
+
+            const token = localStorage.getItem('token')
+            const user = localStorage.getItem('user')
+
+            // Kiểm tra có token và user data
+            const authenticated = !!(token && user && userId && userId !== '0')
+            setIsAuthenticated(authenticated)
+
+            console.log('🔐 Auth status:', {
+                hasToken: !!token,
+                hasUser: !!user,
+                userId,
+                authenticated
+            })
+        }
+
+        checkAuth()
+
+        // Lắng nghe sự kiện storage để cập nhật khi đăng nhập/đăng xuất ở tab khác
+        window.addEventListener('storage', checkAuth)
+        return () => window.removeEventListener('storage', checkAuth)
+    }, [userId])
 
     if (selectedSlots.length === 0) {
         return null
@@ -93,6 +132,25 @@ export default function StoreBookingSummary({
 
     const handleCheckout = async () => {
         if (isProcessing) return
+
+        // ✅ Kiểm tra đăng nhập trước khi thanh toán
+        if (!isAuthenticated) {
+            console.log('⚠️ User not authenticated - showing login dialog')
+
+            // Lưu thông tin đặt sân để quay lại sau khi đăng nhập
+            const bookingData = {
+                storeId,
+                sportName,
+                selectedDate,
+                selectedSlots,
+                returnUrl: window.location.pathname + window.location.search
+            }
+            sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData))
+
+            // Hiển thị dialog yêu cầu đăng nhập
+            setShowLoginDialog(true)
+            return
+        }
 
         try {
             setIsProcessing(true)
@@ -425,6 +483,41 @@ export default function StoreBookingSummary({
                     </div>
                 </div>
             </CardContent>
+
+            {/* ✅ Login Required Dialog */}
+            <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+                <AlertDialogContent className="bg-white">
+                    <AlertDialogHeader>
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                            <UserX className="h-8 w-8 text-amber-600" />
+                        </div>
+                        <AlertDialogTitle className="text-center text-2xl">
+                            Yêu cầu đăng nhập
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-base">
+                            Bạn cần đăng nhập để tiếp tục đặt sân. Thông tin đặt sân của bạn sẽ được lưu lại.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-center gap-3">
+                        <AlertDialogCancel
+                            onClick={() => setShowLoginDialog(false)}
+                            className="border-2"
+                        >
+                            Để sau
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                const redirectUrl = window.location.pathname + window.location.search
+                                router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`)
+                            }}
+                            className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700"
+                        >
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Đăng nhập ngay
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     )
 }

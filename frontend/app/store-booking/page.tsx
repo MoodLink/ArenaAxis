@@ -28,6 +28,19 @@ export default function StoreBookingPage() {
     const [selectedDate, setSelectedDate] = useState(() => {
         // Check if user just returned from payment with a booking date
         if (typeof window !== 'undefined') {
+            // ✅ Ưu tiên khôi phục từ pending booking (sau khi login)
+            const pendingBooking = sessionStorage.getItem('pendingBooking')
+            if (pendingBooking) {
+                try {
+                    const bookingData = JSON.parse(pendingBooking)
+                    console.log('📋 Restoring pending booking date:', bookingData.selectedDate)
+                    return bookingData.selectedDate
+                } catch (e) {
+                    console.error('❌ Error parsing pendingBooking:', e)
+                }
+            }
+
+            // Kiểm tra lastBookingDate (sau khi thanh toán)
             const lastBookingDate = sessionStorage.getItem('lastBookingDate')
             if (lastBookingDate) {
                 console.log('📅 Using last booking date:', lastBookingDate)
@@ -430,6 +443,29 @@ export default function StoreBookingPage() {
             console.log('⚠️ Slot status is not available:', status)
         }
     }
+
+    // ✅ Khôi phục slots đã chọn sau khi đăng nhập
+    useEffect(() => {
+        if (typeof window !== 'undefined' && fields.length > 0) {
+            const pendingBooking = sessionStorage.getItem('pendingBooking')
+            if (pendingBooking) {
+                try {
+                    const bookingData = JSON.parse(pendingBooking)
+                    console.log('📋 Restoring pending booking slots:', bookingData.selectedSlots)
+
+                    // Chỉ khôi phục nếu đúng store và sport
+                    if (bookingData.storeId === storeId) {
+                        setSelectedSlots(bookingData.selectedSlots || [])
+
+                        // Xóa pending booking sau khi khôi phục
+                        sessionStorage.removeItem('pendingBooking')
+                    }
+                } catch (e) {
+                    console.error('❌ Error parsing pendingBooking:', e)
+                }
+            }
+        }
+    }, [fields.length, storeId])
 
     const handleClearSlots = () => {
         setSelectedSlots([])

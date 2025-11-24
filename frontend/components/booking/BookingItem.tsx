@@ -12,47 +12,11 @@ interface BookingItemProps {
     rawOrder?: any
     userProfile?: any
     onBookingAction: (bookingId: string, action: string) => void
+    storeNamesCache?: Record<string, string>
+    fieldNamesCache?: Record<string, string>
 }
 
-// Helper function to get field name from API
-async function getFieldName(fieldId: string): Promise<string> {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/fields/${fieldId}`, {
-            headers: {
-                'Authorization': token ? `Bearer ${token}` : '',
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.data?.name || fieldId;
-        }
-    } catch (error) {
-        console.error('Error fetching field name:', error);
-    }
-    return fieldId;
-}
-
-// Helper function to get store name from API
-async function getStoreName(storeId: string): Promise<string> {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/store/${storeId}`, {
-            headers: {
-                'Authorization': token ? `Bearer ${token}` : '',
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.data?.name || data.name || storeId;
-        }
-    } catch (error) {
-        console.error('Error fetching store name:', error);
-    }
-    return storeId;
-}
-
-export default function BookingItem({ booking, rawOrder, userProfile, onBookingAction }: BookingItemProps) {
+export default function BookingItem({ booking, rawOrder, userProfile, onBookingAction, storeNamesCache = {}, fieldNamesCache = {} }: BookingItemProps) {
     const getStatusBadge = (status: string) => {
         const statusConfig = {
             confirmed: { className: 'bg-blue-100 text-blue-800', label: 'Đã xác nhận' },
@@ -64,43 +28,15 @@ export default function BookingItem({ booking, rawOrder, userProfile, onBookingA
     }
 
     const statusInfo = getStatusBadge(booking.status)
-    const [fieldNames, setFieldNames] = useState<Record<string, string>>({})
-    const [storeName, setStoreName] = useState<string>('')
     const [showDetailModal, setShowDetailModal] = useState(false)
 
-    // Fetch field names for all fields in order
-    useEffect(() => {
-        if (!rawOrder?.orderDetails) return;
+    // Get store name from cache
+    const storeName = booking.storeId ? (storeNamesCache[booking.storeId] || 'Đang tải...') : 'Cửa hàng'
 
-        const fetchFieldNames = async () => {
-            const names: Record<string, string> = {};
-            const uniqueFieldIds = [...new Set(rawOrder.orderDetails.map((d: any) => d.fieldId))] as string[];
-
-            for (const fieldId of uniqueFieldIds) {
-                names[fieldId] = await getFieldName(fieldId);
-            }
-            setFieldNames(names);
-        };
-
-        fetchFieldNames();
-    }, [rawOrder])
-
-    // Fetch store name
-    useEffect(() => {
-        if (!booking.storeId) return;
-
-        const fetchStoreName = async () => {
-            try {
-                const name = await getStoreName(booking.storeId!);
-                setStoreName(name || booking.storeId!);
-            } catch (error) {
-                console.error('Error fetching store name:', error);
-                setStoreName(booking.storeId!);
-            }
-        };
-
-        fetchStoreName();
-    }, [booking.storeId])
+    // Get field names from cache for order details
+    const getFieldNameFromCache = (fieldId: string) => {
+        return fieldNamesCache[fieldId] || fieldId;
+    }
 
     return (
         <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow duration-200">
@@ -223,7 +159,7 @@ export default function BookingItem({ booking, rawOrder, userProfile, onBookingA
                                             <div key={idx} className="bg-white rounded-lg p-3 border border-amber-100">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <p className="text-gray-900 font-semibold">
-                                                        {fieldNames[detail.fieldId] || detail.fieldId}
+                                                        {getFieldNameFromCache(detail.fieldId)}
                                                     </p>
                                                     <p className="font-semibold text-green-600">{detail.price.toLocaleString()}đ</p>
                                                 </div>

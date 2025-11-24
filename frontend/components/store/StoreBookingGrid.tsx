@@ -205,8 +205,11 @@ export default function StoreBookingGrid({
 
                                         {/* Field Info */}
                                         <div className="flex-1">
-                                            <div className="font-bold text-gray-800 text-base truncate">
-                                                {field.name || `Sân ${fieldLetter}`}
+                                            <div className="font-bold text-gray-800 text-base truncate" title={field.name || `Sân ${fieldLetter}`}>
+                                                {(field.name || `Sân ${fieldLetter}`).length > 15
+                                                    ? (field.name || `Sân ${fieldLetter}`).substring(0, 15) + '...'
+                                                    : (field.name || `Sân ${fieldLetter}`)
+                                                }
                                             </div>
                                             <div className="flex items-center justify-between mt-1">
                                                 <div className="flex items-center gap-1 bg-yellow-100 px-2 py-0.5 rounded-full">
@@ -215,7 +218,7 @@ export default function StoreBookingGrid({
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-emerald-600 font-bold text-sm">
-                                                        {(parseFloat(field.defaultPrice) / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}K
+                                                        {parseFloat(field.defaultPrice).toLocaleString('vi-VN')}₫
                                                     </div>
                                                     <div className="text-xs text-gray-500">
                                                         {fieldPricings[field._id]?.length > 0}

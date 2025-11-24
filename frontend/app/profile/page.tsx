@@ -9,7 +9,7 @@ import ProfileActivities from "@/components/profile/ProfileActivities"
 import ProfileStores from "@/components/profile/ProfileStores"
 import ProfileAchievements from "@/components/profile/ProfileAchievements"
 import ProfileSettings from "@/components/profile/ProfileSettings"
-import { getMyProfile } from "@/services/get-my-profile"
+import { getMyProfile, getStoresByOwnerId } from "@/services/api-new"
 import { User as UserType } from "@/types"
 import { useRouter } from "next/navigation"
 
@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>("overview")
+  const [hasStores, setHasStores] = useState<boolean>(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -63,6 +64,15 @@ export default function ProfilePage() {
         }
 
         setUser(mappedUser)
+
+        // Check if user has stores
+        try {
+          const stores = await getStoresByOwnerId(userData.id)
+          setHasStores(stores && stores.length > 0)
+        } catch (error) {
+          console.log('⚠️ Could not fetch stores, assuming no stores')
+          setHasStores(false)
+        }
       } catch (error) {
         console.error("❌ Error fetching user:", error)
         router.push("/login")
@@ -94,7 +104,7 @@ export default function ProfilePage() {
 
         {/* Profile Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} hasStores={hasStores} />
 
           <TabsContent value="overview" className="space-y-6">
             <ProfileOverview user={user} />
@@ -104,9 +114,11 @@ export default function ProfilePage() {
             <ProfileActivities />
           </TabsContent>
 
-          <TabsContent value="stores" className="space-y-6">
-            <ProfileStores userId={user?.id} />
-          </TabsContent>
+          {hasStores && (
+            <TabsContent value="stores" className="space-y-6">
+              <ProfileStores userId={user?.id} />
+            </TabsContent>
+          )}
 
           <TabsContent value="achievements" className="space-y-6">
             <ProfileAchievements />

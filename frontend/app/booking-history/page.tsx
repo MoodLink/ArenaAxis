@@ -81,7 +81,7 @@ export default function BookingHistoryPage() {
   const router = useRouter()
 
   // State quản lý tab hiện tại
-  const [activeTab, setActiveTab] = useState("Tất cả")
+  const [activeTab, setActiveTab] = useState("Sắp diễn ra")
 
   // State quản lý search và filter
   const [searchQuery, setSearchQuery] = useState("")
@@ -98,20 +98,54 @@ export default function BookingHistoryPage() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [ordersData, setOrdersData] = useState<any[]>([])
 
+  // Cache for store names and field names to avoid re-fetching
+  const [storeNamesCache, setStoreNamesCache] = useState<Record<string, string>>({})
+  const [fieldNamesCache, setFieldNamesCache] = useState<Record<string, string>>({})
+
   // State cho static data
   const [tabs, setTabs] = useState<BookingTab[]>([
-    { id: "Tất cả", label: "Tất cả", icon: null, count: 0 },
-    { id: "Sắp tới", label: "Sắp tới", icon: null, count: 0 },
-    { id: "Đã xong", label: "Đã xong", icon: null, count: 0 },
-    { id: "Đã hủy", label: "Đã hủy", icon: null, count: 0 },
+    { id: "Sắp diễn ra", label: "Sắp diễn ra", icon: null, count: 0 },
+    { id: "Đang diễn ra", label: "Đang diễn ra", icon: null, count: 0 },
+    { id: "Đã diễn ra", label: "Đã diễn ra", icon: null, count: 0 },
   ])
-  const [statusMap, setStatusMap] = useState<Record<string, string>>({
-    "Tất cả": "all",
-    "Sắp tới": "confirmed",
-    "Đã xong": "completed",
-    "Đã hủy": "cancelled"
-  })
   const [sportOptions, setSportOptions] = useState<{ value: string; label: string }[]>([])
+
+  // Helper functions to fetch names
+  const fetchStoreName = async (storeId: string): Promise<string> => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/store/${storeId}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.name || data.name || storeId;
+      }
+    } catch (error) {
+      console.error('Error fetching store name:', error);
+    }
+    return storeId;
+  }
+
+  const fetchFieldName = async (fieldId: string): Promise<string> => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/fields/${fieldId}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.name || fieldId;
+      }
+    } catch (error) {
+      console.error('Error fetching field name:', error);
+    }
+    return fieldId;
+  }
 
   // Fetch user info
   useEffect(() => {
@@ -158,20 +192,92 @@ export default function BookingHistoryPage() {
     fetchBookings()
   }, [userId])
 
+  // Fetch all store names and field names once when orders are loaded
+  useEffect(() => {
+    if (ordersData.length === 0) return;
+
+    const fetchAllNames = async () => {
+      // Get unique store IDs
+      const uniqueStoreIds = [...new Set(ordersData.map(order => order.storeId).filter(Boolean))] as string[];
+
+      // Get unique field IDs from all orderDetails
+      const uniqueFieldIds = [...new Set(
+        ordersData.flatMap(order =>
+          order.orderDetails?.map((d: any) => d.fieldId) || []
+        ).filter(Boolean)
+      )] as string[];
+
+      console.log('📤 Fetching names for', uniqueStoreIds.length, 'stores and', uniqueFieldIds.length, 'fields');
+
+      // Fetch all store names in parallel
+      const storeNamePromises = uniqueStoreIds.map(async (storeId) => {
+        const name = await fetchStoreName(storeId);
+        return { id: storeId, name };
+      });
+
+      // Fetch all field names in parallel
+      const fieldNamePromises = uniqueFieldIds.map(async (fieldId) => {
+        const name = await fetchFieldName(fieldId);
+        return { id: fieldId, name };
+      });
+
+      // Wait for all to complete
+      const [storeResults, fieldResults] = await Promise.all([
+        Promise.all(storeNamePromises),
+        Promise.all(fieldNamePromises)
+      ]);
+
+      // Build cache objects
+      const storeCache: Record<string, string> = {};
+      storeResults.forEach(result => {
+        storeCache[result.id] = result.name;
+      });
+
+      const fieldCache: Record<string, string> = {};
+      fieldResults.forEach(result => {
+        fieldCache[result.id] = result.name;
+      });
+
+      console.log('✅ Names cached:', { stores: Object.keys(storeCache).length, fields: Object.keys(fieldCache).length });
+
+      setStoreNamesCache(storeCache);
+      setFieldNamesCache(fieldCache);
+    };
+
+    fetchAllNames();
+  }, [ordersData]);
+
+  // Helper function to check booking time status
+  const getBookingTimeStatus = (booking: Booking): 'upcoming' | 'ongoing' | 'past' => {
+    const now = new Date()
+    const bookingDate = booking.date.split('/').reverse().join('-') // Convert DD/MM/YYYY to YYYY-MM-DD
+    const bookingTime = booking.time
+    const bookingDateTime = new Date(`${bookingDate} ${bookingTime}`)
+
+    // Calculate end time based on duration
+    const endDateTime = new Date(bookingDateTime.getTime() + booking.duration * 60000)
+
+    if (now < bookingDateTime) {
+      return 'upcoming' // Sắp diễn ra
+    } else if (now >= bookingDateTime && now <= endDateTime) {
+      return 'ongoing' // Đang diễn ra
+    } else {
+      return 'past' // Đã diễn ra
+    }
+  }
+
   // Cập nhật tabs count dựa trên bookings data
   useEffect(() => {
     if (tabs.length > 0 && bookings.length > 0) {
       const updatedTabs = tabs.map(tab => ({
         ...tab,
-        count: tab.id === "Tất cả"
-          ? bookings.length
-          : tab.id === "Sắp tới"
-            ? bookings.filter(b => b.status === "confirmed").length
-            : tab.id === "Đã xong"
-              ? bookings.filter(b => b.status === "completed").length
-              : tab.id === "Đã hủy"
-                ? bookings.filter(b => b.status === "cancelled").length
-                : 0
+        count: tab.id === "Sắp diễn ra"
+          ? bookings.filter(b => getBookingTimeStatus(b) === 'upcoming').length
+          : tab.id === "Đang diễn ra"
+            ? bookings.filter(b => getBookingTimeStatus(b) === 'ongoing').length
+            : tab.id === "Đã diễn ra"
+              ? bookings.filter(b => getBookingTimeStatus(b) === 'past').length
+              : 0
       }))
       setTabs(updatedTabs)
     }
@@ -181,12 +287,13 @@ export default function BookingHistoryPage() {
   useEffect(() => {
     let filtered = bookings
 
-    // Lọc theo tab
-    if (activeTab !== "Tất cả") {
-      const statusValue = statusMap[activeTab]
-      if (statusValue) {
-        filtered = filtered.filter(booking => booking.status === statusValue)
-      }
+    // Lọc theo tab dựa trên thời gian
+    if (activeTab === "Sắp diễn ra") {
+      filtered = filtered.filter(booking => getBookingTimeStatus(booking) === 'upcoming')
+    } else if (activeTab === "Đang diễn ra") {
+      filtered = filtered.filter(booking => getBookingTimeStatus(booking) === 'ongoing')
+    } else if (activeTab === "Đã diễn ra") {
+      filtered = filtered.filter(booking => getBookingTimeStatus(booking) === 'past')
     }
 
     // Lọc theo search query
@@ -287,11 +394,11 @@ export default function BookingHistoryPage() {
           />
 
           {/* Modern Tab Navigation */}
-          {/* <BookingTabsNav
+          <BookingTabsNav
             tabs={tabs}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-          /> */}
+          />
         </div>
 
         {/* Loading State */}
@@ -316,6 +423,8 @@ export default function BookingHistoryPage() {
                     rawOrder={rawOrder}
                     userProfile={userProfile}
                     onBookingAction={handleBookingAction}
+                    storeNamesCache={storeNamesCache}
+                    fieldNamesCache={fieldNamesCache}
                   />
                 )
               })}

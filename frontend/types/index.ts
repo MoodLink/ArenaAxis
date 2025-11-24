@@ -723,6 +723,7 @@ export interface StoreRegistrationRequest {
     endTime: string; // HH:mm format
     provinceId: string;
     wardId: string;
+    amenities?: string[]; // Array of selected amenities
     // planId: string
     businessLicense?: File; // File upload for business license
     coverImage?: File; // File upload for cover image

@@ -4,6 +4,7 @@
 import { StoreSearchItemResponse } from '@/types';
 import { reverseGeocodeAndFindLocation } from './location-helper.service';
 
+
 /**
  * Request để tìm kiếm cửa hàng gần vị trí
  */
@@ -52,17 +53,22 @@ export async function getNearbyStores(
             provinceName: request.provinceName || 'NOT PROVIDED'
         });
 
-        // Gọi qua proxy route (NextJS API route)
-        // QUAN TRỌNG: Gửi wardName + provinceName với ưu tiên cao để backend lọc chính xác
-        const requestBody = {
+        // CHIẾN LƯỢC ĐƠN GIẢN: CHỈ LỌC THEO PROVINCE
+        // Không gửi distance, wardName - để backend trả về TẤT CẢ stores trong province
+        const requestBody: any = {
             latitude: request.latitude,
             longitude: request.longitude,
-            distance: request.distance || 10000, // Default 10km
-            ...(request.wardName && { wardName: request.wardName.trim() }),
-            ...(request.provinceName && { provinceName: request.provinceName.trim() })
+            distance: 999999, // Distance rất lớn để không bị giới hạn
         };
 
+        // CHỈ gửi provinceName (nếu có)
+        if (request.provinceName && request.provinceName.trim() !== '') {
+            requestBody.provinceName = request.provinceName.trim();
+        }
+
         console.log('📤 Sending request body to backend:', JSON.stringify(requestBody, null, 2));
+        console.log('🌐 API endpoint: /api/recommends/near-by (POST)');
+        console.log('⚠️ Strategy: PROVINCE-ONLY filtering (no ward, no distance limit)');
 
         const response = await fetch('/api/recommends/near-by', {
             method: 'POST',
@@ -85,11 +91,14 @@ export async function getNearbyStores(
 
         // Log thông tin về các cửa hàng trả về để debug
         if (Array.isArray(data) && data.length > 0) {
-            console.log('📋 Sample stores received:');
-            data.slice(0, 3).forEach((store, idx) => {
-                console.log(`  Store ${idx + 1}: ${store.name} @ ${store.address}`, {
-                    distance: (store as any).distance,
-                    ward: (store as any).ward
+            console.log('📋 Sample stores received from backend:');
+            data.forEach((store, idx) => {
+                console.log(`  Store ${idx + 1}:`, {
+                    name: store.name,
+                    province: store.province?.name || 'NO PROVINCE',
+                    provinceId: store.province?.id || 'NO ID',
+                    ward: store.ward?.name || 'NO WARD',
+                    wardId: store.ward?.id || 'NO ID'
                 });
             });
         } else {
@@ -97,7 +106,51 @@ export async function getNearbyStores(
         }
 
         // Ensure we return an array
-        return Array.isArray(data) ? data : [];
+        const stores = Array.isArray(data) ? data : [];
+
+        // CLIENT-SIDE FILTERING: Lọc stores theo provinceName nếu có
+        let filteredStores = stores;
+
+        if (request.provinceName && request.provinceName.trim() !== '') {
+            console.log(`🔍 Client-side filtering by province: "${request.provinceName}"`);
+
+            // Chuẩn hóa tên province để so sánh (xóa dấu, lowercase)
+            const normalizeProvinceName = (name: string) => {
+                return name
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
+                    .replace(/đ/g, 'd')
+                    .replace(/Đ/g, 'd')
+                    .trim();
+            };
+
+            const normalizedTargetProvince = normalizeProvinceName(request.provinceName);
+            console.log(`📍 Normalized target province: "${normalizedTargetProvince}"`);
+
+            filteredStores = stores.filter((store) => {
+                // Sử dụng province object từ backend (chính xác hơn là parse address)
+                const storeProvinceName = store.province?.name;
+
+                if (storeProvinceName) {
+                    const normalizedStoreProvince = normalizeProvinceName(storeProvinceName);
+
+                    // So sánh chính xác: chỉ match khi 2 province giống hệt nhau
+                    const isMatch = normalizedStoreProvince === normalizedTargetProvince;
+
+                    console.log(`   ${isMatch ? '✅' : '❌'} ${store.name}: "${storeProvinceName}" (normalized: "${normalizedStoreProvince}")`);
+                    return isMatch;
+                } else {
+                    // Nếu không có province object, loại bỏ store này
+                    console.warn(`⚠️ Store "${store.name}" has no province data - EXCLUDED`);
+                    return false; // Loại bỏ để đảm bảo an toàn
+                }
+            });
+
+            console.log(`🎯 After client-side filtering: ${filteredStores.length} stores (removed ${stores.length - filteredStores.length} out-of-province stores)`);
+        }
+
+        return filteredStores;
     } catch (error) {
         console.error('Error fetching nearby stores:', error);
         throw error;
@@ -154,17 +207,19 @@ export async function getNearbyStoresFromGeolocation(
                         console.warn('⚠️ Could not determine province/ward from location - using coordinates only');
                     }
 
-                    // LUÔN gửi wardName + provinceName nếu tìm được (ưu tiên lọc chính xác)
-                    // Nếu không, chỉ gửi tọa độ
+                    // CHIẾN LƯỢC ĐơN GIẢN: CHỈ LỌC THEO PROVINCE
+                    // Không quan tâm ward, distance - chỉ cần cùng tỉnh
+                    console.log('📋 Filtering strategy: PROVINCE-ONLY (simple & effective)');
+
                     const stores = await getNearbyStores({
                         latitude,
                         longitude,
-                        distance,
-                        ...(wardName && { wardName }),
-                        ...(provinceName && { provinceName })
+                        distance: 999999, // Distance rất lớn
+                        // wardName: KHÔNG gửi
+                        ...(provinceName && { provinceName }) // CHỈ gửi province
                     });
 
-                    console.log(`🎯 Final: Got ${stores.length} nearby stores`);
+                    console.log(`🎯 Final: Returning ${stores.length} stores in province "${provinceName || 'unknown'}"`);
                     resolve(stores);
                 } catch (error) {
                     console.error('❌ Error getting nearby stores:', error);
