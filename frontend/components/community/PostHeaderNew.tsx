@@ -79,17 +79,17 @@ export default function PostHeader({
                                 <h3 className="text-xl font-bold text-gray-900">
                                     {typeof post.author === 'string' ? post.author : post.author.name}
                                 </h3>
-                                <CheckCircle className="w-5 h-5 text-blue-500" />
+                                {/* <CheckCircle className="w-5 h-5 text-blue-500" />
                                 <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white text-sm px-3 py-1">
                                     Host
-                                </Badge>
+                                </Badge> */}
                             </div>
                             <p className="text-gray-600 font-medium">{formatTimeAgo(post.createdAt)}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {!postDetail.isExpired ? (
+                        {/* {!postDetail.isExpired ? (
                             <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 text-sm">
                                 🟢 Đang mở
                             </Badge>
@@ -97,7 +97,7 @@ export default function PostHeader({
                             <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 text-sm">
                                 🔴 Đã hết hạn
                             </Badge>
-                        )}
+                        )} */}
                         <Badge className={`${getSportColor(post.sport)} text-white px-4 py-2 text-sm`}>
                             {post.sport}
                         </Badge>
@@ -186,7 +186,7 @@ export default function PostHeader({
                             : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-green-200"
                             }`}
                     >
-                        {isJoined ? "✓ Đã tham gia" : "🚀 Tham gia ngay"}
+                        {isJoined ? "Liên hệ với chủ sân" : "Liên hệ với chủ sân"}
                     </Button>
                 </div>
             </CardContent>

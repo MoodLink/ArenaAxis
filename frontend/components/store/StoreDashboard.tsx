@@ -37,7 +37,7 @@ export default function StoreDashboard() {
             <div className="space-y-6">
                 {/* Page Header */}
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Quản lý cửa hàng</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Trung tâm thể thao</h1>
                     <p className="text-gray-600">Tổng quan hoạt động kinh doanh sân thể thao</p>
                 </div>
 

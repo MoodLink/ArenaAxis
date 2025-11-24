@@ -141,13 +141,13 @@ export default function CommunityPostPage({ params }: { params: Promise<{ id: st
             />
 
             {/* Participants List */}
-            {participants && postDetail && (
+            {/* {participants && postDetail && (
               <ParticipantsList
                 participants={participants.participants}
                 joinedUsers={participants.joinedUsers}
                 hostInfo={postDetail.hostInfo}
               />
-            )}
+            )} */}
 
             {/* Comments Section */}
             {comments && (

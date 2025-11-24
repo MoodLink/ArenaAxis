@@ -653,7 +653,7 @@ export const communityPosts: CommunityPost[] = [
         cost: "50k/người",
         likes: 8,
         comments: 15,
-        tags: ["Bóng đá", "7vs7", "Tối nay", "Gấp"],
+        tags: ["Bóng đá", "7vs7", "Tối nay"],
         createdAt: "2024-01-20T16:45:00Z",
         status: "urgent",
         urgency: "urgent"
@@ -806,12 +806,12 @@ export const communityPosts: CommunityPost[] = [
 
 // Dữ liệu cộng đồng nổi bật  
 export const featuredCommunities = [
-    { name: "Tennis Hà Nội", members: "12.5k", icon: "🎾", trending: true, description: "Cộng đồng tennis lớn nhất Hà Nội", posts: 245 },
-    { name: "Bóng đá Sài Gòn", members: "25.8k", icon: "⚽", trending: false, description: "Giao lưu bóng đá khắp Sài Gòn", posts: 512 },
-    { name: "Cầu lông Miền Bắc", members: "8.2k", icon: "🏸", trending: true, description: "Cầu lông từ nghiệp dù đến chuyên nghiệp", posts: 156 },
-    { name: "Bóng rổ Streetball", members: "15.3k", icon: "🏀", trending: false, description: "Basketball cộng đồng", posts: 324 },
-    { name: "Bơi lội TP.HCM", members: "9.1k", icon: "🏊‍♂️", trending: true, description: "Bơi lội và thể dục dưới nước", posts: 89 },
-    { name: "Chạy Marathon VN", members: "18.7k", icon: "🏃‍♂️", trending: false, description: "Cộng đồng runner Việt Nam", posts: 234 }
+    { name: "Tennis Hà Nội", icon: "🎾", trending: true, description: "Giao lưu tennis khắp Hà Nội" },
+    { name: "Bóng đá Sài Gòn", icon: "⚽", trending: false, description: "Giao lưu bóng đá khắp Sài Gòn" },
+    { name: "Cầu lông Miền Bắc", icon: "🏸", trending: true, description: "Cầu lông từ nghiệp dù đến chuyên nghiệp" },
+    { name: "Bóng rổ Streetball", icon: "🏀", trending: false, description: "Basketball cộng đồng" },
+    { name: "Bơi lội TP.HCM", icon: "🏊‍♂️", trending: true, description: "Bơi lội và thể dục dưới nước" },
+    { name: "Chạy Marathon VN", icon: "🏃‍♂️", trending: false, description: "Cộng đồng runner Việt Nam" }
 ]
 
 // Trending topics

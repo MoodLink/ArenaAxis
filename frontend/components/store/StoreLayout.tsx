@@ -36,7 +36,7 @@ import { logout } from "@/services/auth.service"
 
 const sidebarItems = [
 	{
-		title: 'Quản lý cửa hàng',
+		title: 'Trung tâm thể thao',
 		icon: LayoutDashboard,
 		href: '/store',
 		badge: null,
@@ -151,13 +151,13 @@ function Header({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 
 	const handleLogout = () => {
 		if (typeof window !== 'undefined') {
-		  logout().then(() => {
+			logout().then(() => {
 				localStorage.removeItem('token')
 				localStorage.removeItem('user')
 				setUser(null)
 				window.location.href = '/login'
 			}).catch((error) => {
-			  console.error('Logout failed:', error);
+				console.error('Logout failed:', error);
 			})
 		}
 	}

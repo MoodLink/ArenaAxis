@@ -48,7 +48,7 @@ export default function CommunitySearchBar({
                     {/* Filters row */}
                     <div className="flex flex-wrap gap-3 items-center">
                         {/* Sort dropdown */}
-                        <select
+                        {/* <select
                             value={selectedFilters.sortBy}
                             onChange={(e) => onFiltersChange({ sortBy: e.target.value as "newest" | "popular" | "trending" })}
                             className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -56,7 +56,7 @@ export default function CommunitySearchBar({
                             <option value="newest">Mới nhất</option>
                             <option value="popular">Phổ biến</option>
                             <option value="trending">Xu hướng</option>
-                        </select>
+                        </select> */}
 
                         {/* Sport filter */}
                         <select
@@ -75,7 +75,7 @@ export default function CommunitySearchBar({
                         </select>
 
                         {/* Distance filter */}
-                        <select
+                        {/* <select
                             value={selectedFilters.distance}
                             onChange={(e) => onFiltersChange({ distance: e.target.value })}
                             className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -85,7 +85,7 @@ export default function CommunitySearchBar({
                             <option value="1-5km">📍 1-5km</option>
                             <option value="5-10km">📍 5-10km</option>
                             <option value="> 10km">📍 Trên 10km</option>
-                        </select>
+                        </select> */}
 
                         {/* Active filters count */}
                         {activeFiltersCount > 0 && (
@@ -97,7 +97,7 @@ export default function CommunitySearchBar({
                     </div>
 
                     {/* Results summary */}
-                    <div className="pt-2 border-t border-gray-100">
+                    {/* <div className="pt-2 border-t border-gray-100">
                         <p className="text-sm text-gray-600">
                             {totalResults > 0 ? (
                                 <>
@@ -109,7 +109,7 @@ export default function CommunitySearchBar({
                                 "Không tìm thấy hoạt động phù hợp"
                             )}
                         </p>
-                    </div>
+                    </div> */}
                 </div>
             </CardContent>
         </Card>

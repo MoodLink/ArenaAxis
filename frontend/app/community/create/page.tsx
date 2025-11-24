@@ -67,9 +67,19 @@ export default function CreatePostPage() {
     const fetchSports = async () => {
       try {
         const sportsData = await getSports()
-        setSports(sportsData)
+        console.log('Sports fetched:', sportsData)
+        setSports(Array.isArray(sportsData) ? sportsData : [])
       } catch (error) {
         console.error('Error fetching sports:', error)
+        // Add fallback sports data if API fails
+        setSports([
+          { id: '1', name: 'Tennis' },
+          { id: '2', name: 'Cầu lông' },
+          { id: '3', name: 'Bóng đá' },
+          { id: '4', name: 'Bóng rổ' },
+          { id: '5', name: 'Bơi lội' },
+          { id: '6', name: 'Chạy bộ' }
+        ])
       } finally {
         setLoading(false)
       }
@@ -85,11 +95,13 @@ export default function CreatePostPage() {
   }
 
   const validateStep2 = () => {
-    return formData.location.trim() && formData.level && formData.maxParticipants
+    // Step 2 is now optional - users can skip it
+    return true
   }
 
   const validateStep3 = () => {
-    return formData.description.trim().length >= 30
+    // Step 3 is now optional - users can skip it
+    return true
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -254,11 +266,24 @@ export default function CreatePostPage() {
                 required
               >
                 <option value="">Chọn môn thể thao</option>
-                {sports.map((sport) => (
-                  <option key={sport.id} value={sport.name}>
-                    {sport.name}
-                  </option>
-                ))}
+                {loading ? (
+                  <option disabled>Đang tải...</option>
+                ) : sports.length > 0 ? (
+                  sports.map((sport) => (
+                    <option key={sport.id} value={sport.name}>
+                      {sport.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Tennis">Tennis</option>
+                    <option value="Cầu lông">Cầu lông</option>
+                    <option value="Bóng đá">Bóng đá</option>
+                    <option value="Bóng rổ">Bóng rổ</option>
+                    <option value="Bơi lội">Bơi lội</option>
+                    <option value="Chạy bộ">Chạy bộ</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -320,10 +345,10 @@ export default function CreatePostPage() {
                         <CheckCircle className="w-4 h-4 text-green-500" />
                         <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded">Hot</Badge>
                       </div>
-                      <p className="text-sm text-gray-500">613 ngày trước</p>
+                      <p className="text-sm text-gray-500">2 ngày trước</p>
                     </div>
                     <div className="flex gap-2">
-                      <Badge className="bg-orange-100 text-orange-700 text-xs px-2 py-1">Gấp</Badge>
+                      {/* <Badge className="bg-orange-100 text-orange-700 text-xs px-2 py-1">Gấp</Badge> */}
                       <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-1">{formData.sport || 'Tennis'}</Badge>
                     </div>
                   </div>
@@ -394,7 +419,7 @@ export default function CreatePostPage() {
                       </button>
                     </div>
                     <Button className="bg-green-600 hover:bg-green-700 text-white px-6">
-                      Tham gia ngay
+                      Liên hệ với chủ sân
                     </Button>
                   </div>
                 </CardContent>
@@ -806,10 +831,7 @@ export default function CreatePostPage() {
                     <Button
                       type="button"
                       onClick={nextStep}
-                      disabled={
-                        (step === 1 && !validateStep1()) ||
-                        (step === 2 && !validateStep2())
-                      }
+                      disabled={(step === 1 && !validateStep1())}
                       className="bg-green-600 hover:bg-green-700 px-6"
                     >
                       Tiếp theo
@@ -818,7 +840,7 @@ export default function CreatePostPage() {
                   ) : (
                     <Button
                       type="submit"
-                      disabled={!validateStep3() || submitting}
+                      disabled={submitting}
                       className="bg-green-600 hover:bg-green-700 px-8 h-12"
                     >
                       {submitting ? (

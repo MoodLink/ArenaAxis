@@ -106,7 +106,7 @@ export default function StoresManagement() {
         <div className="space-y-6">
             {/* Header */}
             <AdminHeader
-                title="Quản lý cửa hàng"
+                title="Trung tâm thể thao"
                 description="Quản lý thông tin và hoạt động của các cửa hàng"
             />
 

@@ -113,12 +113,12 @@ export default function CommunityPostCard({
 
                         {/* Status badges */}
                         <div className="flex items-center gap-2">
-                            {isUrgent && (
+                            {/* {isUrgent && (
                                 <Badge className="bg-orange-500 text-white animate-pulse">
                                     <Zap className="w-3 h-3 mr-1" />
                                     Gấp
                                 </Badge>
-                            )}
+                            )} */}
                             <Badge className={`${getSportColor(post.sport)} text-white border-0`}>
                                 {post.sport}
                             </Badge>
@@ -152,7 +152,7 @@ export default function CommunityPostCard({
                     <p className="text-gray-700 mb-4 leading-relaxed line-clamp-2">{post.content}</p>
 
                     {/* Activity details card */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
                         <div className="text-center">
                             <div className="text-sm text-gray-500 mb-1">Trình độ</div>
                             <Badge variant="outline" className="text-xs">{level}</Badge>
@@ -161,10 +161,10 @@ export default function CommunityPostCard({
                             <div className="text-sm text-gray-500 mb-1">Chi phí</div>
                             <span className="text-green-600 font-medium text-sm">50k</span>
                         </div>
-                        <div className="text-center">
+                        {/* <div className="text-center">
                             <div className="text-sm text-gray-500 mb-1">Tham gia</div>
                             <span className="text-blue-600 font-medium text-sm">{participants}/{maxParticipants || '∞'}</span>
-                        </div>
+                        </div> */}
                         <div className="text-center">
                             <div className="text-sm text-gray-500 mb-1">Thời gian</div>
                             <span className="text-orange-600 font-medium text-sm">{duration}</span>
@@ -195,10 +195,10 @@ export default function CommunityPostCard({
                             </button>
 
                             {/* Participants indicator */}
-                            <div className="flex items-center gap-2 px-3 py-2 text-gray-600">
+                            {/* <div className="flex items-center gap-2 px-3 py-2 text-gray-600">
                                 <Users className="w-4 h-4 text-green-500" />
                                 <span className="text-sm font-medium">{participants} tham gia</span>
-                            </div>
+                            </div> */}
                         </div>
 
                         {/* Join button */}
@@ -207,7 +207,7 @@ export default function CommunityPostCard({
                             onClick={() => onJoin?.(post.id)}
                             className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-6 py-2 font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                         >
-                            Tham gia ngay
+                            Liên hệ với chủ sân
                         </Button>
                     </div>
                 </div>

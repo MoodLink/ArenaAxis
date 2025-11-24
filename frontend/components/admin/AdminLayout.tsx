@@ -56,7 +56,7 @@ const sidebarItems = [
 
   // },
   {
-    title: 'Quản lý cửa hàng',
+    title: 'Trung tâm thể thao',
     icon: Store,
     href: '/admin/stores',
 

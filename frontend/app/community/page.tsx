@@ -124,11 +124,11 @@ export default function CommunityPage() {
                 <Link href="/community/create">
                   <Button className="w-full bg-white text-green-600 hover:bg-gray-100 font-semibold h-12">
                     <Plus className="w-5 h-5 mr-2" />
-                    Tạo hoạt động mới
+                    Tạo hoạt bài viết mới
                   </Button>
                 </Link>
                 <p className="text-sm text-green-100 mt-2 text-center">
-                  Chia sẻ passion của bạn với cộng đồng!
+                  Chia sẻ niềm đam mê của bạn với cộng đồng!
                 </p>
               </CardContent>
             </Card>
@@ -138,7 +138,7 @@ export default function CommunityPage() {
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Star className="w-4 h-4 text-yellow-500" />
-                  Cộng đồng nổi bật
+                  Bài viết nổi bật
                 </h3>
                 <div className="space-y-3">
                   {featuredCommunities.map((community, index) => (
@@ -151,16 +151,18 @@ export default function CommunityPage() {
                               <span className="font-medium text-sm group-hover:text-green-600 transition-colors">
                                 {community.name}
                               </span>
-                              {community.trending && (
-                                <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5">
-                                  <Flame className="w-3 h-3 mr-1" />
-                                  Hot
-                                </Badge>
-                              )}
+                              {community.trending
+                                // && (
+                                //   <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5">
+                                //     <Flame className="w-3 h-3 mr-1" />
+                                //     Hot
+                                //   </Badge>
+                                // )
+                              }
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">
+                            {/* <div className="text-xs text-gray-500 mt-0.5">
                               {community.members} thành viên • {community.posts} bài viết
-                            </div>
+                            </div> */}
                           </div>
                         </div>
                       </div>
@@ -172,7 +174,7 @@ export default function CommunityPage() {
             </Card>
 
             {/* Trending Topics */}
-            <Card>
+            {/* <Card>
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-orange-500" />
@@ -196,7 +198,7 @@ export default function CommunityPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
 
           {/* Main Content */}
