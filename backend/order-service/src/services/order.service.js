@@ -66,6 +66,8 @@ export const createOrderService = async (paymentData) => {
 
     const requestDataItems = mergeContinuous(items);
 
+    const expiredAt = Math.floor(Date.now() / 1000) + 1 * 60;
+
     const requestData = {
       orderCode: orderCode,
       amount: order.cost,
@@ -73,6 +75,7 @@ export const createOrderService = async (paymentData) => {
       items: requestDataItems,
       returnUrl: RETURN_URL + `?orderId=${order._id}`,
       cancelUrl: CANCEL_URL + `?orderId=${order._id}`,
+      expiredAt: expiredAt,
     };
 
     console.log("Request Data:", requestData);

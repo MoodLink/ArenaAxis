@@ -43,31 +43,34 @@ export const getFields = async (filter) => {
 
 export const getFieldById = async (fieldId) => {
   const data = await Field.find({ _id: fieldId }).lean();
-  for (let field of data) {
-    const sport = await getSportDetails(field.sportId);
-    field.sport_name = sport ? sport.name : "Unknown Sport";
-  }
+  // for (let field of data) {
+  //   const sport = await getSportDetails(field.sportId);
+  //   field.sport_name = sport ? sport.name : "Unknown Sport";
+  // }
   return data;
 };
 
 export const create = async (body, req) => {
   const field = new Field(body);
   const data = await field.save();
-  await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  // await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
   return data;
 };
 
 export const update = async (fieldId, updateData) => {
   const existingField = await Field.findById(fieldId);
+  if (!existingField) {
+    return null;
+  }
   const oldSportId = existingField.sportId;
-
+  
   Object.assign(existingField, updateData);
   const data = await existingField.save();
 
-  if (oldSportId !== data.sportId) {
-    await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
-    await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
-  }
+  // if (oldSportId !== data.sportId) {
+  //   await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
+  //   await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  // }
 
   return data;
 };
