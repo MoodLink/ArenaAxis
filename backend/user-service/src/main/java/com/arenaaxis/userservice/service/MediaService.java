@@ -23,4 +23,10 @@ public interface MediaService {
 
   @Async
   void deleteStoreMedia(StoreMedia media);
+
+  @Async
+  void deleteMedia(Media media);
+
+  @Async
+  void deleteMedias(List<Media> medias);
 }

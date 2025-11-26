@@ -16,4 +16,6 @@ public interface RatingMediaService {
 
   @Async
   void delete(String id);
+
+  void delete(List<String> mediaIds);
 }

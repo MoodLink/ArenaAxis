@@ -1,9 +1,11 @@
 package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.AuthenticationRequest;
+import com.arenaaxis.userservice.dto.request.IntrospectRequest;
 import com.arenaaxis.userservice.dto.request.LogoutRequest;
 import com.arenaaxis.userservice.dto.request.RefreshRequest;
 import com.arenaaxis.userservice.dto.response.AuthenticationResponse;
+import com.arenaaxis.userservice.dto.response.IntrospectResponse;
 import com.arenaaxis.userservice.dto.response.RefreshResponse;
 import com.arenaaxis.userservice.entity.enums.Role;
 import com.arenaaxis.userservice.service.AuthenticationService;
@@ -25,6 +27,12 @@ import java.text.ParseException;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
   AuthenticationService authenticationService;
+
+  @PostMapping("/validate")
+  public ResponseEntity<IntrospectResponse> validate(@RequestBody IntrospectRequest request)
+    throws JOSEException, ParseException {
+    return ResponseEntity.ok(authenticationService.introspect(request));
+  }
 
   @PostMapping("/user")
   public ResponseEntity<AuthenticationResponse> loginUser(@RequestBody AuthenticationRequest request) {

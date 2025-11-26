@@ -14,6 +14,7 @@ import java.time.LocalTime;
 public class StoreSearchItemResponse {
   String id;
   String name;
+  String address;
   String avatarUrl;
   String coverUrl;
 

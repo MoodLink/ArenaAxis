@@ -73,3 +73,7 @@ management:
 service:
   order:
     url: https://arena-axis.vercel.app
+
+recommend:
+  near_by:
+    limit: 10
