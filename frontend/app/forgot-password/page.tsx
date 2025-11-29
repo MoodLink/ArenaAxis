@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
             <Input
               id="name"
               type="text"
-              placeholder="Enter your name"
+              placeholder="Nhập tên của bạn"
               className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
             />
           </div>
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Nhập email của bạn"
               className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
             />
           </div>
@@ -54,11 +54,11 @@ export default function ForgotPasswordPage() {
             <Input
               id="password"
               type="password"
-              placeholder="Enter new password"
+              placeholder="Nhập mật khẩu mới"
               className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
             />
           </div>
-          <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold">Reset Password</Button>
+          <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold">Đặt lại mật khẩu</Button>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

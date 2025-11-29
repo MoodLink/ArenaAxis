@@ -217,9 +217,9 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                        Cửa hàng của tôi
+                        Trung tâm thể thao của bạn
                     </h2>
-                    <p className="text-gray-600 mt-1">Quản lý {stores.length} cửa hàng</p>
+                    <p className="text-gray-600 mt-1">Quản lý {stores.length} trung tâm thể thao</p>
                 </div>
 
                 {/* View Mode Toggle */}
@@ -384,7 +384,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-gray-50">
-                                <th className="px-6 py-3 text-left font-semibold text-gray-900">Tên cửa hàng</th>
+                                <th className="px-6 py-3 text-left font-semibold text-gray-900">Tên trung tâm thể thao</th>
                                 <th className="px-6 py-3 text-left font-semibold text-gray-900">Địa chỉ</th>
                                 <th className="px-6 py-3 text-left font-semibold text-gray-900">Giờ mở cửa</th>
                                 <th className="px-6 py-3 text-center font-semibold text-gray-900">Đánh giá</th>

@@ -515,7 +515,7 @@ export default function StoreRegistrationPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold text-center">
-                            Đăng ký trở thành Chủ cửa hàng
+                            Đăng ký trở thành Trung tâm thể thao
                         </CardTitle>
                         <CardDescription className="text-center">
                             Bước {currentStep} / 3: {currentStep === 1 ? 'Thông tin cơ bản' : currentStep === 2 ? 'Tải ảnh lên' : 'Chọn gói dịch vụ'}
@@ -547,12 +547,12 @@ export default function StoreRegistrationPage() {
                                     <h3 className="text-lg font-semibold">Thông tin cơ bản</h3>
 
                                     <div>
-                                        <Label htmlFor="name">Tên cửa hàng *</Label>
+                                        <Label htmlFor="name">Tên trung tâm thể thao *</Label>
                                         <Input
                                             id="name"
                                             value={formData.name}
                                             onChange={(e) => handleInputChange('name', e.target.value)}
-                                            placeholder="Nhập tên cửa hàng"
+                                            placeholder="Nhập tên trung tâm thể thao"
                                             required
                                         />
                                     </div>
@@ -710,8 +710,8 @@ export default function StoreRegistrationPage() {
                                                 <label
                                                     key={amenity}
                                                     className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAmenities.includes(amenity)
-                                                            ? 'border-emerald-500 bg-emerald-50 shadow-md'
-                                                            : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50 hover:border-emerald-300'
+                                                        ? 'border-emerald-500 bg-emerald-50 shadow-md'
+                                                        : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50 hover:border-emerald-300'
                                                         }`}
                                                 >
                                                     <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-500 flex-shrink-0">

@@ -187,7 +187,7 @@ export default function StoreEditDialog({
 
             // Validate required fields
             if (!formData.name?.trim()) {
-                setError('Tên cửa hàng không được để trống');
+                setError('Tên trung tâm thể thao không được để trống');
                 setIsLoading(false);
                 return;
             }
@@ -338,12 +338,12 @@ export default function StoreEditDialog({
                             {/* Tên cửa hàng */}
                             <div className="space-y-2">
                                 <Label htmlFor="name" className="font-semibold">
-                                    Tên cửa hàng *
+                                    Tên trung tâm thể thao *
                                 </Label>
                                 <Input
                                     id="name"
                                     name="name"
-                                    placeholder="Nhập tên cửa hàng"
+                                    placeholder="Nhập tên trung tâm thể thao"
                                     value={formData.name || ''}
                                     onChange={handleChange}
                                     disabled={isLoading}
@@ -689,8 +689,8 @@ export default function StoreEditDialog({
                                         <Card
                                             key={plan.id}
                                             className={`cursor-pointer transition-all ${selectedPlanId === plan.id
-                                                    ? 'border-2 border-blue-600 bg-blue-50'
-                                                    : 'border border-gray-200 hover:border-blue-300'
+                                                ? 'border-2 border-blue-600 bg-blue-50'
+                                                : 'border border-gray-200 hover:border-blue-300'
                                                 }`}
                                             onClick={() => setSelectedPlanId(plan.id)}
                                         >
@@ -709,8 +709,8 @@ export default function StoreEditDialog({
                                                     </div>
                                                     <div
                                                         className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id
-                                                                ? 'border-blue-600 bg-blue-600'
-                                                                : 'border-gray-300'
+                                                            ? 'border-blue-600 bg-blue-600'
+                                                            : 'border-gray-300'
                                                             }`}
                                                     >
                                                         {selectedPlanId === plan.id && (

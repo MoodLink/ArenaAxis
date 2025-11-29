@@ -15,7 +15,7 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
     const columns: TableColumn[] = [
         {
             key: 'name',
-            label: 'Tên cửa hàng',
+            label: 'Tên trung tâm thể thao',
             render: (name, store) => (
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">

@@ -50,7 +50,8 @@ export default function StoreBookingPage() {
         }
         return new Date().toISOString().split('T')[0]
     })
-    const [selectedSlots, setSelectedSlots] = useState<string[]>([])
+    // ✅ Store selected slots per date: { "2025-11-24": ["fieldId:07:00", ...], "2025-11-25": [...] }
+    const [selectedSlots, setSelectedSlots] = useState<{ [date: string]: string[] }>({})
     const [store, setStore] = useState<StoreClientDetailResponse | null>(null)
     const [sport, setSport] = useState<Sport | null>(null)
     const [fields, setFields] = useState<FieldServiceType[]>([])
@@ -426,17 +427,19 @@ export default function StoreBookingPage() {
 
     const handleSlotClick = (fieldId: string, timeSlot: string) => {
         const status = bookingData[fieldId]?.[timeSlot]
-        console.log('🎯 handleSlotClick called:', { fieldId, timeSlot, status, currentSelectedSlots: selectedSlots })
+        console.log('🎯 handleSlotClick called:', { fieldId, timeSlot, status, selectedDate, currentSelectedSlots: selectedSlots })
         if (status === "available") {
             const slotKey = `${fieldId}:${timeSlot}`
             console.log('✅ Slot is available, adding to selected:', slotKey)
             setSelectedSlots((prev) => {
-                if (prev.includes(slotKey)) {
-                    console.log('❌ Removing slot:', slotKey)
-                    return prev.filter((s) => s !== slotKey)
-                } else {
-                    console.log('✅ Adding slot:', slotKey)
-                    return [...prev, slotKey]
+                const currentDateSlots = prev[selectedDate] || []
+                const isSelected = currentDateSlots.includes(slotKey)
+
+                return {
+                    ...prev,
+                    [selectedDate]: isSelected
+                        ? currentDateSlots.filter((s) => s !== slotKey)
+                        : [...currentDateSlots, slotKey]
                 }
             })
         } else {
@@ -468,7 +471,12 @@ export default function StoreBookingPage() {
     }, [fields.length, storeId])
 
     const handleClearSlots = () => {
-        setSelectedSlots([])
+        // Clear slots for current date only
+        setSelectedSlots((prev) => {
+            const newSlots = { ...prev }
+            delete newSlots[selectedDate]
+            return newSlots
+        })
     }
 
     const handleBackToStore = () => {
@@ -567,7 +575,7 @@ export default function StoreBookingPage() {
 
                 <StoreBookingGrid
                     selectedDate={selectedDate}
-                    selectedSlots={selectedSlots}
+                    selectedSlots={selectedSlots[selectedDate] || []}
                     onSlotClick={handleSlotClick}
                     fields={fields}
                     timeSlots={timeSlots}
@@ -579,6 +587,7 @@ export default function StoreBookingPage() {
 
                 <StoreBookingSummary
                     selectedSlots={selectedSlots}
+                    setSelectedSlots={setSelectedSlots}
                     selectedDate={selectedDate}
                     fields={fields}
                     onClearSlots={handleClearSlots}

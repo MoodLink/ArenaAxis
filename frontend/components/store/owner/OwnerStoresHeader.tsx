@@ -16,16 +16,16 @@ export default function OwnerStoresHeader({ totalStores }: OwnerStoresHeaderProp
                                 <Store className="w-6 h-6" />
                             </div>
                             <div>
-                                <h1 className="text-3xl lg:text-4xl font-bold">Cửa hàng của tôi</h1>
+                                <h1 className="text-3xl lg:text-4xl font-bold">Trung tâm thể thao của tôi</h1>
                                 <p className="text-blue-100 text-lg mt-1">
-                                    Quản lý và theo dõi các cửa hàng của bạn
+                                    Quản lý và theo dõi các trung tâm thể thao của bạn
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4 text-sm">
                             <div className="bg-white/20 px-3 py-2 rounded-full">
-                                <span>{totalStores} cửa hàng</span>
+                                <span>{totalStores} trung tâm thể thao</span>
                             </div>
                             <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
                                 <ShoppingCart className="w-4 h-4" />

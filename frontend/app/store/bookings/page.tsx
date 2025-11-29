@@ -955,7 +955,7 @@ export default function StoreBookingsPage() {
                                     <CardContent className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <p className="text-sm text-gray-600">Tên cửa hàng</p>
+                                                <p className="text-sm text-gray-600">Tên trung tâm thể thao</p>
                                                 <p className="font-medium">{store.name || 'N/A'}</p>
                                             </div>
                                             <div>
@@ -1090,11 +1090,11 @@ export default function StoreBookingsPage() {
                 <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Chỉnh sửa thông tin cửa hàng</DialogTitle>
+                            <DialogTitle>Chỉnh sửa thông tin trung tâm thể thao</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium text-gray-700">Tên cửa hàng</label>
+                                <label className="text-sm font-medium text-gray-700">Tên trung tâm thể thao</label>
                                 <Input
                                     value={editForm.name}
                                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}

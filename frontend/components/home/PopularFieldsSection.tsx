@@ -28,7 +28,7 @@ export default function PopularFieldsSection({
     }, [fields])
 
     // Xác định tiêu đề và message
-    const title = showNearby ? "Cửa hàng gần bạn" : "Các sân phổ biến"
+    const title = showNearby ? "Trung tâm thể thao gần đây" : "Các sân phổ biến"
     const emptyMessage = showNearby ? "Không tìm thấy cửa hàng gần bạn" : "Không có sân phổ biến nào để hiển thị"
 
     return (

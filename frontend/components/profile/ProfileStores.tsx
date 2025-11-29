@@ -148,16 +148,16 @@ export default function ProfileStores({ userId }: ProfileStoresProps) {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                        Cửa hàng của tôi
+                        Trung tâm thể thao của bạn
                     </h2>
-                    <p className="text-gray-600 mt-1">Quản lý {stores.length} cửa hàng</p>
+                    <p className="text-gray-600 mt-1">Quản lý {stores.length} trung tâm thể thao</p>
                 </div>
                 <Button asChild>
                     <Link href="/store-registration">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Đăng ký cửa hàng mới
+                        Đăng ký trung tâm thể thao mới
                     </Link>
                 </Button>
             </div>
