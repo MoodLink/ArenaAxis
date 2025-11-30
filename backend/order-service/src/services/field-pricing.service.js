@@ -46,12 +46,6 @@ export const createFieldPricing = async (body) => {
 
 export const getFieldPricingsByFieldId = async (fieldId) => {
   try {
-    const field = await Field.findById(fieldId).lean();
-    if (!field) {
-      throw new Error("Field not found");
-    }
-
-    const defaultPrice = field.defaultPrice;
     // get price from monday to sunday, if not found, use default price
     const pricings = {};
     for (const day of Object.values(daysOfWeekEnum)) {
@@ -63,7 +57,7 @@ export const getFieldPricingsByFieldId = async (fieldId) => {
 
       if (pricing.length > 0) pricings[day] = joinDurations(pricing);
     }
-    return { defaultPrice, pricings };
+    return pricings;
   } catch (error) {
     console.error("Error in getFieldPricingsByFieldId:", {
       message: error.message,

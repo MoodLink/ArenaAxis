@@ -6,6 +6,7 @@ import { dirname } from 'path';
 import { connect } from "./config/database.js";
 import route from "./routes/index.route.js";
 import bodyParser from 'body-parser';
+import "./cron/updateOrderStatus.js";
 
 // Initialize dotenv
 dotenv.config();
