@@ -20,7 +20,7 @@ const CANCEL_URL =
 
 export const createOrderService = async (paymentData) => {
   try {
-    const { amount, description, items, store_id, user_id, date } = paymentData;
+    const { amount, description, items, store_id, user_id } = paymentData;
 
     if (
       !amount ||
@@ -29,8 +29,7 @@ export const createOrderService = async (paymentData) => {
       !Array.isArray(items) ||
       items.length === 0 ||
       !store_id ||
-      !user_id ||
-      !date
+      !user_id
     ) {
       throw new Error("Missing required fields: amount, description, or items");
     }
@@ -49,8 +48,8 @@ export const createOrderService = async (paymentData) => {
     console.log("Order created with ID:", order._id);
 
     const orderDetails = items.map((item) => {
-      const startDateTime = new Date(`${date}T${item.start_time}:00`);
-      const endDateTime = new Date(`${date}T${item.end_time}:00`);
+      const startDateTime = new Date(`${item.date}T${item.start_time}:00`);
+      const endDateTime = new Date(`${item.date}T${item.end_time}:00`);
 
       return OrderDetail({
         orderId: order._id,
@@ -66,7 +65,7 @@ export const createOrderService = async (paymentData) => {
 
     const requestDataItems = mergeContinuous(items);
 
-    const expiredAt = Math.floor(Date.now() / 1000) + 1 * 60;
+    const expiredAt = Math.floor(Date.now() / 1000) + 2 * 60;
 
     const requestData = {
       orderCode: orderCode,
@@ -139,6 +138,36 @@ export const getOrderService = async (filter) => {
     order._doc.orderDetails = mergedDetails;
 
     return order;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const getOrderByFieldIdAndDateTime = async (fieldId, dateTime) => {
+  try {
+    // get orders which fieldId matches and endTime == dateTime (yyyy-mm-dd) with statusPayment != FAILED
+    const start = new Date(dateTime);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(dateTime);
+    end.setHours(23, 59, 59, 999);
+
+    const orderDetails = await OrderDetail.find({
+      fieldId,
+      endTime: { $gte: start, $lte: end },
+    }).select("orderId fieldId startTime endTime").lean();
+
+    // for each orderDetail, get order statusPayment, if not FAILED, push to results. With orderDetails having same orderId, only get one and set similar to another
+    const results = [];
+    for (const detail of orderDetails) {
+      const order = await Order.findById(detail.orderId);
+      if (order && order.statusPayment !== "FAILED") {
+        detail.statusPayment = order.statusPayment;
+        results.push(detail);
+      }
+    }
+
+    return results;
   } catch (error) {
     throw new Error(error.message);
   }

@@ -67,3 +67,29 @@ export const getFieldPricingsByFieldId = async (fieldId) => {
     throw error;
   }
 };
+
+export const getFieldPricingsByFieldIdAndDateTime = async (fieldId, dateTime) => {
+  try {
+    // dateTime is in format yyyy-mm-dd
+    const date = new Date(dateTime);
+    const dayOfWeek = date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    console.log("dayOfWeek:", dayOfWeek);
+    const pricing = await FieldPricing.find({
+      fieldId,
+      dayOfWeek,
+      deletedAt: null,
+    }).lean();
+    if (pricing.length > 0) {
+      return joinDurations(pricing);
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error in getFieldPricingsByFieldId:", {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};

@@ -11,6 +11,7 @@ export const getFields = async (req, res) => {
     const sportId = req.query.sport_id;
     const storeId = req.query.store_id;
     const activeStatus = req.query.active_status;
+    const dateTime = req.query.date_time; // yyyy-mm-dd
     const filter = {};
     if (sportId) filter.sportId = sportId;
     if (storeId) filter.storeId = storeId;
@@ -21,7 +22,7 @@ export const getFields = async (req, res) => {
       filter.defaultPrice = objectSearch.regex;
     }
 
-    const data = await getFieldsService(filter);
+    const data = await getFieldsService(filter, dateTime);
     res.status(200).send({ message: "Fields retrieved successfully", data });
   } catch (error) {
     res.status(500).send({ message: error.message });
