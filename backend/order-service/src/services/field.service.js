@@ -2,7 +2,8 @@ import { Field } from "../models/field.model.js";
 import { handleUpdateSportForStore } from "./store.service.js";
 import axios from "axios";
 import dotenv from "dotenv";
-import { getFieldPricingsByFieldId } from "./field-pricing.service.js";
+import { getFieldPricingsByFieldIdAndDateTime } from "./field-pricing.service.js";
+import { getOrderByFieldIdAndDateTime } from "./order.service.js";
 
 dotenv.config();
 
@@ -32,13 +33,16 @@ export const getStoreDetails = async (storeId) => {
   }
 }
 
-export const getFields = async (filter) => {
+export const getFields = async (filter, dateTime) => {
   const data = await Field.find(filter).sort({ updatedAt: -1 }).lean();
   for (let field of data) {
-    const pricings = await getFieldPricingsByFieldId(field._id);
+    const pricings = await getFieldPricingsByFieldIdAndDateTime(field._id, dateTime);
     field.pricings = pricings;
+
+    const statusField = await getOrderByFieldIdAndDateTime(field._id, dateTime);
+    field.statusField = statusField;
   }
-  console.log("Fields with details:", data);
+  // console.log("Fields with details:", data);
   return data;
 };
 
