@@ -1,30 +1,43 @@
-package com.arenaaxis.userservice.service.impl;
+// package com.arenaaxis.userservice.service.impl;
 
-import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
-import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
-import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
-import com.arenaaxis.userservice.repository.StoreRepository;
-import com.arenaaxis.userservice.service.SearchStoreService;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Service;
+// import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
+// import com.arenaaxis.userservice.entity.Store;
+// import com.arenaaxis.userservice.repository.StoreRepository;
+// import com.arenaaxis.userservice.service.FieldClientService;
+// import com.arenaaxis.userservice.service.SearchStoreService;
+// import com.arenaaxis.userservice.specification.StoreSpecification;
+// import lombok.AccessLevel;
+// import lombok.RequiredArgsConstructor;
+// import lombok.experimental.FieldDefaults;
+// import org.springframework.data.domain.PageRequest;
+// import org.springframework.data.domain.Pageable;
+// import org.springframework.data.jpa.domain.Specification;
+// import org.springframework.stereotype.Service;
 
-import java.util.List;
+// import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class SearchStoreServiceImpl implements SearchStoreService {
-  StoreRepository storeRepository;
+// @Service
+// @RequiredArgsConstructor
+// @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+// public class SearchStoreServiceImpl implements SearchStoreService {
+//   static int BATCH_SIZE = 500;
 
-  @Override
-  public List<StoreAdminDetailResponse> adminSearch(SearchStoreRequest request, int page, int perPage) {
-    return List.of();
-  }
+//   StoreRepository storeRepository;
+//   FieldClientService fieldClientService;
 
-  @Override
-  public List<StoreSearchItemResponse> clientSearch(SearchStoreRequest request, int page, int perPage) {
-    return List.of();
-  }
-}
+//   @Override
+//   public List<Store> search(SearchStoreRequest request, int page, int perPage) {
+//     List<String> storeIds = null;
+//     if (request.getSportId() != null) {
+//       storeIds = fieldClientService.getStoreIdsBySportId(request.getSportId());
+//       if (storeIds.isEmpty()) {
+//         return List.of();
+//       }
+//     }
+
+//     Pageable pageable = PageRequest.of(page - 1, perPage);
+
+//     Specification<Store> stores = StoreSpecification.searchStoreInIds(request, storeIds);
+//     return List.of();
+//   }
+// }

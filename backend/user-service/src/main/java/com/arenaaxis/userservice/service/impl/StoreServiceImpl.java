@@ -5,22 +5,19 @@ import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
-import com.arenaaxis.userservice.entity.Store;
-import com.arenaaxis.userservice.entity.StoreViewHistory;
-import com.arenaaxis.userservice.entity.User;
-import com.arenaaxis.userservice.entity.Ward;
+import com.arenaaxis.userservice.entity.*;
 import com.arenaaxis.userservice.entity.enums.Role;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
 import com.arenaaxis.userservice.exception.AppException;
 import com.arenaaxis.userservice.exception.ErrorCode;
+import com.arenaaxis.userservice.mapper.SportMapper;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
 import com.arenaaxis.userservice.repository.UserRepository;
-import com.arenaaxis.userservice.service.AuthenticationService;
-import com.arenaaxis.userservice.service.MediaService;
-import com.arenaaxis.userservice.service.StoreService;
+import com.arenaaxis.userservice.service.*;
+import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +25,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -45,10 +43,15 @@ public class StoreServiceImpl implements StoreService {
   StoreRepository storeRepository;
   UserRepository userRepository;
   WardRepository wardRepository;
+  StoreViewHistoryRepository storeViewHistoryRepository;
+
+  StoreHasSportService storeHasSportService;
+  RatingStoreSportService ratingStoreSportService;
+
   StoreMapper storeMapper;
   MediaService mediaService;
-  StoreViewHistoryRepository storeViewHistoryRepository;
   AuthenticationService authenticationService;
+  private final SportMapper sportMapper;
 
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
@@ -100,14 +103,20 @@ public class StoreServiceImpl implements StoreService {
       .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     if (shouldIncreaseView(currentUser)) {
-      increaseViewCount(store);
+      store.increaseViewCount();
+      store = storeRepository.save(store);
     }
 
     if (shouldSaveHistory(currentUser, storeId)) {
       saveStoreViewHistory(store, currentUser);
     }
 
-    return storeMapper.toClientDetailResponse(store);
+    var response = storeMapper.toClientDetailResponse(store);
+    List<Sport> sports = storeHasSportService.getSportByStoreId(storeId);
+    response.setSports(sports.stream().map(sportMapper::toResponse).toList());
+    response.setSportRatings(ratingStoreSportService.sportRatingsOfStore(store.getId()));
+
+    return response;
   }
 
   @Override
@@ -129,8 +138,11 @@ public class StoreServiceImpl implements StoreService {
   public List<StoreSearchItemResponse> searchInPagination(
     SearchStoreRequest request, int page, int perPage
   ) {
-
-    return List.of();
+    Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Specification<Store> spec = StoreSpecification.searchStores(request);
+    Page<Store> storePage = storeRepository.findAll(spec, pageable);
+    return storePage.getContent().stream()
+      .map(storeMapper::toStoreSearchItemResponse).toList();
   }
 
   @Override
@@ -164,14 +176,10 @@ public class StoreServiceImpl implements StoreService {
   }
 
   private boolean shouldSaveHistory(User currentUser, String storeId) {
-    if (Objects.requireNonNull(currentUser).getRole() != Role.USER) return false;
+    if (currentUser == null) return false;
+    if (currentUser.getRole() != Role.USER) return false;
 
     return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
-  }
-
-  private void increaseViewCount(Store store) {
-    store.setViewCount(store.getViewCount() + 1);
-    storeRepository.save(store);
   }
 
   private void saveStoreViewHistory(Store store, User currentUser) {

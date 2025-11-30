@@ -93,6 +93,16 @@ public class Store {
   @Builder.Default
   Float averageRating = 0F;
 
-  @OneToMany
+  @OneToMany(mappedBy = "store")
   Set<StoreHasSport> sports;
+
+  public long increaseViewCount() {
+    viewCount += 1;
+    return viewCount;
+  }
+
+  public long increaseOrderCount() {
+    orderCount += 1;
+    return orderCount;
+  }
 }

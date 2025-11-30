@@ -1,4 +1,4 @@
-package com.arenaaxis.userservice.dto.request;
+package com.arenaaxis.userservice.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,9 +9,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SearchStoreRequest {
+public class SportRatingResponse {
+  String id;
   String name;
-  String wardId;
-  String provinceId;
-  String sportId;
+  String nameEn;
+  Float star;
 }
