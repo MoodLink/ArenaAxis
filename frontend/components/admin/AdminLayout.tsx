@@ -43,12 +43,12 @@ const sidebarItems = [
     href: '/admin/users',
 
   },
-  // {
-  //   title: 'Quản lý Sân',
-  //   icon: MapPin,
-  //   href: '/admin/fields',
+  {
+    title: 'Quản lý Sân',
+    icon: MapPin,
+    href: '/admin/fields',
 
-  // },
+  },
   // {
   //   title: 'Quản lý Booking',
   //   icon: Calendar,

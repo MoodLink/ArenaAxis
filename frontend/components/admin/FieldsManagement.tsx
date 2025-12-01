@@ -226,7 +226,7 @@ export default function FieldsManagement() {
       options: [
         { value: "all", label: "Tất cả trạng thái" },
         { value: "available", label: "Hoạt động" },
-        { value: "unavailable", label: "Không khả dụng" }
+        { value: "unavailable", label: "Tạm ngưng" }
       ]
     }
   ]

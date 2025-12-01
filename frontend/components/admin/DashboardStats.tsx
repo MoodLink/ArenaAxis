@@ -133,23 +133,23 @@ export default function DashboardStats() {
     {
       title: 'Tổng người dùng',
       value: totalUsers,
-      change: { value: 12.5, type: 'increase' as const },
+     
       icon: Users,
       description: 'Người dùng đã đăng ký',
       loading
     },
     {
-      title: 'Tổng cửa hàng',
+      title: 'Tổng trung tâm thể thao',
       value: totalStores,
-      change: { value: 5.2, type: 'increase' as const },
+    
       icon: MapPin,
-      description: 'Cửa hàng đang hoạt động',
+      description: 'Trung tâm thể thao đang hoạt động',
       loading
     },
     {
       title: 'Tổng sân thể thao',
       value: totalFields,
-      change: { value: 8.7, type: 'increase' as const },
+    
       icon: Calendar,
       description: 'Sân đang hoạt động',
       loading
@@ -157,7 +157,7 @@ export default function DashboardStats() {
     {
       title: 'Booking trong tháng',
       value: '2,358',
-      change: { value: 8.7, type: 'increase' as const },
+    
       icon: Calendar,
       description: 'Lượt đặt sân',
       loading: false
@@ -165,7 +165,7 @@ export default function DashboardStats() {
     {
       title: 'Doanh thu tháng',
       value: '₫125M',
-      change: { value: 15.3, type: 'increase' as const },
+    
       icon: DollarSign,
       description: 'Doanh thu thực tế',
       loading: false
@@ -173,7 +173,7 @@ export default function DashboardStats() {
     {
       title: 'Đánh giá trung bình',
       value: '4.8',
-      change: { value: 0.2, type: 'increase' as const },
+     
       icon: Star,
       description: 'Từ 1,024 đánh giá',
       loading: false

@@ -28,7 +28,7 @@ export default function FieldStats({ fields }: FieldStatsProps) {
       iconColor: "text-green-600"
     },
     {
-      title: "Sân không khả dụng",
+      title: "Sân tạm ngưng",
       value: unavailableFields.toString(),
       icon: AlertCircle,
       iconColor: "text-red-600"

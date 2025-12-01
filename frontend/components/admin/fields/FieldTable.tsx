@@ -19,7 +19,7 @@ export default function FieldTable({ fields, onFieldAction }: FieldTableProps) {
 
     const statusLabelMap = {
         'available': 'Hoạt động',
-        'unavailable': 'Không khả dụng'
+        'unavailable': 'Tạm ngưng'
     }
 
     const columns: TableColumn[] = [

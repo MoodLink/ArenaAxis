@@ -515,7 +515,7 @@ export default function StoreRegistrationPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold text-center">
-                            Đăng ký trở thành Trung tâm thể thao
+                            Đăng ký Trung tâm thể thao
                         </CardTitle>
                         <CardDescription className="text-center">
                             Bước {currentStep} / 3: {currentStep === 1 ? 'Thông tin cơ bản' : currentStep === 2 ? 'Tải ảnh lên' : 'Chọn gói dịch vụ'}
