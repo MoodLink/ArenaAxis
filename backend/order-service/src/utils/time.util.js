@@ -25,6 +25,24 @@ export const generateDurations = (startTime, endTime) => {
   return durations;
 };
 
+export const generateDurationsDateTime = (startDateTime, endDateTime) => {
+  // startDateTime và endDateTime định dạng "yyyy-mm-dd HH:mm"
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+  const durations = [];
+
+  let current = new Date(start);
+  while (current < end) {
+    const next = new Date(current.getTime() + 30 * 60000);
+    durations.push({
+      startAt: new Date(current),
+      endAt: new Date(next),
+    });
+    current = next;
+  }
+  return durations;
+};
+
 export const joinDurations = (pricings) => {
   if (!pricings || pricings.length === 0) return [];
 
@@ -71,6 +89,44 @@ export const joinDurations = (pricings) => {
     endAt: formatTime(currentGroup.endAt),
   });
 
+  return result;
+};
+
+export const joinDurationsDateTime = (pricings) => {
+  if (!pricings || pricings.length === 0) return [];
+  pricings.sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
+
+  const result = [];
+  let currentGroup = {
+    specialPrice: pricings[0].specialPrice,
+    startAt: new Date(pricings[0].startAt),
+    endAt: new Date(pricings[0].endAt),
+  };
+  for (let i = 1; i < pricings.length; i++) {
+    const current = pricings[i];
+    if (
+      current.specialPrice === currentGroup.specialPrice &&
+      new Date(current.startAt).getTime() === currentGroup.endAt.getTime()
+    ) {
+      currentGroup.endAt = new Date(current.endAt);
+    } else {
+      result.push({
+        specialPrice: currentGroup.specialPrice,
+        startAt: new Date(currentGroup.startAt),
+        endAt: new Date(currentGroup.endAt),
+      });
+      currentGroup = {
+        specialPrice: current.specialPrice,
+        startAt: new Date(current.startAt),
+        endAt: new Date(current.endAt),
+      };
+    }
+  }
+  result.push({
+    specialPrice: currentGroup.specialPrice,
+    startAt: new Date(currentGroup.startAt),
+    endAt: new Date(currentGroup.endAt),
+  });
   return result;
 };
 
