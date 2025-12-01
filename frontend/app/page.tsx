@@ -26,7 +26,7 @@ export default function HomePage() {
     const fetchData = async () => {
       try {
         // Gọi các API song song để tăng hiệu suất
-        // 1. Lấy danh sách cửa hàng gần vị trí người dùng (10km)
+        // 1. Lấy danh sách Trung tâm thể thao gần vị trí người dùng (10km)
         let storesData: StoreSearchItemResponse[] = []
         try {
           storesData = await getNearbyStoresFromGeolocation(10000)
@@ -55,16 +55,16 @@ export default function HomePage() {
       }
     }
 
-    fetchData() 
-  }, []) 
+    fetchData()
+  }, [])
 
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section - Banner chính */}
       <HeroSection />
 
-      {/* Popular Fields Section - Hiển thị các cửa hàng gần đây */}
+      {/* Popular Fields Section - Hiển thị các Trung tâm thể thao gần đây */}
       <PopularFieldsSection
         fields={nearbyStores as any}
         showNearby={true}
@@ -77,7 +77,7 @@ export default function HomePage() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
             <p className="font-semibold">⚠️ Không thể lấy vị trí của bạn</p>
             <p className="text-sm">{locationError}</p>
-            <p className="text-sm mt-2">💡 Hãy cho phép ứng dụng truy cập vị trí để xem cửa hàng gần đây</p>
+            <p className="text-sm mt-2">💡 Hãy cho phép ứng dụng truy cập vị trí để xem Trung tâm thể thao gần đây</p>
           </div>
         </div>
       )}

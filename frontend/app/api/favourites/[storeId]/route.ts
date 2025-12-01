@@ -5,9 +5,9 @@ const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 /**
  * DELETE /api/favourites/[storeId]
- * Xóa cửa hàng khỏi danh sách yêu thích
+ * Xóa Trung tâm thể thao khỏi danh sách yêu thích
  */
-export async function DELETE( 
+export async function DELETE(
     request: Request,
     { params }: { params: { storeId: string } }
 ) {
@@ -83,7 +83,7 @@ export async function DELETE(
 
 /**
  * GET /api/favourites/[storeId]
- * Kiểm tra xem cửa hàng có trong danh sách yêu thích không
+ * Kiểm tra xem Trung tâm thể thao có trong danh sách yêu thích không
  */
 export async function GET(
     request: Request,

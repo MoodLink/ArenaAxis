@@ -366,7 +366,7 @@ export default function StoreDetailPage() {
         <div className="mb-6">
           <BreadcrumbNav
             items={[
-              { label: 'Danh sách cửa hàng', href: '/list-store' },
+              { label: 'Danh sách Trung tâm thể thao', href: '/list-store' },
               { label: store.name, isActive: true }
             ]}
           />

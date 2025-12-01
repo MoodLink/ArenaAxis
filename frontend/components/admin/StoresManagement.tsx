@@ -22,7 +22,7 @@ export default function StoresManagement() {
     const [totalStores, setTotalStores] = useState(0)
     const [selectedFilters, setSelectedFilters] = useState<SearchFilters>({})
 
-    // Fetch tất cả cửa hàng để lấy tổng số
+    // Fetch tất cả Trung tâm thể thao để lấy tổng số
     useEffect(() => {
         const fetchTotalStores = async () => {
             try {
@@ -96,7 +96,7 @@ export default function StoresManagement() {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg">Đang tải cửa hàng...</p>
+                    <p className="text-gray-600 text-lg">Đang tải Trung tâm thể thao...</p>
                 </div>
             </div>
         )
@@ -107,15 +107,15 @@ export default function StoresManagement() {
             {/* Header */}
             <AdminHeader
                 title="Trung tâm thể thao"
-                description="Quản lý thông tin và hoạt động của các cửa hàng"
+                description="Quản lý thông tin và hoạt động của các Trung tâm thể thao"
             />
 
             {/* Search and Filters */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Danh sách cửa hàng</CardTitle>
+                    <CardTitle>Danh sách Trung tâm thể thao</CardTitle>
                     <CardDescription>
-                        {`Tổng cộng: ${totalStores} cửa hàng`}
+                        {`Tổng cộng: ${totalStores} Trung tâm thể thao`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

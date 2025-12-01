@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { FieldService, Field as APIField } from '@/services/field.service';
 import { FieldPricingService, FieldPricing } from '@/services/field-pricing.service';
 import { StoreService } from '@/services/store.service';
-import { OrderService } from '@/services/order.service';
 import StoreLayout from '@/components/store/StoreLayout';
 import { useToast } from '@/hooks/use-toast';
 import { getStoreById } from '@/services/api-new';
@@ -106,29 +105,17 @@ export default function StoreBookingsPage() {
         }
 
         try {
-            console.log('🔄 Fetching orders from store for date:', selectedDate)
+            console.log('🔄 Refreshing booking data from statusField for date:', selectedDate)
 
-            // ✅ IMPORTANT: Get ALL orders from store (not filtered by date)
-            // Because orders are created on one date but can be booked for future dates
-            // We'll filter based on orderDetails.startTime instead
-            const farFutureDate = new Date(selectedDate)
-            farFutureDate.setFullYear(farFutureDate.getFullYear() + 1)
-            const startDateStr = '2000-01-01'  // Far past
-            const endDateStr = farFutureDate.toISOString().split('T')[0]  // Far future
-
-            console.log(`📅 Fetching orders for store: ${startDateStr} to ${endDateStr}`)
-            console.log(`✅ This gets ALL orders so we can filter by booking date (not payment date)`)
-
-            // Fetch all orders for the store
-            const orders = await OrderService.getOrdersByStore(
+            // 🎯 Fetch fields with statusField data for selected date
+            const fieldsResponse = await FieldService.getFieldsWithAllData(
                 storeId,
-                startDateStr,
-                endDateStr
+                '', // No specific sport filter - get all sports
+                selectedDate
             )
+            console.log('🏟️ Fields response:', fieldsResponse)
 
-            console.log('📦 Orders received:', { count: orders.length, orders })
-
-            // Build bookingData from paid orders
+            // Build bookingData from statusField array (PAID bookings only)
             const bookingMap: { [fieldId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" } } = {}
 
             // Initialize all fields with empty booking data
@@ -136,71 +123,65 @@ export default function StoreBookingsPage() {
                 bookingMap[field._id] = {}
             })
 
-            // Filter PAID orders only and extract booked slots
-            const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
-            console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
-            console.log('🔍 All orders:', orders.map(o => ({ code: o.orderCode, status: o.statusPayment, details: o.orderDetails.map(d => ({ startTime: d.startTime, endTime: d.endTime })) })))
+            // Process each field's statusField array
+            const fieldsData = fieldsResponse.data || []
+            console.log(`📊 Processing ${fieldsData.length} fields for date ${selectedDate}`)
 
-            // For each paid order, mark the booked slots
-            paidOrders.forEach(order => {
-                console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
-                order.orderDetails.forEach((detail, idx) => {
-                    const fieldId = detail.fieldId
-                    console.log(`  Detail ${idx}: fieldId=${fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}", type: ${typeof detail.startTime}`)
+            fieldsData.forEach((field: any) => {
+                const fieldId = field._id
+                console.log(`🔍 Processing field ${fieldId}`)
 
-                    // Parse start and end times
-                    // Support both formats:
-                    // 1. "2025-11-13 05:00" (YYYY-MM-DD HH:MM)
-                    // 2. "05:00" (HH:MM)
-                    let startTimeStr = ""
-                    let endTimeStr = ""
-                    let orderDate = ""  // Extract date from startTime if available
+                if (!field.statusField || field.statusField.length === 0) {
+                    console.log(`  ℹ️ No statusField data for field ${fieldId}`)
+                    return
+                }
 
-                    if (detail.startTime.includes(" ")) {
-                        // Format: "2025-11-13 05:00"
-                        const dateMatch = detail.startTime.match(/(\d{4}-\d{2}-\d{2})/)
-                        const timeMatch = detail.startTime.match(/(\d{2}):(\d{2})$/)
+                console.log(`  📋 Found ${field.statusField.length} status entries`)
 
-                        if (dateMatch) {
-                            orderDate = dateMatch[1]  // e.g., "2025-11-13"
-                        }
+                // Filter PAID status only and extract booked slots
+                const paidStatuses = field.statusField.filter((status: any) => status.statusPayment === 'PAID')
+                console.log(`  ✅ Found ${paidStatuses.length} PAID bookings`)
 
-                        if (timeMatch) {
-                            const endTimeMatch = detail.endTime.match(/(\d{2}):(\d{2})$/)
-                            startTimeStr = `${timeMatch[1]}:${timeMatch[2]}`
-                            endTimeStr = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : ""
-                        }
-                    } else {
-                        // Format: "05:00"
-                        startTimeStr = detail.startTime
-                        endTimeStr = detail.endTime
+                paidStatuses.forEach((status: any) => {
+                    const startTime = status.startTime  // ISO format: "2025-12-01T06:30:00.000Z"
+                    const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
+
+                    console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
+
+                    // Parse ISO datetime to extract time part WITHOUT timezone conversion
+                    const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
+                    const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
+
+                    if (!startTimeMatch || !endTimeMatch) {
+                        console.warn(`    ⚠️ Could not parse time from: ${startTime} to ${endTime}`)
+                        return
                     }
 
-                    // ⚠️ IMPORTANT: Only process orderDetails that match the selected date
-                    const formattedSelectedDate = selectedDate
-                    if (orderDate && orderDate !== formattedSelectedDate) {
-                        console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
-                        return  // Skip this detail
+                    const startHours = startTimeMatch[1]
+                    const startMins = startTimeMatch[2]
+                    const endHours = endTimeMatch[1]
+                    const endMins = endTimeMatch[2]
+
+                    const startTimeStr = `${startHours}:${startMins}`
+                    const endTimeStr = `${endHours}:${endMins}`
+
+                    console.log(`    ⏱️ Parsed time: ${startTimeStr} to ${endTimeStr}`)
+
+                    // Generate all 30-minute slots between start and end time
+                    const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
+                    const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
+
+                    if (!bookingMap[fieldId]) {
+                        bookingMap[fieldId] = {}
                     }
 
-                    if (startTimeStr && endTimeStr && fieldId) {
-                        if (!bookingMap[fieldId]) {
-                            bookingMap[fieldId] = {}
-                        }
+                    for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                        const hours = Math.floor(minutes / 60)
+                        const mins = minutes % 60
+                        const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 
-                        // Generate all 30-minute slots between start and end time
-                        const startMinutes = parseInt(startTimeStr.split(':')[0]) * 60 + parseInt(startTimeStr.split(':')[1])
-                        const endMinutes = parseInt(endTimeStr.split(':')[0]) * 60 + parseInt(endTimeStr.split(':')[1])
-
-                        console.log(`  🔢 Start: ${startMinutes} min, End: ${endMinutes} min`)
-
-                        for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
-                            const hours = Math.floor(minutes / 60)
-                            const mins = minutes % 60
-                            const slotTime = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-                            bookingMap[fieldId][slotTime] = 'booked'
-                            console.log(`    ✅ Marking slot as booked: ${slotTime}`)
-                        }
+                        bookingMap[fieldId][slotTime] = 'booked'
+                        console.log(`      ✅ Marked as booked: ${slotTime}`)
                     }
                 })
             })
@@ -208,7 +189,7 @@ export default function StoreBookingsPage() {
             setBookingData(bookingMap)
             console.log('📊 Final booking data:', bookingMap)
             Object.entries(bookingMap).forEach(([fieldId, slots]) => {
-                const bookedCount = Object.values(slots).filter(s => s === 'booked').length
+                const bookedCount = Object.values(slots).filter((s: string) => s === 'booked').length
                 console.log(`  Field ${fieldId}: ${bookedCount} booked slots`)
             })
         } catch (error) {
@@ -243,7 +224,7 @@ export default function StoreBookingsPage() {
         if (!storeId) {
             toast({
                 title: 'Lỗi',
-                description: 'Không tìm thấy ID cửa hàng',
+                description: 'Không tìm thấy ID Trung tâm thể thao',
                 variant: 'destructive',
             });
             router.push('/store');
@@ -359,8 +340,10 @@ export default function StoreBookingsPage() {
             setTimeSlots(slots);
 
             // Load fields for this store
+            const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
             const response = await FieldService.getFields({
                 store_id: storeId,
+                date_time: today,
             });
             const fieldsData = response.data || [];
             setFields(fieldsData.filter((f: APIField) => f.activeStatus));
@@ -394,7 +377,7 @@ export default function StoreBookingsPage() {
             console.error('Error loading store or fields:', error);
             toast({
                 title: 'Lỗi',
-                description: 'Không thể tải thông tin cửa hàng hoặc danh sách sân',
+                description: 'Không thể tải thông tin Trung tâm thể thao hoặc danh sách sân',
                 variant: 'destructive',
             });
         } finally {
@@ -458,7 +441,7 @@ export default function StoreBookingsPage() {
             // Note: Update store endpoint may not exist, just show success
             toast({
                 title: 'Thành công ✅',
-                description: 'Thông tin cửa hàng đã được cập nhật',
+                description: 'Thông tin Trung tâm thể thao đã được cập nhật',
             });
 
             setShowEditModal(false);
@@ -466,7 +449,7 @@ export default function StoreBookingsPage() {
         } catch (error) {
             toast({
                 title: 'Lỗi',
-                description: error instanceof Error ? error.message : 'Không thể cập nhật cửa hàng',
+                description: error instanceof Error ? error.message : 'Không thể cập nhật Trung tâm thể thao',
                 variant: 'destructive',
             });
         }
@@ -611,7 +594,7 @@ export default function StoreBookingsPage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Đang tải thông tin cửa hàng...</p>
+                    <p className="text-gray-600">Đang tải thông tin Trung tâm thể thao...</p>
                 </div>
             </div>
         );
@@ -622,7 +605,7 @@ export default function StoreBookingsPage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-                    <p className="text-gray-600">Không tìm thấy thông tin cửa hàng</p>
+                    <p className="text-gray-600">Không tìm thấy thông tin Trung tâm thể thao</p>
                     <Button
                         variant="outline"
                         className="mt-4"
@@ -936,7 +919,7 @@ export default function StoreBookingsPage() {
                                                     <div className="flex items-center justify-center py-12 bg-gray-50">
                                                         <div className="text-center">
                                                             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                                            <p className="text-gray-600">Cửa hàng này chưa có sân nào</p>
+                                                            <p className="text-gray-600">Trung tâm thể thao này chưa có sân nào</p>
                                                         </div>
                                                     </div>
                                                 )}

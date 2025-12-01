@@ -34,11 +34,11 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
                 if (data) {
                     setStore(data)
                 } else {
-                    setError('Không tìm thấy cửa hàng')
+                    setError('Không tìm thấy Trung tâm thể thao')
                 }
             } catch (err) {
                 console.error('Error fetching store:', err)
-                setError('Lỗi khi tải thông tin cửa hàng')
+                setError('Lỗi khi tải thông tin Trung tâm thể thao')
             } finally {
                 setLoading(false)
             }
@@ -93,7 +93,7 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-600">Đang tải thông tin cửa hàng...</p>
+                    <p className="text-gray-600">Đang tải thông tin Trung tâm thể thao...</p>
                 </div>
             </div>
         )
@@ -107,7 +107,7 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
                     Quay lại
                 </Button>
                 <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-                    {error || 'Không tìm thấy cửa hàng'}
+                    {error || 'Không tìm thấy Trung tâm thể thao'}
                 </div>
             </div>
         )

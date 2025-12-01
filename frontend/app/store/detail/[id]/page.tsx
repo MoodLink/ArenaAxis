@@ -208,7 +208,7 @@ export default function StoreOwnerDetailPage() {
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
                 <div className="text-center">
                     <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg">Đang tải thông tin cửa hàng...</p>
+                    <p className="text-gray-600 text-lg">Đang tải thông tin Trung tâm thể thao...</p>
                 </div>
             </div>
         );
@@ -222,10 +222,10 @@ export default function StoreOwnerDetailPage() {
                         <XCircle className="w-12 h-12 text-red-500" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                        Không tìm thấy cửa hàng
+                        Không tìm thấy Trung tâm thể thao
                     </h3>
                     <p className="text-gray-600 mb-6">
-                        Cửa hàng này có thể đã bị xóa hoặc không tồn tại
+                        Trung tâm thể thao này có thể đã bị xóa hoặc không tồn tại
                     </p>
                     <Button onClick={() => router.push('/store')} size="lg">
                         <ArrowLeft className="w-5 h-5 mr-2" />
@@ -243,7 +243,7 @@ export default function StoreOwnerDetailPage() {
                 {/* <div className="mb-6">
                     <BreadcrumbNav
                         items={[
-                            { label: 'Danh sách cửa hàng', href: '/list-store' },
+                            { label: 'Danh sách Trung tâm thể thao', href: '/list-store' },
                             { label: store.name, isActive: true }
                         ]}
                     />

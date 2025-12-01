@@ -17,16 +17,16 @@ export default function StoresHeader({ totalStores }: StoresHeaderProps) {
                                 <Store className="w-6 h-6" />
                             </div>
                             <div>
-                                <h1 className="text-3xl lg:text-4xl font-bold">Khám phá cửa hàng</h1>
+                                <h1 className="text-3xl lg:text-4xl font-bold">Khám phá Trung tâm thể thao</h1>
                                 <p className="text-blue-100 text-lg mt-1">
-                                    Tìm kiếm cửa hàng thể thao chất lượng cao gần bạn
+                                    Tìm kiếm Trung tâm thể thao thể thao chất lượng cao gần bạn
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-4 text-sm">
                             <div className="bg-white/20 px-3 py-2 rounded-full">
-                                <span>{totalStores} cửa hàng có sẵn</span>
+                                <span>{totalStores} Trung tâm thể thao có sẵn</span>
                             </div>
                             <div className="hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-full">
                                 <Users className="w-4 h-4" />

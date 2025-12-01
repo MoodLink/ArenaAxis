@@ -155,7 +155,7 @@ export default function ListStorePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
           <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Đang tải cửa hàng...</p>
+          <p className="text-gray-600 text-lg">Đang tải Trung tâm thể thao...</p>
         </div>
       </div>
     );
@@ -168,7 +168,7 @@ export default function ListStorePage() {
         <div className="mb-6">
           <BreadcrumbNav
             items={[
-              { label: 'Danh sách cửa hàng', isActive: true }
+              { label: 'Danh sách Trung tâm thể thao', isActive: true }
             ]}
           />
         </div>

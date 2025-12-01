@@ -15,7 +15,7 @@ export default function StoresStats({ stores }: StoresStatsProps) {
     const stats = [
         {
             icon: Store,
-            label: "Tổng cửa hàng",
+            label: "Tổng Trung tâm thể thao",
             value: totalStores,
             color: "bg-blue-500",
             iconColor: "text-blue-500"

@@ -45,7 +45,7 @@ export default function StoreDetailPage() {
                 // Get store detail
                 const storeData = await getStoreById(storeId)
                 if (!storeData) {
-                    setError('Không tìm thấy cửa hàng')
+                    setError('Không tìm thấy Trung tâm thể thao')
                     return
                 }
                 setStore(storeData)
@@ -105,7 +105,7 @@ export default function StoreDetailPage() {
                     <CardContent className="p-12 text-center">
                         <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">Lỗi</h3>
-                        <p className="text-gray-600 mb-6">{error || 'Không tìm thấy cửa hàng'}</p>
+                        <p className="text-gray-600 mb-6">{error || 'Không tìm thấy Trung tâm thể thao'}</p>
                         <Button onClick={() => router.back()}>Quay lại</Button>
                     </CardContent>
                 </Card>

@@ -28,10 +28,10 @@ export default function OwnerStoresContent({ stores, viewMode }: StoresContentPr
                         </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                        Chưa có cửa hàng nào
+                        Chưa có Trung tâm thể thao nào
                     </h3>
                     <p className="text-gray-600">
-                        Tạo cửa hàng mới để bắt đầu kinh doanh
+                        Tạo Trung tâm thể thao mới để bắt đầu kinh doanh
                     </p>
                 </div>
             </div>

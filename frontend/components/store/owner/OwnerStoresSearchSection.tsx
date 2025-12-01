@@ -37,7 +37,7 @@ export default function OwnerStoresSearchSection({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                         type="text"
-                        placeholder="Tìm kiếm cửa hàng theo tên, địa chỉ..."
+                        placeholder="Tìm kiếm Trung tâm thể thao theo tên, địa chỉ..."
                         value={searchValue}
                         onChange={(e) => onSearchChange(e.target.value)}
                         className="pl-10 h-12"
@@ -82,7 +82,7 @@ export default function OwnerStoresSearchSection({
             {/* Results Count */}
             <div className="flex items-center justify-between text-sm text-gray-600">
                 <p>
-                    Hiển thị <span className="font-semibold text-gray-900">{filteredCount}</span> cửa hàng
+                    Hiển thị <span className="font-semibold text-gray-900">{filteredCount}</span> Trung tâm thể thao
                 </p>
             </div>
         </div>

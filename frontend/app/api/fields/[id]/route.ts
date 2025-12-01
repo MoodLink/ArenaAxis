@@ -1,7 +1,7 @@
 // File: app/api/fields/[id]/route.ts
 // Proxy API cho detail, update, delete
 
-const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN ;
+const API_BASE_URL = process.env.ORDER_SERVICE_DOMAIN;
 
 export async function GET(
   request: Request,

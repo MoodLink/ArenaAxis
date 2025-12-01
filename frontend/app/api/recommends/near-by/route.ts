@@ -1,6 +1,6 @@
 // File: app/api/recommends/near-by/route.ts
 // API Proxy cho endpoint: POST /recommends/near-by
-// Tìm kiếm các cửa hàng gần vị trí người dùng
+// Tìm kiếm các Trung tâm thể thao gần vị trí người dùng
 
 import { NextRequest, NextResponse } from 'next/server';
 

@@ -295,10 +295,10 @@ export default function StoreEditDialog({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Chỉnh sửa thông tin cửa hàng</DialogTitle>
+                    <DialogTitle>Chỉnh sửa thông tin Trung tâm thể thao</DialogTitle>
                     <DialogDescription>
                         {currentStep === 1 && 'Step 1: Cập nhật thông tin cơ bản'}
-                        {currentStep === 2 && 'Step 2: Cập nhật ảnh cửa hàng'}
+                        {currentStep === 2 && 'Step 2: Cập nhật ảnh Trung tâm thể thao'}
                         {currentStep === 3 && 'Step 3: Cập nhật gói dịch vụ'}
                     </DialogDescription>
                 </DialogHeader>
@@ -335,7 +335,7 @@ export default function StoreEditDialog({
                                 </CardContent>
                             </Card>
 
-                            {/* Tên cửa hàng */}
+                            {/* Tên Trung tâm thể thao */}
                             <div className="space-y-2">
                                 <Label htmlFor="name" className="font-semibold">
                                     Tên trung tâm thể thao *
@@ -353,12 +353,12 @@ export default function StoreEditDialog({
                             {/* Mô tả */}
                             <div className="space-y-2">
                                 <Label htmlFor="introduction" className="font-semibold">
-                                    Mô tả cửa hàng
+                                    Mô tả Trung tâm thể thao
                                 </Label>
                                 <Textarea
                                     id="introduction"
                                     name="introduction"
-                                    placeholder="Nhập mô tả về cửa hàng"
+                                    placeholder="Nhập mô tả về Trung tâm thể thao"
                                     value={formData.introduction || ''}
                                     onChange={handleChange}
                                     disabled={isLoading}
@@ -374,7 +374,7 @@ export default function StoreEditDialog({
                                 <Input
                                     id="address"
                                     name="address"
-                                    placeholder="Nhập địa chỉ cửa hàng"
+                                    placeholder="Nhập địa chỉ Trung tâm thể thao"
                                     value={formData.address || ''}
                                     onChange={handleChange}
                                     disabled={isLoading}
@@ -514,7 +514,7 @@ export default function StoreEditDialog({
                             <Card className="bg-blue-50 border-blue-200">
                                 <CardContent className="p-4">
                                     <p className="text-sm text-blue-700">
-                                        <strong>Step 2:</strong> Cập nhật các ảnh của cửa hàng (tuỳ chọn)
+                                        <strong>Step 2:</strong> Cập nhật các ảnh của Trung tâm thể thao (tuỳ chọn)
                                     </p>
                                 </CardContent>
                             </Card>
@@ -522,7 +522,7 @@ export default function StoreEditDialog({
                             {/* Avatar */}
                             <div className="space-y-2">
                                 <Label htmlFor="avatar" className="font-semibold">
-                                    Ảnh đại diện cửa hàng
+                                    Ảnh đại diện Trung tâm thể thao
                                 </Label>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                                     {files.avatar ? (
@@ -568,7 +568,7 @@ export default function StoreEditDialog({
                             {/* Cover Image */}
                             <div className="space-y-2">
                                 <Label htmlFor="coverImage" className="font-semibold">
-                                    Ảnh bìa cửa hàng
+                                    Ảnh bìa Trung tâm thể thao
                                 </Label>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                                     {files.coverImage ? (
@@ -674,7 +674,7 @@ export default function StoreEditDialog({
                             <Card className="bg-green-50 border-green-200">
                                 <CardContent className="p-4">
                                     <p className="text-sm text-green-700">
-                                        <strong>Step 3:</strong> Chọn gói dịch vụ chính cho cửa hàng
+                                        <strong>Step 3:</strong> Chọn gói dịch vụ chính cho Trung tâm thể thao
                                     </p>
                                 </CardContent>
                             </Card>

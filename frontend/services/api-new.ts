@@ -738,7 +738,7 @@ export async function updateStoreInfo(
     console.log('Store updated successfully:', result);
     return {
       success: true,
-      message: 'Cập nhật thông tin cửa hàng thành công',
+      message: 'Cập nhật thông tin Trung tâm thể thao thành công',
       data: result
     };
 
@@ -772,7 +772,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
     if (!token) {
       return {
         success: false,
-        message: 'Bạn cần đăng nhập để đăng ký cửa hàng'
+        message: 'Bạn cần đăng nhập để đăng ký Trung tâm thể thao'
       };
     }
 
@@ -930,14 +930,14 @@ export async function updateStoreImages(
           } else if (response.status === 403) {
             errorMessage = 'Không có quyền truy cập!\n' +
               '• Bạn cần đăng nhập với tài khoản CLIENT/OWNER\n' +
-              '• Hoặc cửa hàng này không thuộc về bạn\n' +
+              '• Hoặc Trung tâm thể thao này không thuộc về bạn\n' +
               '• Vui lòng kiểm tra token và role';
             console.error('🔒 Authorization denied. Check:');
             console.error('   - Token valid?');
             console.error('   - User has CLIENT/OWNER role?');
             console.error('   - Store belongs to this user?');
           } else if (response.status === 404) {
-            errorMessage = 'Cửa hàng không tồn tại';
+            errorMessage = 'Trung tâm thể thao không tồn tại';
           } else if (response.status === 400) {
             errorMessage = 'Dữ liệu không hợp lệ. ' + errorBody;
           } else if (response.status === 413) {
@@ -1063,7 +1063,7 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
   }
 }
 
-// Lấy danh sách cửa hàng của owner theo owner-id
+// Lấy danh sách Trung tâm thể thao của owner theo owner-id
 export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDetailResponse[]> {
   try {
     const token = getToken();
@@ -1264,19 +1264,19 @@ export async function getOptionalPlans(): Promise<OptionalPlan[]> {
       id: '1',
       name: 'Gói Cơ bản',
       price: 299000,
-      description: 'Gói dành cho các cửa hàng nhỏ mới bắt đầu'
+      description: 'Gói dành cho các Trung tâm thể thao nhỏ mới bắt đầu'
     },
     {
       id: '2',
       name: 'Gói Tiêu chuẩn',
       price: 599000,
-      description: 'Gói phù hợp cho các cửa hàng trung bình'
+      description: 'Gói phù hợp cho các Trung tâm thể thao trung bình'
     },
     {
       id: '3',
       name: 'Gói Cao cấp',
       price: 999000,
-      description: 'Gói dành cho các cửa hàng lớn và chuyên nghiệp'
+      description: 'Gói dành cho các Trung tâm thể thao lớn và chuyên nghiệp'
     }
   ];
 }
@@ -2054,7 +2054,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 // =================
 
 /**
- * Lấy danh sách tất cả cửa hàng yêu thích của người dùng (có caching)
+ * Lấy danh sách tất cả Trung tâm thể thao yêu thích của người dùng (có caching)
  * GET /api/favourites (proxy route - bypass CORS)
  */
 export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
@@ -2105,7 +2105,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 }
 
 /**
- * Kiểm tra xem cửa hàng có trong danh sách yêu thích không
+ * Kiểm tra xem Trung tâm thể thao có trong danh sách yêu thích không
  */
 export async function isFavourite(storeId: string): Promise<boolean> {
   const token = getToken();
@@ -2125,7 +2125,7 @@ export async function isFavourite(storeId: string): Promise<boolean> {
 }
 
 /**
- * Thêm cửa hàng vào danh sách yêu thích
+ * Thêm Trung tâm thể thao vào danh sách yêu thích
  * POST /api/favourites (proxy route - bypass CORS)
  */
 export async function addFavourite(storeId: string): Promise<StoreClientDetailResponse | null> {
@@ -2165,7 +2165,7 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
 }
 
 /**
- * Xóa cửa hàng khỏi danh sách yêu thích
+ * Xóa Trung tâm thể thao khỏi danh sách yêu thích
  * DELETE /api/favourites/[storeId] (proxy route - bypass CORS)
  */
 export async function removeFavourite(storeId: string): Promise<void> {

@@ -51,8 +51,8 @@ export default function ProfileStores({ userId }: ProfileStoresProps) {
                 setError(null)
 
                 // ✅ TẤT CẢ ĐỀU LƯU STORE ID VÀO LOCALSTORAGE
-                // Nếu chỉ có 1 cửa hàng → lưu ngay
-                // Nếu có nhiều cửa hàng → lưu cái đầu tiên (user sẽ sửa thành cái khác khi navigate)
+                // Nếu chỉ có 1 Trung tâm thể thao → lưu ngay
+                // Nếu có nhiều Trung tâm thể thao → lưu cái đầu tiên (user sẽ sửa thành cái khác khi navigate)
                 if (data.length > 0) {
                     const primaryStore = data[0]
                     localStorage.setItem('storeId', primaryStore.id)
@@ -64,7 +64,7 @@ export default function ProfileStores({ userId }: ProfileStoresProps) {
                 }
             } catch (err) {
                 console.error('❌ Error fetching stores:', err)
-                const errorMsg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách cửa hàng'
+                const errorMsg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách Trung tâm thể thao'
                 setError(errorMsg)
                 setStores([])
             } finally {
@@ -95,7 +95,7 @@ export default function ProfileStores({ userId }: ProfileStoresProps) {
             <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                     <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-600">Đang tải danh sách cửa hàng...</p>
+                    <p className="text-gray-600">Đang tải danh sách Trung tâm thể thao...</p>
                 </div>
             </div>
         )
@@ -130,13 +130,13 @@ export default function ProfileStores({ userId }: ProfileStoresProps) {
                         </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                        Chưa có cửa hàng nào
+                        Chưa có Trung tâm thể thao nào
                     </h3>
                     <p className="text-gray-600 mb-6">
-                        Tạo cửa hàng mới để bắt đầu kinh doanh
+                        Tạo Trung tâm thể thao mới để bắt đầu kinh doanh
                     </p>
                     <Button asChild size="lg">
-                        <Link href="/store-registration">Tạo cửa hàng</Link>
+                        <Link href="/store-registration">Tạo Trung tâm thể thao</Link>
                     </Button>
                 </div>
             </div>

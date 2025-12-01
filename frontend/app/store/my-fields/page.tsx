@@ -137,16 +137,17 @@ export default function MyFields() {
       const storesData = await getStoresByOwnerId(currentUser.id)
 
       if (!storesData || storesData.length === 0) {
-        setError('Bạn chưa có cửa hàng nào. Hãy tạo cửa hàng để quản lý sân.')
+        setError('Bạn chưa có Trung tâm thể thao nào. Hãy tạo Trung tâm thể thao để quản lý sân.')
         setLoading(false)
         return
       }
 
       setMyStores(storesData)
 
-      // Lấy fields của TẤT CẢ stores
+      // Lấy fields của TẤT CẢ stores với date_time hiện tại
+      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
       const allFieldsPromises = storesData.map((store: StoreAdminDetailResponse) =>
-        FieldService.getFieldsByStore(store.id)
+        FieldService.getFieldsByStore(store.id, today)
       )
 
       const allFieldsResponses = await Promise.all(allFieldsPromises)
@@ -166,7 +167,7 @@ export default function MyFields() {
     if (!createForm.sport_id || !createForm.store_id || !createForm.default_price) {
       toast({
         title: 'Lỗi',
-        description: 'Vui lòng điền đầy đủ: Môn thể thao, Cửa hàng, Giá tiền',
+        description: 'Vui lòng điền đầy đủ: Môn thể thao, Trung tâm thể thao, Giá tiền',
         variant: 'destructive',
       })
       return
@@ -421,7 +422,7 @@ export default function MyFields() {
             <h1 className="text-3xl font-bold text-gray-900">Quản lý sân</h1>
             <p className="text-gray-600 mt-1">
               {myStores.length > 0
-                ? `Quản lý ${fields.length} sân từ ${myStores.length} cửa hàng`
+                ? `Quản lý ${fields.length} sân từ ${myStores.length} Trung tâm thể thao`
                 : 'Quản lý tất cả sân thể thao'}
             </p>
           </div>
@@ -444,9 +445,9 @@ export default function MyFields() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Cửa hàng *</Label>
+                    <Label>Trung tâm thể thao *</Label>
                     <Select value={createForm.store_id} onValueChange={(value) => setCreateForm({ ...createForm, store_id: value })}>
-                      <SelectTrigger><SelectValue placeholder="Chọn cửa hàng" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Chọn Trung tâm thể thao" /></SelectTrigger>
                       <SelectContent>{myStores.map((store) => (<SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>))}</SelectContent>
                     </Select>
                   </div>
@@ -510,9 +511,9 @@ export default function MyFields() {
                   </SelectContent>
                 </Select>
                 <Select value={storeFilter} onValueChange={setStoreFilter}>
-                  <SelectTrigger className="w-40"><SelectValue placeholder="Cửa hàng" /></SelectTrigger>
+                  <SelectTrigger className="w-40"><SelectValue placeholder="Trung tâm thể thao" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả cửa hàng</SelectItem>
+                    <SelectItem value="all">Tất cả Trung tâm thể thao</SelectItem>
                     {myStores.map((store) => (<SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -531,7 +532,7 @@ export default function MyFields() {
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold">Tên sân</TableHead>
                       <TableHead className="font-semibold">Môn thể thao</TableHead>
-                      <TableHead className="font-semibold">Cửa hàng</TableHead>
+                      <TableHead className="font-semibold">Trung tâm thể thao</TableHead>
                       <TableHead className="font-semibold text-right">Giá tiền</TableHead>
                       <TableHead className="font-semibold">Trạng thái</TableHead>
                       <TableHead className="font-semibold text-center">Hành động</TableHead>
@@ -580,9 +581,9 @@ export default function MyFields() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Cửa hàng</Label>
+                  <Label>Trung tâm thể thao</Label>
                   <Select value={editForm.store_id} onValueChange={(value) => setEditForm({ ...editForm, store_id: value })}>
-                    <SelectTrigger><SelectValue placeholder="Chọn cửa hàng" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Chọn Trung tâm thể thao" /></SelectTrigger>
                     <SelectContent>{myStores.map((store) => (<SelectItem key={store.id} value={store.id}>{store.name}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>

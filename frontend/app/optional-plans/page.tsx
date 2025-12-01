@@ -68,12 +68,12 @@ export default function OptionalPlansPage() {
 
     const handlePurchase = (plan: OptionalPlan) => {
         if (!myStore) {
-            setError('Bạn cần đăng ký cửa hàng trước khi mua gói dịch vụ.')
+            setError('Bạn cần đăng ký Trung tâm thể thao trước khi mua gói dịch vụ.')
             return
         }
 
         if (myStore && !myStore.approved) {
-            setError('Cửa hàng của bạn đang chờ duyệt. Vui lòng chờ admin phê duyệt.')
+            setError('Trung tâm thể thao của bạn đang chờ duyệt. Vui lòng chờ admin phê duyệt.')
             return
         }
 
@@ -157,24 +157,24 @@ export default function OptionalPlansPage() {
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-bold mb-4">Gói Dịch Vụ Optional</h1>
                     <p className="text-xl text-gray-600 mb-6">
-                        Nâng cấp cửa hàng của bạn với các gói dịch vụ chuyên nghiệp
+                        Nâng cấp Trung tâm thể thao của bạn với các gói dịch vụ chuyên nghiệp
                     </p>
                     {myStore && myStore.approved && (
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg">
                             <CheckCircle className="w-5 h-5" />
-                            <span>Cửa hàng: {myStore.name}</span>
+                            <span>Trung tâm thể thao: {myStore.name}</span>
                         </div>
                     )}
                     {myStore && !myStore.approved && (
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg">
                             <Clock className="w-5 h-5" />
-                            <span>Cửa hàng đang chờ duyệt: {myStore.name}</span>
+                            <span>Trung tâm thể thao đang chờ duyệt: {myStore.name}</span>
                         </div>
                     )}
                     {!myStore && (
                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg">
                             <AlertCircle className="w-5 h-5" />
-                            <span>Bạn chưa đăng ký cửa hàng</span>
+                            <span>Bạn chưa đăng ký Trung tâm thể thao</span>
                         </div>
                     )}
                 </div>
@@ -186,16 +186,16 @@ export default function OptionalPlansPage() {
                         <AlertDescription>
                             {!myStore ? (
                                 <div className="space-y-2">
-                                    <p>Bạn cần đăng ký cửa hàng trước khi mua gói dịch vụ.</p>
+                                    <p>Bạn cần đăng ký Trung tâm thể thao trước khi mua gói dịch vụ.</p>
                                     <Button onClick={() => router.push('/store-registration')} size="sm">
-                                        Đăng ký cửa hàng
+                                        Đăng ký Trung tâm thể thao
                                     </Button>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <p>Cửa hàng của bạn đang chờ admin phê duyệt. Bạn có thể xem các gói dịch vụ nhưng chưa thể mua.</p>
+                                    <p>Trung tâm thể thao của bạn đang chờ admin phê duyệt. Bạn có thể xem các gói dịch vụ nhưng chưa thể mua.</p>
                                     <Button onClick={() => router.push('/profile')} size="sm" variant="outline">
-                                        Xem hồ sơ cửa hàng
+                                        Xem hồ sơ Trung tâm thể thao
                                     </Button>
                                 </div>
                             )}
@@ -290,9 +290,9 @@ export default function OptionalPlansPage() {
                                                         Đang xử lý...
                                                     </>
                                                 ) : !myStore ? (
-                                                    'Cần đăng ký cửa hàng'
+                                                    'Cần đăng ký Trung tâm thể thao'
                                                 ) : myStore && !myStore.approved ? (
-                                                    'Cửa hàng chờ duyệt'
+                                                    'Trung tâm thể thao chờ duyệt'
                                                 ) : (
                                                     'Chọn gói này'
                                                 )}

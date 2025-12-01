@@ -27,7 +27,7 @@ const AVAILABLE_AMENITIES = [
     "Nước uống miễn phí",
     "Thiết bị cho thuê",
     "Huấn luyện viên sẵn có",
-    "Cửa hàng dụng cụ",
+    "Trung tâm thể thao dụng cụ",
     "Phòng y tế",
 ]
 
@@ -425,7 +425,7 @@ export default function StoreRegistrationPage() {
             }, 2000)
         } catch (error) {
             console.error('Error in store registration:', error)
-            setError('Có lỗi xảy ra khi đăng ký cửa hàng')
+            setError('Có lỗi xảy ra khi đăng ký Trung tâm thể thao')
         } finally {
             setLoading(false)
         }
@@ -454,8 +454,8 @@ export default function StoreRegistrationPage() {
                         <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                         <h2 className="text-2xl font-bold text-amber-600 mb-2">Cần có tài khoản ngân hàng</h2>
                         <p className="text-gray-600 mb-6">
-                            Bạn cần đăng ký tài khoản ngân hàng trước khi có thể đăng ký cửa hàng.
-                            Tài khoản ngân hàng được sử dụng để nhận thanh toán từ các giao dịch của cửa hàng.
+                            Bạn cần đăng ký tài khoản ngân hàng trước khi có thể đăng ký Trung tâm thể thao.
+                            Tài khoản ngân hàng được sử dụng để nhận thanh toán từ các giao dịch của Trung tâm thể thao.
                         </p>
                         <div className="flex gap-4 justify-center">
                             <Button variant="outline" onClick={() => router.push('/profile')}>
@@ -481,7 +481,7 @@ export default function StoreRegistrationPage() {
 
                         <div className="space-y-3 text-left max-w-md mx-auto mb-6">
                             <p className="text-gray-700">
-                                ✅ Cửa hàng đã được tạo thành công
+                                ✅ Trung tâm thể thao đã được tạo thành công
                             </p>
 
                             {(files.avatar || files.coverImage || files.businessLicense) && (
@@ -563,7 +563,7 @@ export default function StoreRegistrationPage() {
                                             id="introduction"
                                             value={formData.introduction}
                                             onChange={(e) => handleInputChange('introduction', e.target.value)}
-                                            placeholder="Mô tả ngắn về cửa hàng của bạn"
+                                            placeholder="Mô tả ngắn về Trung tâm thể thao của bạn"
                                             rows={3}
                                         />
                                     </div>
@@ -701,7 +701,7 @@ export default function StoreRegistrationPage() {
                                 {/* Tiện ích */}
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-semibold">Tiện ích & Cơ sở vật chất</h3>
-                                    <p className="text-sm text-gray-600">Chọn các tiện ích có sẵn tại cửa hàng của bạn</p>
+                                    <p className="text-sm text-gray-600">Chọn các tiện ích có sẵn tại Trung tâm thể thao của bạn</p>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {AVAILABLE_AMENITIES.map((amenity) => {
@@ -779,7 +779,7 @@ export default function StoreRegistrationPage() {
                         {currentStep === 2 && (
                             <div className="space-y-6">
                                 <div className="space-y-4">
-                                    <h3 className="text-lg font-semibold">Tải ảnh lên cho cửa hàng</h3>
+                                    <h3 className="text-lg font-semibold">Tải ảnh lên cho Trung tâm thể thao</h3>
                                     <Alert className="bg-blue-50 border-blue-200">
                                         <AlertCircle className="h-4 w-4 text-blue-600" />
                                         <AlertDescription className="text-blue-800">
@@ -831,7 +831,7 @@ export default function StoreRegistrationPage() {
 
                                     {/* Cover Image */}
                                     <div>
-                                        <Label htmlFor="coverImage">Ảnh bìa cửa hàng (tùy chọn)</Label>
+                                        <Label htmlFor="coverImage">Ảnh bìa Trung tâm thể thao (tùy chọn)</Label>
                                         <p className="text-xs text-gray-500 mt-1">Max: 2MB</p>
                                         <div className="mt-2">
                                             {files.coverImage ? (
@@ -872,7 +872,7 @@ export default function StoreRegistrationPage() {
 
                                     {/* Avatar */}
                                     <div>
-                                        <Label htmlFor="avatar">Logo cửa hàng (tùy chọn)</Label>
+                                        <Label htmlFor="avatar">Logo Trung tâm thể thao (tùy chọn)</Label>
                                         <p className="text-xs text-gray-500 mt-1">Max: 2MB</p>
                                         <div className="mt-2">
                                             {files.avatar ? (
@@ -968,7 +968,7 @@ export default function StoreRegistrationPage() {
                                 <div className="space-y-4">
                                     <h3 className="text-lg font-semibold">Chọn gói dịch vụ</h3>
                                     <p className="text-sm text-gray-600">
-                                        Hãy chọn gói dịch vụ phù hợp với nhu cầu của cửa hàng bạn. Bạn có thể nâng cấp hoặc thay đổi gói dịch vụ bất cứ lúc nào.
+                                        Hãy chọn gói dịch vụ phù hợp với nhu cầu của Trung tâm thể thao bạn. Bạn có thể nâng cấp hoặc thay đổi gói dịch vụ bất cứ lúc nào.
                                     </p>
 
                                     {/* Loading state */}

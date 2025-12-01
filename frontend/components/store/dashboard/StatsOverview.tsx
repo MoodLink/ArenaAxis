@@ -43,11 +43,11 @@ export default function StatsOverview({ storeCount = 0 }: StatsOverviewProps) {
                 value="25.000.000đ"
             />
             <StatCard
-                title="Tổng số cửa hàng"
+                title="Tổng số Trung tâm thể thao"
                 value={storeCount.toString()}
             />
             <StatCard
-                title="Tổng số lượt xem cửa hàng"
+                title="Tổng số lượt xem Trung tâm thể thao"
                 value="1.520"
 
             />

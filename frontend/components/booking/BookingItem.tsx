@@ -31,7 +31,7 @@ export default function BookingItem({ booking, rawOrder, userProfile, onBookingA
     const [showDetailModal, setShowDetailModal] = useState(false)
 
     // Get store name from cache
-    const storeName = booking.storeId ? (storeNamesCache[booking.storeId] || 'Đang tải...') : 'Cửa hàng'
+    const storeName = booking.storeId ? (storeNamesCache[booking.storeId] || 'Đang tải...') : 'Trung tâm thể thao'
 
     // Get field names from cache for order details
     const getFieldNameFromCache = (fieldId: string) => {

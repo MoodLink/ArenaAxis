@@ -176,10 +176,11 @@ export class FieldPricingService {
 
   /**
    * Helper: Get special price for a specific time slot and day
+   * Supports both old format (with dayOfWeek) and new format (without dayOfWeek)
    * Returns null if no special price found (use default price)
    */
   static getSpecialPriceForSlot(
-    pricings: FieldPricing[],
+    pricings: any[],
     timeSlot: string, // "17:00"
     dayOfWeek: string // "monday"
   ): number | null {
@@ -197,24 +198,64 @@ export class FieldPricingService {
     console.log(`[DEBUG] Looking for price for: ${timeSlot} on ${normalizedDay}`, {
       slotMinutes,
       totalPricings: pricings.length,
-      pricingsForDay: pricings.filter(p => p.dayOfWeek.toLowerCase() === normalizedDay).length
     });
 
     // Find matching pricing rule
     const matchingPricing = pricings.find((pricing) => {
-      // Skip if day doesn't match
-      if (pricing.dayOfWeek.toLowerCase() !== normalizedDay) {
+      // If pricing has dayOfWeek field (old format), check it
+      if (pricing.dayOfWeek) {
+        if (pricing.dayOfWeek.toLowerCase() !== normalizedDay) {
+          return false;
+        }
+      }
+      // New format doesn't have dayOfWeek, so we apply to all days
+
+      // Handle both formats:
+      // Old: { startAt: { hour, minute }, endAt: { hour, minute } }
+      // New: { startAt: "05:00", endAt: "06:30" }
+
+      let startMinutes: number;
+      let endMinutes: number;
+
+      if (typeof pricing.startAt === 'string') {
+        // New format: string "HH:MM"
+        const startParts = pricing.startAt.split(':');
+        if (!startParts[0] || !startParts[1]) {
+          console.warn('[DEBUG] Pricing has invalid startAt format:', pricing);
+          return false;
+        }
+        startMinutes = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+      } else if (pricing.startAt && typeof pricing.startAt === 'object') {
+        // Old format: TimeObject { hour, minute }
+        if (typeof pricing.startAt.hour === 'undefined') {
+          console.warn('[DEBUG] Pricing missing startAt.hour:', pricing);
+          return false;
+        }
+        startMinutes = pricing.startAt.hour * 60 + (pricing.startAt.minute || 0);
+      } else {
+        console.warn('[DEBUG] Pricing has invalid startAt:', pricing);
         return false;
       }
 
-      // Skip if startAt or endAt is missing
-      if (!pricing.startAt || !pricing.endAt || typeof pricing.startAt.hour === 'undefined' || typeof pricing.endAt.hour === 'undefined') {
-        console.warn('[DEBUG] Pricing missing time data:', pricing);
+      if (typeof pricing.endAt === 'string') {
+        // New format: string "HH:MM"
+        const endParts = pricing.endAt.split(':');
+        if (!endParts[0] || !endParts[1]) {
+          console.warn('[DEBUG] Pricing has invalid endAt format:', pricing);
+          return false;
+        }
+        endMinutes = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+      } else if (pricing.endAt && typeof pricing.endAt === 'object') {
+        // Old format: TimeObject { hour, minute }
+        if (typeof pricing.endAt.hour === 'undefined') {
+          console.warn('[DEBUG] Pricing missing endAt.hour:', pricing);
+          return false;
+        }
+        endMinutes = pricing.endAt.hour * 60 + (pricing.endAt.minute || 0);
+      } else {
+        console.warn('[DEBUG] Pricing has invalid endAt:', pricing);
         return false;
       }
-
-      const startMinutes = pricing.startAt.hour * 60 + (pricing.startAt.minute || 0);
-      const endMinutes = pricing.endAt.hour * 60 + (pricing.endAt.minute || 0);
 
       // Check if slot falls within this pricing range
       const isInRange = slotMinutes >= startMinutes && slotMinutes < endMinutes;

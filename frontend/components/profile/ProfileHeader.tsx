@@ -149,8 +149,8 @@ export default function ProfileHeader({ user, showEditButton = true }: ProfileHe
                                         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-green-50">
                                             <Store className="w-4 h-4" />
                                             <span>
-                                                {storeStatus === 'approved' ? 'Chủ cửa hàng' :
-                                                    storeStatus === 'pending' ? 'Chờ duyệt cửa hàng' : 'Cửa hàng'}
+                                                {storeStatus === 'approved' ? 'Chủ Trung tâm thể thao' :
+                                                    storeStatus === 'pending' ? 'Chờ duyệt Trung tâm thể thao' : 'Trung tâm thể thao'}
                                             </span>
                                         </div>
                                     ) : null}
@@ -194,7 +194,7 @@ export default function ProfileHeader({ user, showEditButton = true }: ProfileHe
                                         <Link href="/store-registration">
                                             <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white">
                                                 <Store className="w-4 h-4 mr-2" />
-                                                Đăng ký cửa hàng
+                                                Đăng ký Trung tâm thể thao
                                             </Button>
                                         </Link>
                                     ) : storeStatus === 'approved' ? (
@@ -208,7 +208,7 @@ export default function ProfileHeader({ user, showEditButton = true }: ProfileHe
                                     ) : (
                                         // Show pending status for unapproved stores
                                         <div className="w-full px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-center text-sm">
-                                            Cửa hàng đang chờ duyệt
+                                            Trung tâm thể thao đang chờ duyệt
                                         </div>
                                     )}
                                 </div>

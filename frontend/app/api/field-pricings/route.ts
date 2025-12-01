@@ -37,11 +37,13 @@ export async function GET(request: Request) {
     console.log(`[PROXY] Got backend response:`, JSON.stringify(backendData).substring(0, 200));
 
     // 🎯 NORMALIZE: Convert backend format to flat array
-    // Backend: { pricings: { monday: [...], thursday: [...], ... } }
+    // Backend may return TWO formats:
+    // Format 1: { data: { pricings: { monday: [...], thursday: [...] } } }
+    // Format 2: { data: { monday: [...], thursday: [...] } }
     // Frontend expects: [ { dayOfWeek, specialPrice, startAt, endAt }, ... ]
-    // Also convert time strings "17:00" to { hour, minute } objects
 
-    const pricingsByDay = backendData.data?.pricings || {};
+    // Try to get pricings from either format
+    const pricingsByDay = backendData.data?.pricings || backendData.data || {};
     const normalizedPricings: any[] = [];
 
     // Helper to parse time string "17:00" to { hour, minute }

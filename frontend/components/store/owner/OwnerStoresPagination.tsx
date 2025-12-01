@@ -55,7 +55,7 @@ export default function OwnerStoresPagination({
             <div className="text-sm text-gray-600">
                 Hiển thị <span className="font-semibold">{startItem}</span> đến{" "}
                 <span className="font-semibold">{endItem}</span> trong tổng số{" "}
-                <span className="font-semibold">{totalItems}</span> cửa hàng
+                <span className="font-semibold">{totalItems}</span> Trung tâm thể thao
             </div>
 
             <div className="flex items-center gap-2">

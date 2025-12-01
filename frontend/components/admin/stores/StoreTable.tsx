@@ -1,5 +1,5 @@
 // Store Table Component
-// Hiển thị bảng danh sách cửa hàng
+// Hiển thị bảng danh sách Trung tâm thể thao
 
 import AdminTable, { TableColumn, TableAction } from "../shared/AdminTable"
 import { Eye, Edit, Trash2, Star, Eye as EyeIcon, ShoppingCart } from "lucide-react"
@@ -48,8 +48,8 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
                             <Star
                                 key={star}
                                 className={`h-4 w-4 ${star <= Math.round(rating || 0)
-                                        ? 'fill-yellow-400 text-yellow-400'
-                                        : 'fill-gray-200 text-gray-200'
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'fill-gray-200 text-gray-200'
                                     }`}
                             />
                         ))}
@@ -107,7 +107,7 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
             columns={columns}
             data={stores}
             actions={actions}
-            emptyMessage="Không tìm thấy cửa hàng nào"
+            emptyMessage="Không tìm thấy Trung tâm thể thao nào"
         />
     )
 }

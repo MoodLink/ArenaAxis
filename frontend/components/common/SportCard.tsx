@@ -12,7 +12,7 @@ interface SportCardProps {
 
 export default function SportCard({ sport, className = "" }: SportCardProps) {
     return (
-        // Link đến trang danh sách cửa hàng với filter theo sportId
+        // Link đến trang danh sách Trung tâm thể thao với filter theo sportId
         <Link href={`/list-store?sportId=${encodeURIComponent(sport.id)}`}>
             <Card className={`text-center hover:shadow-lg transition-shadow cursor-pointer ${className}`}>
                 <CardContent className="p-6">

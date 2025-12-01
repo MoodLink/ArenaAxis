@@ -56,7 +56,7 @@ export async function GET(
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Không thể lấy thông tin cửa hàng';
+        const errorMessage = error instanceof Error ? error.message : 'Không thể lấy thông tin Trung tâm thể thao';
         console.error('[API Proxy] ❌ Error:', errorMessage, error);
 
         return NextResponse.json(

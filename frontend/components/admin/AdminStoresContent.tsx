@@ -213,7 +213,7 @@ export default function AdminStoresContent({ stores, viewMode }: AdminStoresCont
                         </svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                        Không tìm thấy cửa hàng
+                        Không tìm thấy Trung tâm thể thao
                     </h3>
                     <p className="text-gray-600">
                         Thử thay đổi bộ lọc hoặc tìm kiếm với từ khóa khác

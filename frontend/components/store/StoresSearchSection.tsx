@@ -34,7 +34,7 @@ export default function StoresSearchSection({
 
       {/* Results Count */}
       <div className="mt-3 text-sm text-gray-600">
-        <span className="font-semibold text-primary">{filteredCount}</span> cửa hàng (Tổng: <span className="font-semibold text-primary">{totalStores}</span>)
+        <span className="font-semibold text-primary">{filteredCount}</span> Trung tâm thể thao (Tổng: <span className="font-semibold text-primary">{totalStores}</span>)
       </div>
 
       {/* View Mode Toggle */}

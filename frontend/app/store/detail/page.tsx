@@ -20,14 +20,14 @@ export default function StoreDetailPage() {
                     return;
                 }
 
-                // Lấy danh sách cửa hàng
+                // Lấy danh sách Trung tâm thể thao
                 const stores = await getStoresByOwnerId(currentUser.id);
 
                 if (stores && stores.length > 0) {
-                    // Redirect tới chi tiết cửa hàng đầu tiên
+                    // Redirect tới chi tiết Trung tâm thể thao đầu tiên
                     router.push(`/store/detail/${stores[0].id}`);
                 } else {
-                    // Nếu không có cửa hàng, redirect tới trang store
+                    // Nếu không có Trung tâm thể thao, redirect tới trang store
                     router.push('/store');
                 }
             } catch (error) {
@@ -44,7 +44,7 @@ export default function StoreDetailPage() {
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg">Đang tải thông tin cửa hàng...</p>
+                    <p className="text-gray-600 text-lg">Đang tải thông tin Trung tâm thể thao...</p>
                 </div>
             </div>
         </StoreLayout>

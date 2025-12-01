@@ -1,12 +1,12 @@
 // File: services/nearby-store.service.ts
-// Service để lấy danh sách cửa hàng gần vị trí người dùng
+// Service để lấy danh sách Trung tâm thể thao gần vị trí người dùng
 
 import { StoreSearchItemResponse } from '@/types';
 import { reverseGeocodeAndFindLocation } from './location-helper.service';
 
 
 /**
- * Request để tìm kiếm cửa hàng gần vị trí
+ * Request để tìm kiếm Trung tâm thể thao gần vị trí
  */
 export interface NearbyStoreRequest {
     latitude: number;
@@ -17,7 +17,7 @@ export interface NearbyStoreRequest {
 }
 
 /**
- * Lấy danh sách cửa hàng gần vị trí người dùng
+ * Lấy danh sách Trung tâm thể thao gần vị trí người dùng
  * 
  * @param request - Request payload với latitude, longitude và tùy chọn distance, wardName, provinceName
  * @returns Array của stores gần vị trí
@@ -89,7 +89,7 @@ export async function getNearbyStores(
         const data = await response.json();
         console.log(`✅ Backend returned ${Array.isArray(data) ? data.length : 'unknown'} nearby stores`);
 
-        // Log thông tin về các cửa hàng trả về để debug
+        // Log thông tin về các Trung tâm thể thao trả về để debug
         if (Array.isArray(data) && data.length > 0) {
             console.log('📋 Sample stores received from backend:');
             data.forEach((store, idx) => {
@@ -158,7 +158,7 @@ export async function getNearbyStores(
 }
 
 /**
- * Lấy danh sách cửa hàng gần vị trí dựa trên Geolocation API
+ * Lấy danh sách Trung tâm thể thao gần vị trí dựa trên Geolocation API
  * Tự động lấy wardName và provinceName từ reverse geocoding
  * 
  * @param distance - Khoảng cách tìm kiếm (mặc định 10km)

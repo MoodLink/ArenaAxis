@@ -90,7 +90,7 @@ export default function DashboardStats() {
           setTotalUsers('0')
         }
 
-        // Fetch tổng cửa hàng
+        // Fetch tổng Trung tâm thể thao
         try {
           const storesData = await getUserStores(1, 1000)
           if (Array.isArray(storesData)) {
@@ -133,7 +133,7 @@ export default function DashboardStats() {
     {
       title: 'Tổng người dùng',
       value: totalUsers,
-     
+
       icon: Users,
       description: 'Người dùng đã đăng ký',
       loading
@@ -141,7 +141,7 @@ export default function DashboardStats() {
     {
       title: 'Tổng trung tâm thể thao',
       value: totalStores,
-    
+
       icon: MapPin,
       description: 'Trung tâm thể thao đang hoạt động',
       loading
@@ -149,7 +149,7 @@ export default function DashboardStats() {
     {
       title: 'Tổng sân thể thao',
       value: totalFields,
-    
+
       icon: Calendar,
       description: 'Sân đang hoạt động',
       loading
@@ -157,7 +157,7 @@ export default function DashboardStats() {
     {
       title: 'Booking trong tháng',
       value: '2,358',
-    
+
       icon: Calendar,
       description: 'Lượt đặt sân',
       loading: false
@@ -165,7 +165,7 @@ export default function DashboardStats() {
     {
       title: 'Doanh thu tháng',
       value: '₫125M',
-    
+
       icon: DollarSign,
       description: 'Doanh thu thực tế',
       loading: false
@@ -173,7 +173,7 @@ export default function DashboardStats() {
     {
       title: 'Đánh giá trung bình',
       value: '4.8',
-     
+
       icon: Star,
       description: 'Từ 1,024 đánh giá',
       loading: false

@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input'
 import { FieldService, Field as APIField } from '@/services/field.service'
 import { FieldPricingService, FieldPricing } from '@/services/field-pricing.service'
 import { StoreService } from '@/services/store.service'
-import { OrderService } from '@/services/order.service'
 import StoreLayout from '@/components/store/StoreLayout'
 import { useToast } from '@/hooks/use-toast'
 
@@ -104,110 +103,99 @@ export default function FieldDetailPage() {
     // Toast notification
     const { toast } = useToast()
 
-    // 🔄 Helper function to refresh booking data from store orders
+    // 🔄 Helper function to refresh booking data from statusField (giống store-booking page)
     const refreshBookingData = useCallback(async () => {
         console.log('🔄 refreshBookingData called for field:', fieldId)
 
-        if (!fieldId || !field?.storeId) {
-            console.log('⏭️ Skipping refresh - no fieldId or storeId yet')
+        if (!fieldId || !field?.storeId || !field?.sportId) {
+            console.log('⏭️ Skipping refresh - no fieldId, storeId or sportId yet')
             return
         }
 
         try {
-            console.log('🔄 Fetching orders from store for date:', selectedDate)
+            console.log('🔄 Fetching field data with statusField for date:', selectedDate)
 
-           
-            const startDateStr = '2000-01-01'  // Very old date to get all orders
-            const endDateStr = new Date().toISOString().split('T')[0]  // Today
-
-            console.log(`📅 Fetching all store orders to filter by booking date: ${selectedDate}`)
-
-            // Fetch all orders for the store
-            const orders = await OrderService.getOrdersByStore(
+            // 🎯 Call API to get field with statusField data for selected date
+            const fieldsResponse = await FieldService.getFieldsWithAllData(
                 field.storeId,
-                startDateStr,
-                endDateStr
+                field.sportId,
+                selectedDate
             )
+            console.log('🏟️ Fields response:', fieldsResponse)
 
-            console.log('📦 Orders received:', { count: orders.length, orders })
-            console.log('🔍 All orders:', orders.map(o => ({ code: o.orderCode, status: o.statusPayment, details: o.orderDetails.map(d => ({ startTime: d.startTime, endTime: d.endTime })) })))
-
-
+            // Build bookingData from statusField array (PAID bookings only)
             const bookingMap: BookingStatus = {}
 
+            // Initialize subcourts
             const subcourts = ['subcourt-001', 'subcourt-002', 'subcourt-003']
             subcourts.forEach(subcourt => {
                 bookingMap[subcourt] = {}
             })
 
+            // Find current field in response
+            const fieldsData = fieldsResponse.data || []
+            const currentFieldData = fieldsData.find((f: APIField) => f._id === fieldId)
 
-            const paidOrders = orders.filter(order => order.statusPayment === 'PAID')
-            console.log(`✅ Found ${paidOrders.length} PAID orders out of ${orders.length} total`)
+            if (!currentFieldData) {
+                console.log('⚠️ Field not found in response')
+                setBookingData(bookingMap)
+                return
+            }
 
+            console.log(`📊 Processing field ${fieldId}`)
 
-            paidOrders.forEach(order => {
-                console.log(`🔍 Processing order ${order.orderCode} with ${order.orderDetails.length} details`)
-                order.orderDetails.forEach((detail, idx) => {
+            if (!currentFieldData.statusField || currentFieldData.statusField.length === 0) {
+                console.log(`  ℹ️ No statusField data for field ${fieldId}`)
+                setBookingData(bookingMap)
+                return
+            }
 
-                    if (detail.fieldId !== fieldId) {
-                        console.log(`  ⏭️ Skipping - different field (${detail.fieldId} vs ${fieldId})`)
-                        return
-                    }
+            console.log(`  📋 Found ${currentFieldData.statusField.length} status entries`)
 
-                    console.log(`  Detail ${idx}: fieldId=${detail.fieldId}, startTime="${detail.startTime}", endTime="${detail.endTime}", type: ${typeof detail.startTime}`)
+            // Filter PAID status only and extract booked slots
+            const paidStatuses = currentFieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
+            console.log(`  ✅ Found ${paidStatuses.length} PAID bookings`)
 
-                    // Parse start and end times
-                    let startTimeStr = ""
-                    let endTimeStr = ""
-                    let orderDate = ""
+            paidStatuses.forEach((status: any) => {
+                const startTime = status.startTime  // ISO format: "2025-12-01T06:30:00.000Z"
+                const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
 
-                    if (detail.startTime.includes(" ")) {
-                        // Format: "2025-11-13 05:00"
-                        const dateMatch = detail.startTime.match(/(\d{4}-\d{2}-\d{2})/)
-                        const timeMatch = detail.startTime.match(/(\d{2}):(\d{2})$/)
+                console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
 
-                        if (dateMatch) {
-                            orderDate = dateMatch[1]
-                        }
+                // Parse ISO datetime to extract time part WITHOUT timezone conversion
+                const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
+                const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
 
-                        if (timeMatch) {
-                            const endTimeMatch = detail.endTime.match(/(\d{2}):(\d{2})$/)
-                            startTimeStr = `${timeMatch[1]}:${timeMatch[2]}`
-                            endTimeStr = endTimeMatch ? `${endTimeMatch[1]}:${endTimeMatch[2]}` : ""
-                        }
-                    } else {
-                        // Format: "05:00"
-                        startTimeStr = detail.startTime
-                        endTimeStr = detail.endTime
-                    }
+                if (!startTimeMatch || !endTimeMatch) {
+                    console.warn(`    ⚠️ Could not parse time from: ${startTime} to ${endTime}`)
+                    return
+                }
 
-                    // ⚠️ IMPORTANT: Only process orderDetails that match the selected date
-                    const formattedSelectedDate = selectedDate
-                    if (orderDate && orderDate !== formattedSelectedDate) {
-                        console.log(`  ⏭️ Skipping - order date "${orderDate}" doesn't match selected date "${formattedSelectedDate}"`)
-                        return
-                    }
+                const startHours = startTimeMatch[1]
+                const startMins = startTimeMatch[2]
+                const endHours = endTimeMatch[1]
+                const endMins = endTimeMatch[2]
 
-                    if (startTimeStr && endTimeStr) {
-                        // Generate all 30-minute slots between start and end time
-                        const startMinutes = parseInt(startTimeStr.split(':')[0]) * 60 + parseInt(startTimeStr.split(':')[1])
-                        const endMinutes = parseInt(endTimeStr.split(':')[0]) * 60 + parseInt(endTimeStr.split(':')[1])
+                const startTimeStr = `${startHours}:${startMins}`
+                const endTimeStr = `${endHours}:${endMins}`
 
-                        console.log(`  🔢 Start: ${startMinutes} min, End: ${endMinutes} min`)
+                console.log(`    ⏱️ Parsed time: ${startTimeStr} to ${endTimeStr}`)
 
-                        // Mark the first subcourt with these bookings
-                        // In real scenario, this would come from order details
-                        const targetSubcourt = 'subcourt-001'
+                // Generate all 30-minute slots between start and end time
+                const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
+                const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
 
-                        for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
-                            const hours = Math.floor(minutes / 60)
-                            const mins = minutes % 60
-                            const slotTime = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
-                            bookingMap[targetSubcourt][slotTime] = 'booked'
-                            console.log(`    ✅ Marking slot as booked: ${slotTime}`)
-                        }
-                    }
-                })
+                // Mark first subcourt (in real scenario, this would come from status data)
+                const targetSubcourt = 'subcourt-001'
+
+                for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                    const hours = Math.floor(minutes / 60)
+                    const mins = minutes % 60
+                    const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+
+                    bookingMap[targetSubcourt][slotTime] = 'booked'
+                    console.log(`      ✅ Marked as booked: ${slotTime}`)
+                }
             })
 
             setBookingData(bookingMap)
@@ -215,7 +203,7 @@ export default function FieldDetailPage() {
         } catch (error) {
             console.error('❌ Error refreshing booking data:', error)
         }
-    }, [fieldId, field?.storeId, selectedDate])
+    }, [fieldId, field?.storeId, field?.sportId, selectedDate])
 
     // Fetch field details
     useEffect(() => {

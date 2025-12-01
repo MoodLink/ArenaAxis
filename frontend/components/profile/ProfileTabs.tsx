@@ -18,7 +18,7 @@ export default function ProfileTabs({ activeTab, onTabChange, hasStores = false 
     const tabs = [
         { id: "overview", label: "Tổng quan", icon: User },
         { id: "activities", label: "Hoạt động", icon: Activity },
-        ...(hasStores ? [{ id: "stores", label: "Cửa hàng", icon: Store }] : []),
+        ...(hasStores ? [{ id: "stores", label: "Trung tâm thể thao", icon: Store }] : []),
         // { id: "achievements", label: "Thành tựu", icon: Award },
         { id: "settings", label: "Cài đặt", icon: Settings }
     ]

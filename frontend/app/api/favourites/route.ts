@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/favourites
- * Thêm cửa hàng vào danh sách yêu thích
+ * Thêm Trung tâm thể thao vào danh sách yêu thích
  * Body: { storeId: string }
  */
 export async function POST(request: Request) {

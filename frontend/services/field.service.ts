@@ -13,6 +13,15 @@ export interface Field {
   avatar?: string;
   cover_image?: string;
   rating?: number;
+  pricings?: Array<{
+    specialPrice: number;
+    startAt: string;
+    endAt: string;
+  }>;
+  statusField?: any[];
+  // Thêm các field có thể được trả về từ API mới
+  store?: any;
+  sport?: any;
 }
 
 export interface FieldsResponse {
@@ -47,13 +56,14 @@ export interface UpdateFieldDto {
   active_status?: boolean;
 }
 
-const API_BASE_URL = '/api/fields';
+const API_BASE_URL = '/api/fields/';
 
 export class FieldService {
   static async getFields(params?: {
     sport_id?: string;
     store_id?: string;
     active_status?: boolean;
+    date_time?: string;
   }): Promise<FieldsResponse> {
     const queryParams = new URLSearchParams();
 
@@ -66,9 +76,15 @@ export class FieldService {
     if (params?.active_status !== undefined) {
       queryParams.append('active_status', String(params.active_status));
     }
+    if (params?.date_time) {
+      queryParams.append('date_time', params.date_time);
+    }
 
     const queryString = queryParams.toString();
     const url = queryString ? `${API_BASE_URL}?${queryString}` : API_BASE_URL;
+
+    console.log('🔍 FieldService.getFields - Request URL:', url);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -77,10 +93,14 @@ export class FieldService {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ FieldService.getFields - Error:', response.status, errorText);
       throw new Error(`Failed to fetch fields: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('✅ FieldService.getFields - Response:', data);
+    return data;
   }
 
   static async getFieldById(fieldId: string): Promise<FieldResponse> {
@@ -186,17 +206,29 @@ export class FieldService {
     });
   }
 
-  static async getFieldsByStore(storeId: string): Promise<FieldsResponse> {
-    return this.getFields({ store_id: storeId });
+  static async getFieldsByStore(storeId: string, dateTime?: string): Promise<FieldsResponse> {
+    // Backend yêu cầu date_time, nếu không truyền thì dùng ngày hiện tại
+    const defaultDateTime = dateTime || new Date().toISOString().split('T')[0];
+    return this.getFields({
+      store_id: storeId,
+      date_time: defaultDateTime
+    });
   }
 
-  static async getFieldsBySport(
+  static async getFieldsWithAllData(
+    storeId: string,
     sportId: string,
-    storeId?: string
+    dateTime: string
   ): Promise<FieldsResponse> {
+    // Đảm bảo dateTime format đúng: YYYY-MM-DD hoặc YYYY-M-D
+    const formattedDate = dateTime.includes('T')
+      ? dateTime.split('T')[0]
+      : dateTime;
+
     return this.getFields({
-      sport_id: sportId,
       store_id: storeId,
+      sport_id: sportId,
+      date_time: formattedDate,
     });
   }
 }

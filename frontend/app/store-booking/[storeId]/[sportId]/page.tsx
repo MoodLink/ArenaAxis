@@ -229,7 +229,7 @@
 //                     title={`Đặt sân ${sport.name}`}
 //                     subtitle={`Chọn thời gian phù hợp tại ${store.name}`}
 //                     breadcrumbs={[
-//                         { label: 'Danh sách cửa hàng', href: '/list-store' },
+//                         { label: 'Danh sách Trung tâm thể thao', href: '/list-store' },
 //                         { label: store.name, href: `/list-store/${storeId}` },
 //                         { label: `Đặt sân ${sport.name}`, isActive: true }
 //                     ]}

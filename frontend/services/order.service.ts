@@ -28,11 +28,12 @@ export interface CreatePaymentOrderRequest {
     user_id: string;
     amount: number;
     description: string;
-    date: string;
+    date?: string;  // Optional: main order date (can be first date if multiple dates)
     items: Array<{
         field_id: string;
         start_time: string;
         end_time: string;
+        date: string;  // ✅ Each item now includes its booking date
         name: string;
         quantity: number;
         price: number;
@@ -155,11 +156,12 @@ function normalizePaymentOrderRequest(request: CreatePaymentOrderRequest): Creat
     const normalizedDate = normalizeDate(request.date);
     console.log(`   Date: ${request.date} → ${normalizedDate}`);
 
-    // Normalize items
+    // Normalize items with multi-date support
     const normalizedItems = request.items.map((item, index) => ({
         field_id: String(item.field_id).trim(),
         start_time: normalizeTime(item.start_time),
         end_time: normalizeTime(item.end_time),
+        date: normalizeDate(item.date),  // ✅ Normalize each item's date
         name: String(item.name).trim(),
         quantity: Math.max(1, Math.round(item.quantity)),
         price: normalizeAmount(item.price),
@@ -167,7 +169,7 @@ function normalizePaymentOrderRequest(request: CreatePaymentOrderRequest): Creat
 
     console.log(`   Items normalized: ${normalizedItems.length} items`);
     normalizedItems.forEach((item, i) => {
-        console.log(`      [${i}] ${item.name} (${item.start_time}-${item.end_time}): ${formatVND(item.price)}`);
+        console.log(`      [${i}] ${item.name} (${item.date} ${item.start_time}-${item.end_time}): ${formatVND(item.price)}`);
     });
 
     return {
@@ -175,7 +177,7 @@ function normalizePaymentOrderRequest(request: CreatePaymentOrderRequest): Creat
         user_id: String(request.user_id).trim(),
         amount: normalizedAmount,
         description: String(request.description).trim(),
-        date: normalizedDate,
+        date: normalizedDate || (normalizedItems.length > 0 ? normalizedItems[0].date : ''),
         items: normalizedItems,
     };
 }
