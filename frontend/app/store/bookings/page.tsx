@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { FieldService, Field as APIField } from '@/services/field.service';
 import { FieldPricingService, FieldPricing } from '@/services/field-pricing.service';
 import { StoreService } from '@/services/store.service';
+import { OrderService } from '@/services/order.service';
 import StoreLayout from '@/components/store/StoreLayout';
 import { useToast } from '@/hooks/use-toast';
 import { getStoreById } from '@/services/api-new';
@@ -74,9 +75,16 @@ export default function StoreBookingsPage() {
 
     // Pricing state
     const [showPricingModal, setShowPricingModal] = useState(false);
+    const [pricingMode, setPricingMode] = useState<'day-of-week' | 'specific-date'>('day-of-week');
     const [pricingForm, setPricingForm] = useState({
         field_id: '',
         day_of_weeks: [] as string[],
+        start_at: '17:00',
+        end_at: '19:30',
+        price: ''
+    });
+    const [specialDatePricingForm, setSpecialDatePricingForm] = useState({
+        date: selectedDate,
         start_at: '17:00',
         end_at: '19:30',
         price: ''
@@ -115,8 +123,17 @@ export default function StoreBookingsPage() {
             )
             console.log('🏟️ Fields response:', fieldsResponse)
 
+            // Also fetch orders from the store to get complete customer info
+            const ordersResponse = await OrderService.getOrdersByStore(
+                storeId,
+                selectedDate,
+                selectedDate
+            )
+            console.log('📦 Orders response:', ordersResponse)
+
             // Build bookingData from statusField array (PAID bookings only)
             const bookingMap: { [fieldId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" } } = {}
+            const bookingWithCustomerMap: Record<string, BookingInfo> = {}
 
             // Initialize all fields with empty booking data
             fields.forEach(field => {
@@ -147,6 +164,7 @@ export default function StoreBookingsPage() {
                     const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
 
                     console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
+                    console.log(`    📝 Booking details:`, status)
 
                     // Parse ISO datetime to extract time part WITHOUT timezone conversion
                     const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
@@ -182,6 +200,63 @@ export default function StoreBookingsPage() {
 
                         bookingMap[fieldId][slotTime] = 'booked'
                         console.log(`      ✅ Marked as booked: ${slotTime}`)
+
+                        // Try to find matching order from ordersResponse to get complete customer info
+                        let bookingInfo: BookingInfo | null = null
+
+                        if (ordersResponse && ordersResponse.length > 0) {
+                            // Find order that matches this time slot
+                            for (const order of ordersResponse) {
+                                if (order.orderDetails && order.orderDetails.length > 0) {
+                                    for (const detail of order.orderDetails) {
+                                        if (detail.fieldId === fieldId) {
+                                            // Check if this detail's time matches our slot
+                                            const detailStartMatch = detail.startTime.match(/T(\d{2}):(\d{2}):/)
+                                            if (detailStartMatch) {
+                                                const detailStartTime = `${detailStartMatch[1]}:${detailStartMatch[2]}`
+                                                if (detailStartTime === slotTime) {
+                                                    // Found matching order detail
+                                                    console.log(`        🎯 Found matching order for slot ${slotTime}:`, order)
+                                                    bookingInfo = {
+                                                        id: order._id || `booking-${slotTime}`,
+                                                        fieldId: fieldId,
+                                                        timeSlot: slotTime,
+                                                        // Try to get user info from order or use fallback
+                                                        customerName: status.userId?.name || order.userId || 'N/A',
+                                                        customerPhone: status.userId?.phone || 'N/A',
+                                                        customerEmail: status.userId?.email || 'N/A',
+                                                        customerAddress: order.address || status.userId?.address || 'N/A',
+                                                        bookingTime: new Date(order.createdAt).toLocaleString('vi-VN'),
+                                                        price: detail.price || parseInt(field?.defaultPrice || '0')
+                                                    }
+                                                    break
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (bookingInfo) break
+                                }
+                            }
+                        }
+
+                        // If no matching order found, use fallback info
+                        if (!bookingInfo) {
+                            bookingInfo = {
+                                id: status._id || `booking-${slotTime}`,
+                                fieldId: fieldId,
+                                timeSlot: slotTime,
+                                customerName: status.userId?.name || 'N/A',
+                                customerPhone: status.userId?.phone || 'N/A',
+                                customerEmail: status.userId?.email || 'N/A',
+                                customerAddress: status.userId?.address || 'N/A',
+                                bookingTime: new Date(status.createdAt).toLocaleString('vi-VN'),
+                                price: status.price || parseInt(field?.defaultPrice || '0')
+                            }
+                        }
+
+                        const bookingKey = `${fieldId}-${slotTime}`
+                        bookingWithCustomerMap[bookingKey] = bookingInfo
+                        console.log(`      👤 Saved booking info for slot ${slotTime}:`, bookingInfo)
                     }
                 })
             })
@@ -348,13 +423,14 @@ export default function StoreBookingsPage() {
             const fieldsData = response.data || [];
             setFields(fieldsData.filter((f: APIField) => f.activeStatus));
 
-            // Load field pricings for ALL fields
+            // Load field pricings for ALL fields (both day-of-week and special date)
             if (fieldsData.length > 0) {
                 const pricingsMap: { [key: string]: FieldPricing[] } = {};
 
                 for (const field of fieldsData) {
                     try {
-                        const pricingsResponse = await FieldPricingService.getFieldPricings(field._id);
+                        // Fetch both day-of-week and special date pricings
+                        const pricingsResponse = await FieldPricingService.getAllFieldPricings(field._id);
                         if (pricingsResponse.data) {
                             pricingsMap[field._id] = pricingsResponse.data;
                         }
@@ -373,6 +449,16 @@ export default function StoreBookingsPage() {
                     }));
                 }
             }
+
+            // 🔄 Refresh booking data after loading fields and pricings
+            setLoading(false);
+            if (storeId && fieldsData.length > 0) {
+                console.log('✅ Fields and pricings loaded - refreshing booking data immediately')
+                // Set timeout to ensure state is updated first
+                setTimeout(() => {
+                    refreshBookingData();
+                }, 0);
+            }
         } catch (error) {
             console.error('Error loading store or fields:', error);
             toast({
@@ -380,7 +466,6 @@ export default function StoreBookingsPage() {
                 description: 'Không thể tải thông tin Trung tâm thể thao hoặc danh sách sân',
                 variant: 'destructive',
             });
-        } finally {
             setLoading(false);
         }
     };
@@ -390,20 +475,146 @@ export default function StoreBookingsPage() {
         return `${Number(price).toLocaleString('vi-VN')}đ`;
     };
 
-    // Get slot price with special pricing
+    // Get slot price with special pricing (both day-of-week and special date)
     const getSlotPrice = (timeSlot: string, selectedDate: string, fieldId: string): number => {
         const date = new Date(selectedDate);
         const dayOfWeek = FieldPricingService.getDayOfWeek(date);
         const fieldPricings = fieldPricingsMap[fieldId] || [];
+        const field = fields.find(f => f._id === fieldId);
+
+        // First, check for special date pricing
+        if (fieldPricings && fieldPricings.length > 0) {
+            const specialDatePricing = fieldPricings.find(pricing => {
+                if (!pricing.startAt) return false;
+
+                let startAtStr: string = '';
+                let endAtStr: string = '';
+
+                if (typeof pricing.startAt === 'string') {
+                    startAtStr = pricing.startAt;
+                } else if (pricing.startAt && typeof pricing.startAt === 'object' && 'hour' in pricing.startAt) {
+                    return false; // This is day-of-week pricing
+                }
+
+                if (typeof pricing.endAt === 'string') {
+                    endAtStr = pricing.endAt;
+                } else if (pricing.endAt && typeof pricing.endAt === 'object' && 'hour' in pricing.endAt) {
+                    return false; // This is day-of-week pricing
+                }
+
+                if (!startAtStr || !endAtStr) return false;
+
+                // Check if this has a date component (special date pricing)
+                const hasDateComponent = startAtStr.includes('-') && (startAtStr.includes('T') || startAtStr.includes(' '));
+                if (!hasDateComponent) return false;
+
+                // Extract time parts
+                const startTimePart = startAtStr.includes(' ') ? startAtStr.split(' ')[1] : (startAtStr.split('T')[1]?.substring(0, 5) || '');
+                const endTimePart = endAtStr.includes(' ') ? endAtStr.split(' ')[1] : (endAtStr.split('T')[1]?.substring(0, 5) || '');
+
+                const startTimeHour = parseInt(startTimePart.split(':')[0] || '0');
+                const startTimeMin = parseInt(startTimePart.split(':')[1] || '0');
+                const startTimeTotal = startTimeHour * 60 + startTimeMin;
+
+                const endTimeHour = parseInt(endTimePart.split(':')[0] || '0');
+                const endTimeMin = parseInt(endTimePart.split(':')[1] || '0');
+                const endTimeTotal = endTimeHour * 60 + endTimeMin;
+
+                const [slotHour, slotMinute] = timeSlot.split(':').map(Number);
+                const slotMinutes = slotHour * 60 + slotMinute;
+
+                const startDateStr = startAtStr.split(' ')[0] || startAtStr.split('T')[0];
+                const endDateStr = endAtStr.split(' ')[0] || endAtStr.split('T')[0];
+
+                let isInRange = false;
+                if (startDateStr === selectedDate && endDateStr === selectedDate) {
+                    isInRange = slotMinutes >= startTimeTotal && slotMinutes < endTimeTotal;
+                } else if (startDateStr === selectedDate && endDateStr > selectedDate) {
+                    isInRange = slotMinutes >= startTimeTotal;
+                } else if (startDateStr < selectedDate && endDateStr === selectedDate) {
+                    isInRange = slotMinutes < endTimeTotal;
+                }
+
+                return isInRange;
+            });
+
+            if (specialDatePricing) {
+                return specialDatePricing.specialPrice || parseInt(field?.defaultPrice || '0');
+            }
+        }
+
+        // Fallback: check for day-of-week pricing
         const specialPrice = FieldPricingService.getSpecialPriceForSlot(fieldPricings, timeSlot, dayOfWeek);
-        return specialPrice || (fields.find(f => f._id === fieldId)?.defaultPrice ? parseInt(fields.find(f => f._id === fieldId)!.defaultPrice || '0') : 0);
+        return specialPrice || (field?.defaultPrice ? parseInt(field.defaultPrice || '0') : 0);
     };
 
     // Check if slot has special pricing
+    // Check if slot has special pricing (both day-of-week and special date)
     const hasSpecialPrice = (timeSlot: string, selectedDate: string, fieldId: string): boolean => {
         const date = new Date(selectedDate);
         const dayOfWeek = FieldPricingService.getDayOfWeek(date);
         const fieldPricings = fieldPricingsMap[fieldId] || [];
+
+        // First check for special date pricing
+        if (fieldPricings && fieldPricings.length > 0) {
+            const hasSpecialDatePrice = fieldPricings.some(pricing => {
+                if (!pricing.startAt) return false;
+
+                let startAtStr: string = '';
+                let endAtStr: string = '';
+
+                if (typeof pricing.startAt === 'string') {
+                    startAtStr = pricing.startAt;
+                } else if (pricing.startAt && typeof pricing.startAt === 'object' && 'hour' in pricing.startAt) {
+                    return false; // This is day-of-week pricing
+                }
+
+                if (typeof pricing.endAt === 'string') {
+                    endAtStr = pricing.endAt;
+                } else if (pricing.endAt && typeof pricing.endAt === 'object' && 'hour' in pricing.endAt) {
+                    return false; // This is day-of-week pricing
+                }
+
+                if (!startAtStr || !endAtStr) return false;
+
+                // Check if this has a date component (special date pricing)
+                const hasDateComponent = startAtStr.includes('-') && (startAtStr.includes('T') || startAtStr.includes(' '));
+                if (!hasDateComponent) return false;
+
+                // Extract time parts
+                const startTimePart = startAtStr.includes(' ') ? startAtStr.split(' ')[1] : (startAtStr.split('T')[1]?.substring(0, 5) || '');
+                const endTimePart = endAtStr.includes(' ') ? endAtStr.split(' ')[1] : (endAtStr.split('T')[1]?.substring(0, 5) || '');
+
+                const startTimeHour = parseInt(startTimePart.split(':')[0] || '0');
+                const startTimeMin = parseInt(startTimePart.split(':')[1] || '0');
+                const startTimeTotal = startTimeHour * 60 + startTimeMin;
+
+                const endTimeHour = parseInt(endTimePart.split(':')[0] || '0');
+                const endTimeMin = parseInt(endTimePart.split(':')[1] || '0');
+                const endTimeTotal = endTimeHour * 60 + endTimeMin;
+
+                const [slotHour, slotMinute] = timeSlot.split(':').map(Number);
+                const slotMinutes = slotHour * 60 + slotMinute;
+
+                const startDateStr = startAtStr.split(' ')[0] || startAtStr.split('T')[0];
+                const endDateStr = endAtStr.split(' ')[0] || endAtStr.split('T')[0];
+
+                let isInRange = false;
+                if (startDateStr === selectedDate && endDateStr === selectedDate) {
+                    isInRange = slotMinutes >= startTimeTotal && slotMinutes < endTimeTotal;
+                } else if (startDateStr === selectedDate && endDateStr > selectedDate) {
+                    isInRange = slotMinutes >= startTimeTotal;
+                } else if (startDateStr < selectedDate && endDateStr === selectedDate) {
+                    isInRange = slotMinutes < endTimeTotal;
+                }
+
+                return isInRange;
+            });
+
+            if (hasSpecialDatePrice) return true;
+        }
+
+        // Fallback: check for day-of-week pricing
         return FieldPricingService.getSpecialPriceForSlot(fieldPricings, timeSlot, dayOfWeek) !== null;
     };
 
@@ -471,21 +682,61 @@ export default function StoreBookingsPage() {
         if (!pricingForm.field_id || fields.length === 0) return;
 
         try {
-            await FieldPricingService.createFieldPricing({
-                field_id: pricingForm.field_id,
-                day_of_weeks: pricingForm.day_of_weeks,
-                start_at: pricingForm.start_at,
-                end_at: pricingForm.end_at,
-                price: pricingForm.price
-            });
+            if (pricingMode === 'day-of-week') {
+                // Create day-of-week pricing
+                await FieldPricingService.createFieldPricing({
+                    field_id: pricingForm.field_id,
+                    day_of_weeks: pricingForm.day_of_weeks,
+                    start_at: pricingForm.start_at,
+                    end_at: pricingForm.end_at,
+                    price: pricingForm.price
+                });
+            } else {
+                // Create special date pricing
+                const startDateTime = `${specialDatePricingForm.date} ${specialDatePricingForm.start_at}`;
+                const endDateTime = `${specialDatePricingForm.date} ${specialDatePricingForm.end_at}`;
+
+                await FieldPricingService.createSpecialDatePricing({
+                    field_id: pricingForm.field_id,
+                    start_at: startDateTime,
+                    end_at: endDateTime,
+                    price: specialDatePricingForm.price
+                });
+            }
 
             toast({
                 title: 'Thành công ✅',
                 description: 'Đã thêm giá đặc biệt',
             });
 
+            // Reset forms
+            setPricingForm({
+                field_id: '',
+                day_of_weeks: [],
+                start_at: '17:00',
+                end_at: '19:30',
+                price: ''
+            });
+            setSpecialDatePricingForm({
+                date: selectedDate,
+                start_at: '17:00',
+                end_at: '19:30',
+                price: ''
+            });
+            setPricingMode('day-of-week');
             setShowPricingModal(false);
-            loadStoreAndFields();
+
+            // 🔄 Reload pricings for the updated field
+            const updatedPricingsResponse = await FieldPricingService.getAllFieldPricings(pricingForm.field_id);
+            if (updatedPricingsResponse.data) {
+                setFieldPricingsMap(prev => ({
+                    ...prev,
+                    [pricingForm.field_id]: updatedPricingsResponse.data
+                }));
+            }
+
+            // 🔄 Refresh booking data immediately to reflect new pricing without full page reload
+            refreshBookingData();
         } catch (error) {
             toast({
                 title: 'Lỗi',
@@ -881,6 +1132,8 @@ export default function StoreBookingsPage() {
                                                                 const status = getSlotStatus(field._id, slot)
                                                                 const isBooked = status === 'booked'
                                                                 const hasSpecial = hasSpecialPrice(slot, selectedDate, field._id)
+                                                                const bookingKey = `${field._id}-${slot}`
+                                                                const bookingInfo = selectedBooking && selectedBooking.id === bookingKey ? selectedBooking : null
 
                                                                 return (
                                                                     <div
@@ -890,7 +1143,7 @@ export default function StoreBookingsPage() {
                                                                     >
                                                                         <div className="relative group">
                                                                             <button
-                                                                                disabled={isBooked}
+                                                                                disabled={!isBooked}
                                                                                 onClick={() => {
                                                                                     if (isBooked) {
                                                                                         handleSlotClick(field, slot)
@@ -901,6 +1154,9 @@ export default function StoreBookingsPage() {
                                                                                     : 'cursor-pointer hover:scale-110 hover:shadow-lg'
                                                                                     } flex items-center justify-center text-sm font-bold`}
                                                                             >
+                                                                                {status === 'booked' && (
+                                                                                    <span className="text-white text-xs">✕</span>
+                                                                                )}
                                                                             </button>
                                                                             {/* Price tooltip */}
                                                                             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
@@ -909,6 +1165,18 @@ export default function StoreBookingsPage() {
                                                                                     {hasSpecial && <span className="block text-yellow-300">(Giá đặc biệt)</span>}
                                                                                 </div>
                                                                             </div>
+
+                                                                            {/* Customer info tooltip for booked slots */}
+                                                                            {status === 'booked' && (
+                                                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
+                                                                                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-lg shadow-xl px-3 py-2 text-xs whitespace-nowrap border border-blue-400">
+                                                                                        <div className="font-bold">Chi tiết đặt sân</div>
+                                                                                        <div className="text-blue-100 text-xs">Khung giờ: {slot}</div>
+                                                                                    </div>
+                                                                                    {/* Arrow */}
+                                                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-blue-800"></div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 )
@@ -975,7 +1243,27 @@ export default function StoreBookingsPage() {
                                             <div className="space-y-3">
                                                 {fields.map((field) => {
                                                     const fieldPricings = fieldPricingsMap[field._id] || [];
-                                                    return fieldPricings.length > 0 ? (
+
+                                                    // Separate day-of-week and special date pricings
+                                                    // Day-of-week has dayOfWeek property OR startAt is in time format (HH:MM)
+                                                    // Special date has startAt with date format (YYYY-MM-DD HH:MM)
+                                                    const dayOfWeekPricings = fieldPricings.filter((p: any) => {
+                                                        if (p.dayOfWeek) return true;
+                                                        // Check if startAt is in object format {hour, minute}
+                                                        if (p.startAt && typeof p.startAt === 'object' && 'hour' in p.startAt) return true;
+                                                        return false;
+                                                    });
+
+                                                    const specialDatePricings = fieldPricings.filter((p: any) => {
+                                                        if (p.dayOfWeek) return false;
+                                                        // Special date pricing has startAt as string with date (YYYY-MM-DD HH:MM)
+                                                        if (p.startAt && typeof p.startAt === 'string' && p.startAt.includes('-') && p.startAt.includes(':')) {
+                                                            return true;
+                                                        }
+                                                        return false;
+                                                    });
+
+                                                    return (dayOfWeekPricings.length > 0 || specialDatePricings.length > 0) ? (
                                                         <div key={`pricing-section-${field._id}`}>
                                                             <div className="mb-2 font-semibold text-gray-700 flex items-center gap-2 text-xs">
                                                                 <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -984,7 +1272,8 @@ export default function StoreBookingsPage() {
                                                                 <span className="truncate">{field.name}</span>
                                                             </div>
                                                             <div className="space-y-1 ml-7">
-                                                                {fieldPricings.map((pricing, idx) => (
+                                                                {/* Day-of-week pricings */}
+                                                                {dayOfWeekPricings.map((pricing, idx) => (
                                                                     <div
                                                                         key={`pricing-item-${pricing._id}-${idx}`}
                                                                         className="flex items-center justify-between p-2 bg-yellow-50 border border-yellow-200 rounded text-xs"
@@ -1004,6 +1293,31 @@ export default function StoreBookingsPage() {
                                                                         </div>
                                                                     </div>
                                                                 ))}
+                                                                {/* Special date pricings */}
+                                                                {specialDatePricings.map((pricing, idx) => {
+                                                                    const startAtStr = typeof pricing.startAt === 'string' ? pricing.startAt : '';
+                                                                    const dateStr = startAtStr.includes(' ') ? startAtStr.split(' ')[0] : 'N/A';
+                                                                    return (
+                                                                        <div
+                                                                            key={`special-pricing-item-${pricing._id}-${idx}`}
+                                                                            className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded text-xs"
+                                                                        >
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="font-medium text-gray-900 truncate">
+                                                                                    {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
+                                                                                </div>
+                                                                                <div className="text-xs text-gray-600">
+                                                                                    {dateStr}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-right flex-shrink-0">
+                                                                                <div className="font-bold text-emerald-600">
+                                                                                    {pricing.specialPrice.toLocaleString()}đ
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     ) : null;
@@ -1147,75 +1461,177 @@ export default function StoreBookingsPage() {
                                         </select>
                                     </div>
 
-                                    {/* Days Selection */}
+                                    {/* Mode Tabs */}
                                     <div>
                                         <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                            Chọn ngày trong tuần
+                                            Loại giá đặc biệt
                                         </label>
-                                        <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
-                                            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                                                const dayNames: { [key: string]: string } = {
-                                                    monday: 'T2',
-                                                    tuesday: 'T3',
-                                                    wednesday: 'T4',
-                                                    thursday: 'T5',
-                                                    friday: 'T6',
-                                                    saturday: 'T7',
-                                                    sunday: 'CN'
-                                                }
-                                                const isSelected = pricingForm.day_of_weeks.includes(day)
-                                                return (
-                                                    <button
-                                                        key={`day-button-${day}`}
-                                                        type="button"
-                                                        onClick={() => toggleDaySelection(day)}
-                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSelected
-                                                            ? 'bg-emerald-600 text-white shadow-lg'
-                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                            }`}
-                                                    >
-                                                        {dayNames[day]}
-                                                    </button>
-                                                )
-                                            })}
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPricingMode('day-of-week');
+                                                    setSpecialDatePricingForm({
+                                                        date: selectedDate,
+                                                        start_at: '17:00',
+                                                        end_at: '19:30',
+                                                        price: ''
+                                                    });
+                                                }}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pricingMode === 'day-of-week'
+                                                    ? 'bg-emerald-600 text-white shadow-lg'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                            >
+                                                Theo thứ trong tuần
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPricingMode('specific-date');
+                                                    setPricingForm({
+                                                        ...pricingForm,
+                                                        day_of_weeks: []
+                                                    });
+                                                }}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pricingMode === 'specific-date'
+                                                    ? 'bg-emerald-600 text-white shadow-lg'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                            >
+                                                Ngày cụ thể
+                                            </button>
                                         </div>
                                     </div>
 
-                                    {/* Time Range */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-700">Từ giờ</label>
-                                            <Input
-                                                type="time"
-                                                value={pricingForm.start_at}
-                                                onChange={(e) => setPricingForm({ ...pricingForm, start_at: e.target.value })}
-                                                step="1800"
-                                                className="mt-1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-700">Đến giờ</label>
-                                            <Input
-                                                type="time"
-                                                value={pricingForm.end_at}
-                                                onChange={(e) => setPricingForm({ ...pricingForm, end_at: e.target.value })}
-                                                step="1800"
-                                                className="mt-1"
-                                            />
-                                        </div>
-                                    </div>
+                                    {/* Day of Week Mode */}
+                                    {pricingMode === 'day-of-week' ? (
+                                        <>
+                                            {/* Days Selection */}
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                                    Chọn ngày trong tuần
+                                                </label>
+                                                <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                                                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                                                        const dayNames: { [key: string]: string } = {
+                                                            monday: 'T2',
+                                                            tuesday: 'T3',
+                                                            wednesday: 'T4',
+                                                            thursday: 'T5',
+                                                            friday: 'T6',
+                                                            saturday: 'T7',
+                                                            sunday: 'CN'
+                                                        }
+                                                        const isSelected = pricingForm.day_of_weeks.includes(day)
+                                                        return (
+                                                            <button
+                                                                key={`day-button-${day}`}
+                                                                type="button"
+                                                                onClick={() => toggleDaySelection(day)}
+                                                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSelected
+                                                                    ? 'bg-emerald-600 text-white shadow-lg'
+                                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                                    }`}
+                                                            >
+                                                                {dayNames[day]}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
 
-                                    {/* Price */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700">Giá đặc biệt (đ)</label>
-                                        <Input
-                                            type="number"
-                                            value={pricingForm.price}
-                                            onChange={(e) => setPricingForm({ ...pricingForm, price: e.target.value })}
-                                            placeholder="Nhập giá..."
-                                            className="mt-1"
-                                        />
-                                    </div>
+                                            {/* Time Range */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700">Từ giờ</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={pricingForm.start_at}
+                                                        onChange={(e) => setPricingForm({ ...pricingForm, start_at: e.target.value })}
+                                                        step="1800"
+                                                        className="mt-1"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Bắt buộc phải là hh:00 hoặc hh:30</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700">Đến giờ</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={pricingForm.end_at}
+                                                        onChange={(e) => setPricingForm({ ...pricingForm, end_at: e.target.value })}
+                                                        step="1800"
+                                                        className="mt-1"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Bắt buộc phải là hh:00 hoặc hh:30</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Price */}
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700">Giá đặc biệt (đ)</label>
+                                                <Input
+                                                    type="number"
+                                                    value={pricingForm.price}
+                                                    onChange={(e) => setPricingForm({ ...pricingForm, price: e.target.value })}
+                                                    placeholder="Nhập giá..."
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Specific Date Mode */}
+                                            {/* Date Selection */}
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700">Chọn ngày</label>
+                                                <Input
+                                                    type="date"
+                                                    value={specialDatePricingForm.date}
+                                                    onChange={(e) => setSpecialDatePricingForm({ ...specialDatePricingForm, date: e.target.value })}
+                                                    className="mt-1"
+                                                />
+                                            </div>
+
+                                            {/* Time Range */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700">Từ giờ</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={specialDatePricingForm.start_at}
+                                                        onChange={(e) => setSpecialDatePricingForm({ ...specialDatePricingForm, start_at: e.target.value })}
+                                                        step="1800"
+                                                        className="mt-1"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Bắt buộc phải là hh:00 hoặc hh:30</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-sm font-medium text-gray-700">Đến giờ</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={specialDatePricingForm.end_at}
+                                                        onChange={(e) => setSpecialDatePricingForm({ ...specialDatePricingForm, end_at: e.target.value })}
+                                                        step="1800"
+                                                        className="mt-1"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">Bắt buộc phải là hh:00 hoặc hh:30</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Price */}
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700">Giá đặc biệt (đ)</label>
+                                                <Input
+                                                    type="number"
+                                                    value={specialDatePricingForm.price}
+                                                    onChange={(e) => setSpecialDatePricingForm({ ...specialDatePricingForm, price: e.target.value })}
+                                                    placeholder="Nhập giá..."
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
 
                                     <Alert>
                                         <AlertCircle className="h-4 w-4" />
@@ -1234,7 +1650,12 @@ export default function StoreBookingsPage() {
                                         <Button
                                             className="bg-emerald-600 hover:bg-emerald-700"
                                             onClick={handleCreatePricing}
-                                            disabled={!pricingForm.field_id || pricingForm.day_of_weeks.length === 0 || !pricingForm.price}
+                                            disabled={
+                                                !pricingForm.field_id ||
+                                                (pricingMode === 'day-of-week'
+                                                    ? (pricingForm.day_of_weeks.length === 0 || !pricingForm.price || !pricingForm.start_at || !pricingForm.end_at)
+                                                    : (!specialDatePricingForm.date || !specialDatePricingForm.price || !specialDatePricingForm.start_at || !specialDatePricingForm.end_at))
+                                            }
                                         >
                                             Thêm giá đặc biệt
                                         </Button>

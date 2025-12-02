@@ -31,9 +31,9 @@ export interface FieldPricingResponse {
 
 export interface CreateFieldPricingDto {
   field_id: string;
-  day_of_weeks: string[]; // ["monday", "tuesday", "friday"]
-  start_at: string; // "17:00"
-  end_at: string; // "19:30"
+  day_of_weeks?: string[]; // ["monday", "tuesday", "friday"] - for day-of-week pricing
+  start_at: string; // "17:00" or "2025-12-01 20:00"
+  end_at: string; // "19:30" or "2025-12-01 23:30"
   price: string; // "333666"
 }
 
@@ -43,6 +43,13 @@ export interface UpdateFieldPricingDto {
   start_at?: string;
   end_at?: string;
   price?: string;
+}
+
+export interface SpecialDatePricingDto {
+  field_id: string;
+  start_at: string; // "2025-12-01 20:00" - yyyy-mm-dd hh:mm
+  end_at: string;   // "2025-12-01 23:30" - yyyy-mm-dd hh:mm
+  price: string;    // "19000"
 }
 
 // Use Next.js API proxy routes
@@ -78,6 +85,70 @@ export class FieldPricingService {
   }
 
   /**
+   * Get all field pricings combining both day-of-week and special date pricing
+   * This makes two separate API calls and merges the results
+   */
+  static async getAllFieldPricings(fieldId: string): Promise<FieldPricingsResponse> {
+    try {
+      console.log(`[FieldPricingService] Fetching ALL pricings (day-of-week + special date) for fieldId: ${fieldId}`);
+
+      // Fetch day-of-week pricings
+      const dayOfWeekResponse = await this.getFieldPricings(fieldId);
+      const allPricings = dayOfWeekResponse.data || [];
+
+      // Try to fetch special date pricings from proxy
+      try {
+        const specialResponse = await fetch(`${API_BASE_URL}/special?field_id=${fieldId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (specialResponse.ok) {
+          const specialData = await specialResponse.json();
+          console.log(`[FieldPricingService] Special date pricings (raw):`, specialData);
+
+          if (Array.isArray(specialData.data)) {
+            // Fix timezone issue: backend returns UTC+7 offset incorrectly
+            // Need to subtract 7 hours from the returned times
+            const fixedSpecialPricings = specialData.data.map((pricing: any) => {
+              const startAt = pricing.startAt; // Format: "2025-12-03 03:00"
+              const endAt = pricing.endAt;     // Format: "2025-12-03 03:30"
+
+              // Parse and adjust for timezone offset (subtract 7 hours)
+              const startDateTime = this.adjustTimezoneOffset(startAt, -7);
+              const endDateTime = this.adjustTimezoneOffset(endAt, -7);
+
+              console.log(`[FieldPricingService] Adjusted pricing: "${startAt}" → "${startDateTime}", "${endAt}" → "${endDateTime}"`);
+
+              return {
+                ...pricing,
+                startAt: startDateTime,
+                endAt: endDateTime
+              };
+            });
+
+            allPricings.push(...fixedSpecialPricings);
+          }
+        }
+      } catch (error) {
+        console.warn(`[FieldPricingService] Failed to fetch special date pricings:`, error);
+        // Continue with only day-of-week pricings
+      }
+
+      console.log(`[FieldPricingService] Total combined pricings: ${allPricings.length}`);
+      return {
+        message: 'Success',
+        data: allPricings
+      };
+    } catch (error) {
+      console.error(`[FieldPricingService] Error in getAllFieldPricings:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get field pricing by ID
    */
   static async getFieldPricingById(pricingId: string): Promise<FieldPricingResponse> {
@@ -96,7 +167,7 @@ export class FieldPricingService {
   }
 
   /**
-   * Create new field pricing (supports multiple days of week)
+   * Create field pricing (supports both day-of-week and specific date)
    */
   static async createFieldPricing(data: CreateFieldPricingDto): Promise<FieldPricingResponse> {
     const response = await fetch(`${API_BASE_URL}`, {
@@ -110,6 +181,26 @@ export class FieldPricingService {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.message || `Failed to create field pricing: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Create special date pricing (new API for specific dates)
+   */
+  static async createSpecialDatePricing(data: SpecialDatePricingDto): Promise<FieldPricingResponse> {
+    const response = await fetch(`${API_BASE_URL}/special`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `Failed to create special date pricing: ${response.statusText}`);
     }
 
     return response.json();
@@ -168,7 +259,20 @@ export class FieldPricingService {
   /**
    * Helper: Convert TimeObject to "HH:MM" string
    */
-  static formatTime(time: TimeObject): string {
+  static formatTime(time: TimeObject | string): string {
+    // Handle string format: "2025-12-02 20:00" or "20:00"
+    if (typeof time === 'string') {
+      // Extract time part if it contains date
+      let timeStr = time;
+      if (time.includes(' ')) {
+        // Format: "2025-12-02 20:00"
+        timeStr = time.split(' ')[1]; // Get "20:00"
+      }
+      // timeStr is now "20:00" or "HH:MM"
+      return timeStr.substring(0, 5); // Return "20:00"
+    }
+
+    // Handle object format: { hour: 20, minute: 30 }
     const h = String(time.hour).padStart(2, '0');
     const m = String(time.minute).padStart(2, '0');
     return `${h}:${m}`;
@@ -286,5 +390,35 @@ export class FieldPricingService {
       style: 'currency',
       currency: 'VND',
     }).format(price);
+  }
+
+  /**
+   * Helper: Adjust datetime for timezone offset
+   * Backend returns times with timezone offset applied incorrectly
+   * This adjusts by the specified hours (e.g., -7 to subtract 7 hours)
+   * Input format: "2025-12-03 03:00"
+   * Output format: "2025-12-02 20:00"
+   */
+  static adjustTimezoneOffset(datetimeStr: string, hours: number): string {
+    // Parse format: "2025-12-03 03:00"
+    const parts = datetimeStr.split(' ');
+    if (parts.length < 2) return datetimeStr;
+
+    const [dateStr, timeStr] = parts;
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hour, minute] = timeStr.split(':').map(Number);
+
+    // Create date object and adjust hours
+    const date = new Date(year, month - 1, day, hour, minute, 0);
+    date.setHours(date.getHours() + hours);
+
+    // Format back to "YYYY-MM-DD HH:MM"
+    const adjustedYear = date.getFullYear();
+    const adjustedMonth = String(date.getMonth() + 1).padStart(2, '0');
+    const adjustedDay = String(date.getDate()).padStart(2, '0');
+    const adjustedHour = String(date.getHours()).padStart(2, '0');
+    const adjustedMinute = String(date.getMinutes()).padStart(2, '0');
+
+    return `${adjustedYear}-${adjustedMonth}-${adjustedDay} ${adjustedHour}:${adjustedMinute}`;
   }
 }
