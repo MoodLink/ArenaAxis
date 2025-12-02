@@ -119,8 +119,8 @@ export const getFieldSpecialPricingsByFieldId = async (fieldId) => {
       // using moment to convert specialPricings.startAt and specialPricings.endAt to YYYY-MM-DD HH:mm format
       const duration = joinDurationsDateTime(specialPricings)
       for (const item of duration) {
-        item.startAt = moment(item.startAt).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm");
-        item.endAt = moment(item.endAt).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm");
+        item.startAt = moment(item.startAt).format("YYYY-MM-DD HH:mm");
+        item.endAt = moment(item.endAt).format("YYYY-MM-DD HH:mm");
       }
       return duration;
     } else {
