@@ -27,7 +27,7 @@ import {
   Pause,
   Heart,
 } from 'lucide-react';
-import { getStoreById, getSports, toggleFavourite, isFavourite, createRating, getCurrentUser } from '@/services/api-new';
+import { toggleFavourite, isFavourite, createRating, getCurrentUser } from '@/services/api-new';
 import type { StoreClientDetailResponse, UserResponse } from '@/types';
 import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
@@ -36,6 +36,7 @@ import SportSelectionModal from '@/components/store/SportSelectionModal';
 
 import { useToast } from '@/hooks/use-toast';
 import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-sync';
+import { useStoreDetail } from '@/hooks/use-store-detail';
 import { X, Upload } from 'lucide-react';
 
 export default function StoreDetailPage() {
@@ -44,8 +45,8 @@ export default function StoreDetailPage() {
   const { toast } = useToast();
   const storeId = params?.id as string;
 
-  const [store, setStore] = useState<StoreClientDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Sử dụng React Query hook - tự động cache & revalidate
+  const { data: store, isLoading } = useStoreDetail(storeId);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -67,7 +68,6 @@ export default function StoreDetailPage() {
 
   useEffect(() => {
     if (storeId) {
-      loadStoreDetail();
       checkFavourite();
       loadCurrentUser();
     }
@@ -127,32 +127,6 @@ export default function StoreDetailPage() {
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, store, currentSlideIndex]);
-
-  const loadStoreDetail = async () => {
-    setLoading(true);
-    try {
-      const data = await getStoreById(storeId);
-
-      // Add mock images for testing if mediaUrls is empty
-      if (data && (!data.mediaUrls || data.mediaUrls.length === 0)) {
-        data.mediaUrls = [
-          'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1517836357463-d25ddfcbf042?w=800&h=600&fit=crop',
-        ];
-      }
-
-      setStore(data);
-      if (data?.coverImageUrl) {
-        setSelectedImage(data.coverImageUrl);
-      }
-    } catch (error) {
-      console.error('Error loading store detail:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatTime = (time?: string) => {
     if (!time) return '--:--';
@@ -323,7 +297,7 @@ export default function StoreDetailPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading && !store) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
         <div className="text-center">

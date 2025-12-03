@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { getStores, searchStores } from '@/services/api-new';
 import type { StoreSearchItemResponse } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -20,13 +21,11 @@ export default function ListStorePage() {
   const searchParams = useSearchParams();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchValue, setSearchValue] = useState("");
-  const [stores, setStores] = useState<StoreSearchItemResponse[]>([]);
-  const [loading, setLoading] = useState(false); // Chỉ true lần đầu tiên (nếu cần)
-  const [isInitialLoad, setIsInitialLoad] = useState(true); // Flag để detect lần đầu
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
-  const [totalStores, setTotalStores] = useState(0); // Tổng số stores từ backend
   const [selectedFilters, setSelectedFilters] = useState<SearchFilters>({});
+  // Debounced filters - used for actual API calls
+  const [debouncedFilters, setDebouncedFilters] = useState<SearchFilters>({});
 
   // Khởi tạo filter từ URL query params
   useEffect(() => {
@@ -46,80 +45,88 @@ export default function ListStorePage() {
     }
   }, [searchParams]);
 
-  // Fetch stores khi filters hoặc page thay đổi
+  // Debounce filters changes - 800ms để tránh gọi API quá nhiều lần
   useEffect(() => {
-    async function fetchStores() {
-      // Chỉ show loading spinner lần đầu tiên
-      if (isInitialLoad) {
-        setLoading(true);
+    const timer = setTimeout(() => {
+      setDebouncedFilters(selectedFilters);
+      setCurrentPage(1); // Reset về trang 1 khi filters thay đổi
+    }, 800); // Tăng debounce lên 800ms
+
+    return () => clearTimeout(timer);
+  }, [selectedFilters]);
+
+  // Kiểm tra xem có filter nào hay không
+  const hasFilters = Object.keys(debouncedFilters).length > 0 &&
+    Object.values(debouncedFilters).some(value =>
+      value !== undefined && value !== '' &&
+      (typeof value !== 'object' || Object.keys(value).length > 0)
+    );
+
+  // Sử dụng React Query để fetch stores - tự động cache & revalidate
+  // Sử dụng debouncedFilters thay vì selectedFilters để tránh gọi API quá nhiều lần
+  const { data: stores = [], isLoading, error } = useQuery({
+    queryKey: ['stores', debouncedFilters, currentPage],
+    queryFn: async () => {
+      let apiStores: StoreSearchItemResponse[];
+
+      if (hasFilters) {
+        apiStores = await searchStores(debouncedFilters, currentPage - 1, itemsPerPage);
+        console.log('🔍 Using searchStores (has filters)');
+      } else {
+        apiStores = await getStores(currentPage - 1, itemsPerPage);
+        console.log('📦 Using getStores (no filters)');
       }
 
-      try {
-        let apiStores: StoreSearchItemResponse[];
+      return apiStores;
+    },
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    gcTime: 10 * 60 * 1000,
+    // Optimistic UI: không refetch khi window focus, user not needed to wait
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    // Không show loading saat paginate khi dữ liệu đã cached
+    placeholderData: (previousData) => previousData,
+  });
 
-        // Kiểm tra xem có filter nào hay không
-        const hasFilters = Object.keys(selectedFilters).length > 0 &&
-          Object.values(selectedFilters).some(value =>
-            value !== undefined && value !== '' &&
-            (typeof value !== 'object' || Object.keys(value).length > 0)
-          );
+  // Fetch tất cả pages để lấy total count - ONLY khi cần (pagination)
+  const { data: totalStores = 0 } = useQuery({
+    queryKey: ['storesTotalCount', debouncedFilters],
+    queryFn: async () => {
+      // Lấy page đầu tiên để tính total
+      let pageStores: StoreSearchItemResponse[];
+      if (hasFilters) {
+        pageStores = await searchStores(debouncedFilters, 0, itemsPerPage);
+      } else {
+        pageStores = await getStores(0, itemsPerPage);
+      }
 
+      // Nếu page đầu có < 12 items, đó chính là total
+      if (pageStores.length < itemsPerPage) {
+        return pageStores.length;
+      }
+
+      // Nếu page đầu đầy, fetch thêm pages để tính total
+      // Giới hạn chỉ fetch tối đa 5 pages để tránh quá chậm
+      let total = pageStores.length;
+      for (let i = 1; i < 5; i++) {
+        let nextPageStores: StoreSearchItemResponse[];
         if (hasFilters) {
-          // Có filter → dùng searchStores (POST /stores/search)
-          apiStores = await searchStores(selectedFilters, currentPage - 1, itemsPerPage);
-          console.log(' Using searchStores (has filters)');
+          nextPageStores = await searchStores(debouncedFilters, i, itemsPerPage);
         } else {
-          // Không có filter → dùng getStores (GET /stores)
-          apiStores = await getStores(currentPage - 1, itemsPerPage);
-          console.log(' Using getStores (no filters)');
+          nextPageStores = await getStores(i, itemsPerPage);
         }
 
-        setStores(apiStores);
+        if (nextPageStores.length === 0) break;
+        total += nextPageStores.length;
 
-        // Tính tổng số stores bằng cách fetch tất cả các trang
-        const calculateTotalStores = async () => {
-          let total = 0;
-          let pageNum = 0;
-          let hasMore = true;
-
-          while (hasMore) {
-            let pageStores: StoreSearchItemResponse[] = [];
-            try {
-              if (hasFilters) {
-                pageStores = await searchStores(selectedFilters, pageNum, itemsPerPage);
-              } else {
-                pageStores = await getStores(pageNum, itemsPerPage);
-              }
-
-              if (pageStores.length === 0) {
-                hasMore = false;
-              } else {
-                total += pageStores.length;
-                pageNum++;
-              }
-            } catch (error) {
-              hasMore = false;
-            }
-          }
-
-          return total;
-        };
-
-        const total = await calculateTotalStores();
-        setTotalStores(total);
-        console.log(` Total stores: ${total}`);
-      } catch (error) {
-        console.error("Error fetching stores:", error);
-        setStores([]);
-        setTotalStores(0);
-      } finally {
-        setLoading(false);
-        setIsInitialLoad(false); // Sau lần đầu, không show loading nữa
+        if (nextPageStores.length < itemsPerPage) break;
       }
-    }
 
-    fetchStores();
-  }, [selectedFilters, currentPage, itemsPerPage, isInitialLoad]);
+      console.log(`📊 Total stores: ${total}`);
+      return total;
+    },
+    staleTime: 10 * 60 * 1000, // Cache 10 minutes
+  });
 
   // Filter stores theo search value (client-side) - CHỈ filter stores của page hiện tại
   const filteredStores = useMemo(() => {
@@ -146,23 +153,27 @@ export default function ListStorePage() {
     setCurrentPage(1);
   }, [searchValue, selectedFilters]);
 
-  const handleFiltersChange = (filters: SearchFilters) => {
+  const handleFiltersChange = useCallback((filters: SearchFilters) => {
     setSelectedFilters(filters);
-  };
+    // Không cần reset currentPage ở đây - sẽ được reset trong debounce effect
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Đang tải Trung tâm thể thao...</p>
-        </div>
-      </div>
-    );
-  }
+  // Optimistic UI: Hiển thị dữ liệu ngay, không có loading overlay
+  // Chỉ show loading nếu không có dữ liệu trước đó
+  const showLoadingOverlay = isLoading && stores.length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Loading overlay chỉ hiển thị lần đầu, không lần sau */}
+      {showLoadingOverlay && (
+        <div className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+          <div className="text-center">
+            <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">Đang tải Trung tâm thể thao...</p>
+          </div>
+        </div>
+      )}
+
       {/* Breadcrumb */}
       <div className="container mx-auto px-4 pt-8">
         <div className="mb-6">
@@ -191,23 +202,32 @@ export default function ListStorePage() {
           totalStores={totalStores}
         />
 
-        {/* Content Display */}
-        <StoresContent
-          stores={paginatedStores}
-          viewMode={viewMode}
-          selectedSportId={selectedFilters.sportId}
-        />
+        {/* Content Display - Optimistic: show data ngay, dù đang loading*/}
+        {paginatedStores.length > 0 ? (
+          <>
+            <StoresContent
+              stores={paginatedStores}
+              viewMode={viewMode}
+              selectedSportId={selectedFilters.sportId}
+            />
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <StoresPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalStores}
-          />
-        )}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <StoresPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={totalStores}
+              />
+            )}
+          </>
+        ) : !showLoadingOverlay ? (
+          // Không có dữ liệu và không loading - show empty state
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Không tìm thấy trung tâm thể thao</p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

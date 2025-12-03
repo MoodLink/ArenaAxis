@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react"
 import { StoreCard } from "@/components/store/StoreCard"
 import HomeCarousel from "@/components/home/HomeCarousel"
+import { useFavourites, isFavouriteStore } from "@/hooks/use-favourites"
 import { StoreSearchItemResponse } from "@/types"
 
 interface PopularFieldsSectionProps {
@@ -21,6 +22,8 @@ export default function PopularFieldsSection({
     nearbyDistance = 10000
 }: PopularFieldsSectionProps) {
     const [displayItems, setDisplayItems] = useState<StoreSearchItemResponse[]>([])
+    // Fetch favourites once for all store cards
+    const { data: favourites = [] } = useFavourites()
 
     useEffect(() => {
         // Lấy tối đa 8 items để hiển thị
@@ -49,6 +52,7 @@ export default function PopularFieldsSection({
                         <StoreCard
                             key={store.id}
                             store={store}
+                            isFav={isFavouriteStore(store.id, favourites)}
                         />
                     ))}
                 </HomeCarousel>

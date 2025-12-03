@@ -4,8 +4,8 @@ import { Badge } from "@/components/ui/badge"
 import { Star, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getStoreRatings } from "@/services/api-new"
 import type { StoreClientDetailResponse, Sport } from "@/types"
+import { useStoreRatings } from "@/hooks/use-store-ratings"
 
 interface StoreSportsListProps {
     store: StoreClientDetailResponse
@@ -23,52 +23,48 @@ export default function StoreSportsList({ store, onBookClick }: StoreSportsListP
     const sports = store.sports || []
     const router = useRouter()
     const [sportRatings, setSportRatings] = useState<Record<string, SportRating>>({})
-    const [loading, setLoading] = useState(true)
 
-    //  Fetch ratings và tính average rating cho từng sport
+    // Use React Query hook for ratings - automatic deduplication
+    const { data: ratingsData, isLoading: loading } = useStoreRatings(store.id, 0, 100)
+
+    //  Process ratings data when it arrives
     useEffect(() => {
-        const fetchRatings = async () => {
-            try {
-                setLoading(true)
-                const ratings = await getStoreRatings(store.id, 0, 100)
+        if (!ratingsData) return
 
-                // Group ratings by sport và tính average
-                const ratingsBySport: Record<string, SportRating> = {}
+        try {
+            // ratingsData is already an array from the hook
+            const ratings = Array.isArray(ratingsData) ? ratingsData : []
 
-                ratings.forEach((rating: any) => {
-                    const sportId = rating.sport?.id
-                    if (!sportId) return
+            // Group ratings by sport và tính average
+            const ratingsBySport: Record<string, SportRating> = {}
 
-                    if (!ratingsBySport[sportId]) {
-                        ratingsBySport[sportId] = {
-                            sportId,
-                            averageRating: 0,
-                            totalRatings: 0,
-                        }
+            ratings.forEach((rating: any) => {
+                const sportId = rating.sport?.id
+                if (!sportId) return
+
+                if (!ratingsBySport[sportId]) {
+                    ratingsBySport[sportId] = {
+                        sportId,
+                        averageRating: 0,
+                        totalRatings: 0,
                     }
+                }
 
-                    ratingsBySport[sportId].totalRatings += 1
-                    ratingsBySport[sportId].averageRating += (rating.star || 0)
-                })
+                ratingsBySport[sportId].totalRatings += 1
+                ratingsBySport[sportId].averageRating += (rating.star || 0)
+            })
 
-                // Tính average
-                Object.keys(ratingsBySport).forEach((sportId) => {
-                    ratingsBySport[sportId].averageRating =
-                        ratingsBySport[sportId].averageRating / ratingsBySport[sportId].totalRatings
-                })
+            // Tính average
+            Object.keys(ratingsBySport).forEach((sportId) => {
+                ratingsBySport[sportId].averageRating =
+                    ratingsBySport[sportId].averageRating / ratingsBySport[sportId].totalRatings
+            })
 
-                setSportRatings(ratingsBySport)
-            } catch (error) {
-                console.error('Error fetching ratings:', error)
-            } finally {
-                setLoading(false)
-            }
+            setSportRatings(ratingsBySport)
+        } catch (error) {
+            console.error('Error processing ratings:', error)
         }
-
-        if (store.id) {
-            fetchRatings()
-        }
-    }, [store.id])
+    }, [ratingsData])
 
     const handleSportBookClick = (sportId: string) => {
         router.push(`/store-booking?store_id=${store.id}&sport_id=${sportId}`)

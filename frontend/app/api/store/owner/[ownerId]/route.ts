@@ -7,47 +7,58 @@ const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { ownerId: string } }
+    { params }: { params: Promise<{ ownerId: string }> }
 ) {
     try {
-        const { ownerId } = await Promise.resolve(params);
+        const { ownerId } = await params;
         const authHeader = request.headers.get('authorization');
+
+        // Check for auth token
+        if (!authHeader) {
+            console.error('[API Proxy] No authorization header provided');
+            return NextResponse.json(
+                { message: 'Unauthorized', error: 'No authorization token' },
+                { status: 401 }
+            );
+        }
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
+            'Authorization': authHeader,
         };
-
-        if (authHeader) {
-            headers['Authorization'] = authHeader;
-        }
 
         console.log(`[API Proxy] GET /stores/owner/${ownerId}`);
 
         const response = await fetch(`${API_BASE_URL}/stores/owner/${ownerId}`, {
             method: 'GET',
             headers,
+            // Add Next.js caching - cache 5 minutes
+            next: {
+                revalidate: 300, // 5 minutes
+                tags: ['owner-stores', ownerId], // Tag for selective invalidation
+            } as any,
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
+        const data = await response.json();
 
+        if (!response.ok) {
+            console.error(`[API Proxy] Backend error (${response.status}):`, data);
+            // Don't cache error responses - return actual status code
             return NextResponse.json(
-                {
-                    success: false,
-                    error: true,
-                    status: response.status,
-                    message: `Backend error: ${response.status}`,
-                    data: []
-                },
-                { status: 200 }
+                data,
+                { status: response.status }
             );
         }
 
-        const data = await response.json();
-        console.log(`[API Proxy]  Stores by owner retrieved: ${data?.length || 0} items`);
+        console.log(`[API Proxy] Stores by owner retrieved: ${Array.isArray(data) ? data.length : 0} items`);
 
-        return NextResponse.json(data, { status: 200 });
+        // Add Cache-Control headers for browser
+        return NextResponse.json(data, {
+            status: 200,
+            headers: {
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+            },
+        });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stores by owner';
         console.error('[API Proxy] Error:', errorMessage);

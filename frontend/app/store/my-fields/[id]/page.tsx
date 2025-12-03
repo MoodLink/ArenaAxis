@@ -27,6 +27,9 @@ import { StoreService } from '@/services/store.service'
 import { OrderService } from '@/services/order.service'
 import StoreLayout from '@/components/store/StoreLayout'
 import { useToast } from '@/hooks/use-toast'
+import { useFieldsWithStatusData } from '@/hooks/use-fields-with-status-data'
+import { useFieldDetail } from '@/hooks/use-field-detail'
+import { useStoreDetail } from '@/hooks/use-store-detail'
 
 interface SubCourt {
     id: string
@@ -60,9 +63,12 @@ export default function FieldDetailPage() {
     const params = useParams()
     const fieldId = params.id as string
 
+    // Use React Query hooks for automatic caching and deduplication
+    const { data: field, isLoading: fieldLoading } = useFieldDetail(fieldId)
+    const { data: storeData, isLoading: storeLoading } = useStoreDetail(field?.storeId || '')
+
     // State
     const [loading, setLoading] = useState(true)
-    const [field, setField] = useState<APIField | null>(null)
     const [selectedDate, setSelectedDate] = useState(() => {
         return new Date().toISOString().split('T')[0]
     })
@@ -112,33 +118,20 @@ export default function FieldDetailPage() {
     const { toast } = useToast()
 
     //  Helper function to refresh booking data from statusField (giống store-booking page)
-    const refreshBookingData = useCallback(async () => {
-        console.log(' refreshBookingData called for field:', fieldId)
+    const { data: fieldsResponse, isLoading: fieldsLoading } = useFieldsWithStatusData(
+        field?.storeId || '',
+        field?.sportId || '',
+        selectedDate,
+        { enabled: !!field?.storeId && !!field?.sportId && !fieldLoading }
+    )
 
-        if (!fieldId || !field?.storeId || !field?.sportId) {
-            console.log('⏭️ Skipping refresh - no fieldId, storeId or sportId yet')
-            return
-        }
+    // Process fieldsResponse when it changes
+    useEffect(() => {
+        if (!fieldsResponse) return
+
+        console.log('🏟️ Processing fields response:', fieldsResponse)
 
         try {
-            console.log(' Fetching field data with statusField for date:', selectedDate)
-
-            //  Call API to get field with statusField data for selected date
-            const fieldsResponse = await FieldService.getFieldsWithAllData(
-                field.storeId,
-                field.sportId,
-                selectedDate
-            )
-            console.log('🏟️ Fields response:', fieldsResponse)
-
-            // Also fetch orders from the store to get complete customer info
-            const ordersResponse = await OrderService.getOrdersByStore(
-                field.storeId,
-                selectedDate,
-                selectedDate
-            )
-            console.log('📦 Orders response:', ordersResponse)
-
             // Build bookingData from statusField array (PAID bookings only)
             const bookingMap: BookingStatus = {}
             const bookingWithCustomerMap: Record<string, BookingInfo> = {}
@@ -149,140 +142,134 @@ export default function FieldDetailPage() {
                 bookingMap[subcourt] = {}
             })
 
-            // Find current field in response
+            // Process each field's statusField array
             const fieldsData = fieldsResponse.data || []
-            const currentFieldData = fieldsData.find((f: APIField) => f._id === fieldId)
+            console.log(`Processing ${fieldsData.length} fields for date ${selectedDate}`)
 
-            if (!currentFieldData) {
-                console.log(' Field not found in response')
-                setBookingData(bookingMap)
-                setBookingDataWithCustomer(bookingWithCustomerMap)
-                return
-            }
+            fieldsData.forEach((fieldData: any) => {
+                const fieldId = fieldData._id
+                console.log(` Processing field ${fieldId}`)
 
-            console.log(` Processing field ${fieldId}`)
-
-            if (!currentFieldData.statusField || currentFieldData.statusField.length === 0) {
-                console.log(`   No statusField data for field ${fieldId}`)
-                setBookingData(bookingMap)
-                setBookingDataWithCustomer(bookingWithCustomerMap)
-                return
-            }
-
-            console.log(`  Found ${currentFieldData.statusField.length} status entries`)
-
-            // Filter PAID status only and extract booked slots
-            const paidStatuses = currentFieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
-            console.log(`   Found ${paidStatuses.length} PAID bookings`)
-
-            paidStatuses.forEach((status: any) => {
-                const startTime = status.startTime  // ISO format: "2025-12-01T06:30:00.000Z"
-                const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
-
-                console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
-                console.log(`     Booking details:`, status)
-
-                // Parse ISO datetime to extract time part WITHOUT timezone conversion
-                const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
-                const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
-
-                if (!startTimeMatch || !endTimeMatch) {
-                    console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
+                if (!fieldData.statusField || fieldData.statusField.length === 0) {
+                    console.log(`   No statusField data for field ${fieldId}`)
                     return
                 }
 
-                const startHours = startTimeMatch[1]
-                const startMins = startTimeMatch[2]
-                const endHours = endTimeMatch[1]
-                const endMins = endTimeMatch[2]
+                console.log(`  Found ${fieldData.statusField.length} status entries`)
 
-                const startTimeStr = `${startHours}:${startMins}`
-                const endTimeStr = `${endHours}:${endMins}`
+                // Filter PAID status only and extract booked slots
+                const paidStatuses = fieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
+                console.log(`   Found ${paidStatuses.length} PAID bookings`)
 
-                console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
+                paidStatuses.forEach((status: any) => {
+                    const startTime = status.startTime
+                    const endTime = status.endTime
 
-                // Generate all 30-minute slots between start and end time
-                const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
-                const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
+                    console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
 
-                // Mark first subcourt (in real scenario, this would come from status data)
-                const targetSubcourt = 'subcourt-001'
+                    // Parse ISO datetime to extract time part
+                    const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
+                    const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
 
-                for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
-                    const hours = Math.floor(minutes / 60)
-                    const mins = minutes % 60
-                    const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
-
-                    bookingMap[targetSubcourt][slotTime] = 'booked'
-                    console.log(`       Marked as booked: ${slotTime}`)
-
-                    // Try to find matching order from ordersResponse to get complete customer info
-                    let bookingInfo: BookingInfo | null = null
-
-                    if (ordersResponse && ordersResponse.length > 0) {
-                        // Find order that matches this time slot
-                        for (const order of ordersResponse) {
-                            if (order.orderDetails && order.orderDetails.length > 0) {
-                                for (const detail of order.orderDetails) {
-                                    if (detail.fieldId === fieldId) {
-                                        // Check if this detail's time matches our slot
-                                        const detailStartMatch = detail.startTime.match(/T(\d{2}):(\d{2}):/)
-                                        if (detailStartMatch) {
-                                            const detailStartTime = `${detailStartMatch[1]}:${detailStartMatch[2]}`
-                                            if (detailStartTime === slotTime) {
-                                                // Found matching order detail
-                                                console.log(`         Found matching order for slot ${slotTime}:`, order)
-                                                bookingInfo = {
-                                                    id: order._id || `booking-${slotTime}`,
-                                                    courtId: targetSubcourt,
-                                                    timeSlot: slotTime,
-                                                    // Try to get user info from order or use fallback
-                                                    customerName: status.userId?.name || order.userId || 'N/A',
-                                                    customerPhone: status.userId?.phone || 'N/A',
-                                                    customerEmail: status.userId?.email || 'N/A',
-                                                    customerAddress: order.address || status.userId?.address || 'N/A',
-                                                    bookingTime: new Date(order.createdAt).toLocaleString('vi-VN'),
-                                                    price: detail.price || parseInt(field?.defaultPrice || '0')
-                                                }
-                                                break
-                                            }
-                                        }
-                                    }
-                                }
-                                if (bookingInfo) break
-                            }
-                        }
+                    if (!startTimeMatch || !endTimeMatch) {
+                        console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
+                        return
                     }
 
-                    // If no matching order found, use fallback info
-                    if (!bookingInfo) {
-                        bookingInfo = {
-                            id: status._id || `booking-${slotTime}`,
-                            courtId: targetSubcourt,
-                            timeSlot: slotTime,
-                            customerName: status.userId?.name || 'N/A',
-                            customerPhone: status.userId?.phone || 'N/A',
-                            customerEmail: status.userId?.email || 'N/A',
-                            customerAddress: status.userId?.address || 'N/A',
-                            bookingTime: new Date(status.createdAt).toLocaleString('vi-VN'),
-                            price: status.price || parseInt(field?.defaultPrice || '0')
-                        }
-                    }
+                    const startHours = startTimeMatch[1]
+                    const startMins = startTimeMatch[2]
+                    const endHours = endTimeMatch[1]
+                    const endMins = endTimeMatch[2]
 
-                    const bookingKey = `${targetSubcourt}-${slotTime}`
-                    bookingWithCustomerMap[bookingKey] = bookingInfo
-                    console.log(`       Saved booking info for slot ${slotTime}:`, bookingInfo)
-                }
+                    const startTimeStr = `${startHours}:${startMins}`
+                    const endTimeStr = `${endHours}:${endMins}`
+
+                    console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
+
+                    // Generate all 30-minute slots between start and end time
+                    const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
+                    const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
+
+                    for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                        const hours = Math.floor(minutes / 60)
+                        const mins = minutes % 60
+                        const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+
+                        const targetSubcourt = 'subcourt-001' // Default subcourt
+                        if (!bookingMap[targetSubcourt]) {
+                            bookingMap[targetSubcourt] = {}
+                        }
+                        bookingMap[targetSubcourt][slotTime] = 'booked'
+                        console.log(`       Marked as booked: ${slotTime}`)
+                    }
+                })
             })
 
             setBookingData(bookingMap)
             setBookingDataWithCustomer(bookingWithCustomerMap)
             console.log(' Final booking data:', bookingMap)
-            console.log(' Final customer data:', bookingWithCustomerMap)
         } catch (error) {
-            console.error(' Error refreshing booking data:', error)
+            console.error(' Error processing fields data:', error)
         }
-    }, [fieldId, field?.storeId, field?.sportId, selectedDate, field?.defaultPrice])
+    }, [fieldsResponse, selectedDate])
+
+    // Update loading state when hooks finish loading
+    useEffect(() => {
+        if (!fieldLoading && !storeLoading) {
+            setLoading(false)
+        }
+    }, [fieldLoading, storeLoading])
+
+    // Generate time slots based on store opening hours
+    useEffect(() => {
+        if (!storeData) return
+
+        try {
+            const slots: string[] = []
+            const startHour = storeData.startTime ? parseInt(storeData.startTime.split(':')[0]) : 5
+            const endHour = storeData.endTime ? parseInt(storeData.endTime.split(':')[0]) : 24
+
+            for (let hour = startHour; hour < endHour; hour++) {
+                slots.push(`${hour.toString().padStart(2, '0')}:00`)
+                slots.push(`${hour.toString().padStart(2, '0')}:30`)
+            }
+            // Add the final hour if it exists
+            if (endHour > startHour) {
+                slots.push(`${endHour.toString().padStart(2, '0')}:00`)
+            }
+            setTimeSlots(slots)
+        } catch (error) {
+            console.warn('Could not generate time slots, using defaults:', error)
+            // Fallback to default time slots
+            const slots: string[] = []
+            for (let hour = 5; hour < 24; hour++) {
+                slots.push(`${hour.toString().padStart(2, '0')}:00`)
+                slots.push(`${hour.toString().padStart(2, '0')}:30`)
+            }
+            slots.push('24:00')
+            setTimeSlots(slots)
+        }
+    }, [storeData])
+
+    // Fetch field pricings
+    useEffect(() => {
+        if (!fieldId) return
+
+        const fetchPricings = async () => {
+            try {
+                const pricingsResponse = await FieldPricingService.getAllFieldPricings(fieldId)
+                if (pricingsResponse.data) {
+                    console.log('[DEBUG] All pricings fetched:', pricingsResponse.data)
+                    setFieldPricings(pricingsResponse.data)
+                }
+            } catch (error) {
+                console.warn('No pricing data available, using default price only:', error)
+                setFieldPricings([]) // Set empty array to use default prices
+            }
+        }
+
+        fetchPricings()
+    }, [fieldId])
 
     // Fetch field details
     useEffect(() => {
@@ -292,62 +279,6 @@ export default function FieldDetailPage() {
 
                 if (!fieldId) {
                     throw new Error('Field ID not found')
-                }
-
-                // Fetch field details
-                const response = await FieldService.getFieldById(fieldId)
-                if (response.data) {
-                    setField(response.data)
-
-                    // Fetch store details to get opening hours
-                    try {
-                        const storeId = response.data.storeId
-                        if (storeId) {
-                            const storeResponse = await fetch(`/api/store/${storeId}`)
-                            const storeData = await storeResponse.json()
-
-                            if (storeData) {
-                                // Generate time slots based on store opening hours
-                                const slots: string[] = []
-                                const startHour = storeData.startTime ? parseInt(storeData.startTime.split(':')[0]) : 5
-                                const endHour = storeData.endTime ? parseInt(storeData.endTime.split(':')[0]) : 24
-
-                                for (let hour = startHour; hour < endHour; hour++) {
-                                    slots.push(`${hour.toString().padStart(2, '0')}:00`)
-                                    slots.push(`${hour.toString().padStart(2, '0')}:30`)
-                                }
-                                // Add the final hour if it exists
-                                if (endHour > startHour) {
-                                    slots.push(`${endHour.toString().padStart(2, '0')}:00`)
-                                }
-                                setTimeSlots(slots)
-                            }
-
-                        }
-                    } catch (error) {
-                        console.warn('Could not fetch store data, using default time slots:', error)
-                        // Fallback to default time slots
-                        const slots: string[] = []
-                        for (let hour = 5; hour < 24; hour++) {
-                            slots.push(`${hour.toString().padStart(2, '0')}:00`)
-                            slots.push(`${hour.toString().padStart(2, '0')}:30`)
-                        }
-                        // Add the final hour
-                        slots.push('24:00')
-                        setTimeSlots(slots)
-                    }
-                }
-
-                // Fetch field pricings
-                try {
-                    const pricingsResponse = await FieldPricingService.getAllFieldPricings(fieldId)
-                    if (pricingsResponse.data) {
-                        console.log('[DEBUG] All pricings fetched:', pricingsResponse.data)
-                        setFieldPricings(pricingsResponse.data)
-                    }
-                } catch (error) {
-                    console.warn('No pricing data available, using default price only:', error)
-                    setFieldPricings([]) // Set empty array to use default prices
                 }
 
                 // Initialize empty booking data - will be populated from backend
@@ -374,79 +305,22 @@ export default function FieldDetailPage() {
                     customerEmail: 'customer@example.com',
                     customerAddress: 'Hà Nội, Việt Nam',
                     bookingTime: new Date().toLocaleString('vi-VN'),
-                    price: parseInt(response.data?.defaultPrice || '100000')
+                    price: parseInt(field?.defaultPrice || '100000')
                 }
 
                 const bookingKey = `subcourt-001-${defaultBookedSlot}`
                 setBookingDataWithCustomer({ [bookingKey]: defaultBookingInfo })
             } catch (error) {
-                console.error('Error fetching field:', error)
+                console.error('Error initializing field page:', error)
             } finally {
                 setLoading(false)
             }
         }
 
         fetchFieldData()
-    }, [fieldId])
+    }, [fieldId, field])
 
-    //  Trigger refresh when field is loaded
-    useEffect(() => {
-        if (field && field.storeId && !loading) {
-            console.log(' Field loaded - refreshing booking data immediately')
-            refreshBookingData()
-        }
-    }, [field?._id, loading])
 
-    // Update booking data when date changes
-    useEffect(() => {
-        if (field && field.storeId && selectedDate && !loading) {
-            console.log('📅 Date changed - refreshing booking data')
-            refreshBookingData()
-        }
-    }, [selectedDate, field?._id, loading])
-
-    //  Re-fetch booking data when page is focused
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                console.log(' Page focused - refreshing booking data')
-                refreshBookingData()
-            }
-        }
-
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'paymentCompleted' && e.newValue === 'true') {
-                console.log('💳 Payment completed - refreshing booking data')
-                refreshBookingData()
-            }
-        }
-
-        const handlePopState = () => {
-            console.log('🔙 Back button - refreshing booking data')
-            refreshBookingData()
-        }
-
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-        window.addEventListener('storage', handleStorageChange)
-        window.addEventListener('popstate', handlePopState)
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange)
-            window.removeEventListener('storage', handleStorageChange)
-            window.removeEventListener('popstate', handlePopState)
-        }
-    }, [refreshBookingData])
-
-    //  Auto-refresh every 30 seconds
-    useEffect(() => {
-        console.log('⏰ Setting up auto-refresh interval')
-        const interval = setInterval(() => {
-            console.log('⏰ Auto-refresh...')
-            refreshBookingData()
-        }, 30000)
-
-        return () => clearInterval(interval)
-    }, [refreshBookingData])
 
     if (loading) {
         return (
@@ -534,11 +408,7 @@ export default function FieldDetailPage() {
             })
 
             setShowEditModal(false)
-            // Refresh field data
-            const response = await FieldService.getFieldById(field._id)
-            if (response.data) {
-                setField(response.data)
-            }
+            // Note: field data will be refreshed automatically from React Query cache
         } catch (error) {
             toast({
                 title: 'Lỗi',
@@ -653,14 +523,7 @@ export default function FieldDetailPage() {
                 setFieldPricings(pricingsResponse.data)
             }
 
-            // Refresh field data to update display on calendar
-            const fieldResponse = await FieldService.getFieldById(field._id)
-            if (fieldResponse.data) {
-                setField(fieldResponse.data)
-            }
-
-            // Refresh booking data to show updated prices
-            refreshBookingData()
+            // React Query hook will auto-refresh field data
         } catch (error) {
             toast({
                 title: 'Lỗi',
@@ -686,14 +549,7 @@ export default function FieldDetailPage() {
                     setFieldPricings(pricingsResponse.data)
                 }
 
-                // Refresh field data
-                const fieldResponse = await FieldService.getFieldById(field._id)
-                if (fieldResponse.data) {
-                    setField(fieldResponse.data)
-                }
-
-                // Refresh booking data
-                refreshBookingData()
+                // React Query hook will auto-refresh field data
             }
         } catch (error) {
             toast({

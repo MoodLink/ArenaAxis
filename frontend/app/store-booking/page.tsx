@@ -68,7 +68,7 @@ export default function StoreBookingPage() {
         console.log(' refreshBookingData called with:', { storeId, fields: fields.length, selectedDate })
 
         if (!storeId || fields.length === 0) {
-            console.log('⏭️ Skipping refresh - no storeId or fields yet')
+            console.log(' Skipping refresh - no storeId or fields yet')
             return
         }
 

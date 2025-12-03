@@ -1,6 +1,8 @@
 // File: app/api/favourites/route.ts
 // Proxy API cho favourites endpoints - BYPASS CORS
 
+import { CACHE_TIMES } from '@/lib/cache-utils';
+
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 /**
@@ -27,6 +29,12 @@ export async function GET(request: Request) {
                 'Authorization': authHeader,
                 'Content-Type': 'application/json',
             },
+            // Next.js caching - cache favourites for 5 minutes
+            cache: 'force-cache',
+            next: {
+                revalidate: 300, // 5 minutes
+                tags: ['favourites'],
+            } as any,
         });
 
         const data = await response.json();
@@ -40,9 +48,15 @@ export async function GET(request: Request) {
         }
 
         console.log(`[API Proxy] Get favourites successful - ${Array.isArray(data) ? data.length : '?'} items`);
+
+        // Add Cache-Control headers for browser caching
+        const responseHeaders = new Headers();
+        responseHeaders.set('Content-Type', 'application/json');
+        responseHeaders.set('Cache-Control', `public, s-maxage=300, stale-while-revalidate=600`);
+
         return new Response(JSON.stringify(data), {
             status: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers: responseHeaders,
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to get favourites';

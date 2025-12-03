@@ -14,10 +14,11 @@ import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-syn
 interface StoreCardProps {
   store: StoreSearchItemResponse;
   selectedSportId?: string;
+  isFav?: boolean; // Accept isFav from parent to avoid duplicate checks
 }
 
-export function StoreCard({ store, selectedSportId }: StoreCardProps) {
-  const [isFav, setIsFav] = useState(false);
+export function StoreCard({ store, selectedSportId, isFav: initialIsFav }: StoreCardProps) {
+  const [isFav, setIsFav] = useState(initialIsFav || false);
   const [isLoadingFav, setIsLoadingFav] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -26,20 +27,6 @@ export function StoreCard({ store, selectedSportId }: StoreCardProps) {
   useFavouriteSync(store.id, (newState) => {
     setIsFav(newState);
   });
-
-  // Check if store is favourite on mount
-  useEffect(() => {
-    const checkFavourite = async () => {
-      try {
-        const result = await isFavourite(store.id);
-        setIsFav(result);
-      } catch (error) {
-        // Silently fail - user may not be logged in
-      }
-    };
-
-    checkFavourite();
-  }, [store.id]);
 
   const formatTime = (time?: string) => {
     if (!time) return '--:--';

@@ -110,26 +110,10 @@ export class FieldPricingService {
           console.log(`[FieldPricingService] Special date pricings (raw):`, specialData);
 
           if (Array.isArray(specialData.data)) {
-            // Fix timezone issue: backend returns UTC+7 offset incorrectly
-            // Need to subtract 7 hours from the returned times
-            const fixedSpecialPricings = specialData.data.map((pricing: any) => {
-              const startAt = pricing.startAt; // Format: "2025-12-03 03:00"
-              const endAt = pricing.endAt;     // Format: "2025-12-03 03:30"
-
-              // Parse and adjust for timezone offset (subtract 7 hours)
-              const startDateTime = this.adjustTimezoneOffset(startAt, -7);
-              const endDateTime = this.adjustTimezoneOffset(endAt, -7);
-
-              console.log(`[FieldPricingService] Adjusted pricing: "${startAt}" → "${startDateTime}", "${endAt}" → "${endDateTime}"`);
-
-              return {
-                ...pricing,
-                startAt: startDateTime,
-                endAt: endDateTime
-              };
-            });
-
-            allPricings.push(...fixedSpecialPricings);
+            // Backend returns times in correct format (YYYY-MM-DD HH:MM)
+            // No timezone adjustment needed
+            allPricings.push(...specialData.data);
+            console.log(`[FieldPricingService] Added ${specialData.data.length} special date pricings without adjustment`);
           }
         }
       } catch (error) {
@@ -390,35 +374,5 @@ export class FieldPricingService {
       style: 'currency',
       currency: 'VND',
     }).format(price);
-  }
-
-  /**
-   * Helper: Adjust datetime for timezone offset
-   * Backend returns times with timezone offset applied incorrectly
-   * This adjusts by the specified hours (e.g., -7 to subtract 7 hours)
-   * Input format: "2025-12-03 03:00"
-   * Output format: "2025-12-02 20:00"
-   */
-  static adjustTimezoneOffset(datetimeStr: string, hours: number): string {
-    // Parse format: "2025-12-03 03:00"
-    const parts = datetimeStr.split(' ');
-    if (parts.length < 2) return datetimeStr;
-
-    const [dateStr, timeStr] = parts;
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute] = timeStr.split(':').map(Number);
-
-    // Create date object and adjust hours
-    const date = new Date(year, month - 1, day, hour, minute, 0);
-    date.setHours(date.getHours() + hours);
-
-    // Format back to "YYYY-MM-DD HH:MM"
-    const adjustedYear = date.getFullYear();
-    const adjustedMonth = String(date.getMonth() + 1).padStart(2, '0');
-    const adjustedDay = String(date.getDate()).padStart(2, '0');
-    const adjustedHour = String(date.getHours()).padStart(2, '0');
-    const adjustedMinute = String(date.getMinutes()).padStart(2, '0');
-
-    return `${adjustedYear}-${adjustedMonth}-${adjustedDay} ${adjustedHour}:${adjustedMinute}`;
   }
 }

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Search, MapPin, DollarSign, X } from 'lucide-react';
-import { getProvinces, getWardsByProvinceId, getSports } from '@/services/api-new';
+import { useProvinces, useWards, useSportsOptions } from '@/hooks/use-search-options';
 import type { ProvinceResponse, WardResponse, Sport } from '@/types';
 
 interface SearchStoreFormProps {
@@ -27,72 +27,26 @@ export interface SearchFilters {
 
 export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormProps) {
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {});
-  const [provinces, setProvinces] = useState<ProvinceResponse[]>([]);
-  const [wards, setWards] = useState<WardResponse[]>([]);
-  const [sports, setSports] = useState<Sport[]>([]);
   const [isExpanded] = useState(true); // Luôn hiển thị, không cần toggle
 
-  useEffect(() => {
-    loadProvinces();
-    loadSports();
-  }, []);
+  // Sử dụng React Query hooks - tự động cache, không fetch lại
+  const { data: provinces = [] } = useProvinces();
+  const { data: wards = [] } = useWards(filters.provinceId);
+  const { data: sports = [] } = useSportsOptions();
 
-  useEffect(() => {
-    if (filters.provinceId) {
-      loadWards(filters.provinceId);
-    } else {
-      setWards([]);
-      setFilters(prev => ({ ...prev, wardId: undefined }));
-    }
-  }, [filters.provinceId]);
-
-  // Debounce cho input tên sân (500ms)
+  // Debounce cho input tên sân (800ms) - CHỈ khi name thay đổi
+  // Aligned với list-store/page.tsx debounce time (800ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       onSearch(filters);
-    }, 500);
+    }, 800);
 
     return () => clearTimeout(timer);
-  }, [filters.name]); // Chỉ trigger khi name thay đổi, bỏ onSearch ra khỏi dependencies
+  }, [filters.name, onSearch]); // Trigger ONLY khi name thay đổi
 
-  const loadProvinces = async () => {
-    try {
-      const data = await getProvinces();
-      setProvinces(data);
-    } catch (error) {
-      console.error('Error loading provinces:', error);
-    }
-  };
-
-  const loadWards = async (provinceId: string) => {
-    try {
-      const data = await getWardsByProvinceId(provinceId);
-      setWards(data);
-    } catch (error) {
-      console.error('Error loading wards:', error);
-    }
-  };
-
-  const loadSports = async () => {
-    try {
-      const data = await getSports();
-      setSports(data);
-    } catch (error) {
-      console.error('Error loading sports:', error);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Không cần làm gì
-  };
-
-  const handleReset = () => {
-    setFilters({});
-    onSearch({}); // Gọi ngay khi xóa bộ lọc
-  };
-
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
+  // Gọi onSearch NGAY lập tức cho select dropdowns (provinceId, wardId, sportId)
+  // Vì người dùng chỉ thay đổi 1 lần, không cần debounce
+  const updateFilter = useCallback((key: keyof SearchFilters, value: any) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
 
@@ -100,18 +54,24 @@ export function SearchStoreForm({ onSearch, initialFilters }: SearchStoreFormPro
     if (key !== 'name') {
       onSearch(newFilters);
     }
+  }, [filters, onSearch]);
+
+  useEffect(() => {
+    if (!filters.provinceId) {
+      // Reset ward khi xóa province
+      setFilters(prev => ({ ...prev, wardId: undefined }));
+    }
+  }, [filters.provinceId]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Không cần làm gì
   };
 
-  const updatePriceFilter = (key: 'min' | 'max', value: string) => {
-    const numValue = value ? parseInt(value) : undefined;
-    setFilters(prev => ({
-      ...prev,
-      price: {
-        ...prev.price,
-        [key]: numValue
-      }
-    }));
-  };
+  const handleReset = useCallback(() => {
+    setFilters({});
+    onSearch({}); // Gọi ngay khi xóa bộ lọc
+  }, [onSearch]);
 
   return (
     <Card className="shadow-lg border-2">

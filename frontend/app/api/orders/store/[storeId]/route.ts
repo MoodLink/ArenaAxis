@@ -36,6 +36,12 @@ export async function GET(
                     'Content-Type': 'application/json',
                 },
                 signal: AbortSignal.timeout(5000), // 5 second timeout
+                // Add ISR caching
+                cache: 'force-cache',
+                next: {
+                    revalidate: 120, // Revalidate every 2 minutes (120 seconds)
+                    tags: ['orders', storeId, startTime, endTime], // Tag for manual invalidation
+                } as any,
             })
 
             if (!response.ok) {
@@ -51,7 +57,11 @@ export async function GET(
             const data = await response.json()
             console.log(' Orders fetched from backend:', data)
 
-            return NextResponse.json(data)
+            return NextResponse.json(data, {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240',
+                }
+            })
         } catch (fetchError) {
             console.warn(' Backend fetch failed, returning empty orders array:', fetchError)
             // Return empty orders array when backend is not available

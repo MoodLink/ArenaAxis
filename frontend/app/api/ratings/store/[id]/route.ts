@@ -2,6 +2,7 @@
 // Proxy API cho ratings của store
 
 import { NextRequest, NextResponse } from 'next/server';
+import { CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -25,6 +26,12 @@ export async function GET(
         const response = await fetch(url, {
             method: 'GET',
             headers,
+            // Next.js caching - cache ratings for 10 minutes
+            cache: 'force-cache',
+            next: {
+                revalidate: 600, // 10 minutes
+                tags: ['ratings', id],
+            } as any,
         });
 
         if (!response.ok) {
@@ -37,7 +44,14 @@ export async function GET(
         }
 
         const data = await response.json();
-        return NextResponse.json(data, { status: 200 });
+
+        const responseHeaders = new Headers();
+        responseHeaders.set('Cache-Control', `public, s-maxage=600, stale-while-revalidate=1200`);
+
+        return NextResponse.json(data, {
+            status: 200,
+            headers: responseHeaders,
+        });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch store ratings';
         console.error('[API Proxy] Error:', errorMessage);

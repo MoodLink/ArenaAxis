@@ -2,6 +2,7 @@
 // Proxy API cho store detail, update, images upload
 
 import { NextRequest, NextResponse } from 'next/server';
+import { CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -30,6 +31,12 @@ export async function GET(
         const response = await fetch(url, {
             method: 'GET',
             headers,
+            // Next.js caching - cache store detail for 5 minutes
+            cache: 'force-cache',
+            next: {
+                revalidate: CACHE_TIMES.STORES.maxAge, // 5 minutes = 300 seconds
+                tags: ['store-detail', id],
+            } as any,
         });
 
         console.log(`[API Proxy] Backend response status: ${response.status}`);
@@ -54,7 +61,13 @@ export async function GET(
         const data = await response.json();
         console.log(`[API Proxy]  Store detail retrieved: ${data?.name || id}`);
 
-        return NextResponse.json(data, { status: 200 });
+        const responseHeaders = new Headers();
+        responseHeaders.set('Cache-Control', `public, s-maxage=${CACHE_TIMES.STORES.maxAge}, stale-while-revalidate=${CACHE_TIMES.STORES.staleWhileRevalidate}`);
+
+        return NextResponse.json(data, {
+            status: 200,
+            headers: responseHeaders,
+        });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Không thể lấy thông tin Trung tâm thể thao';
         console.error('[API Proxy]  Error:', errorMessage, error);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withCache, CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -12,6 +13,12 @@ export async function GET(
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
+            },
+            // Next.js automatic caching
+            cache: 'force-cache',
+            next: {
+                revalidate: CACHE_TIMES.WARDS.maxAge,
+                tags: ['wards-cache']
             }
         });
 
@@ -21,7 +28,8 @@ export async function GET(
             return NextResponse.json(data, { status: response.status });
         }
 
-        return NextResponse.json(data, { status: 200 });
+        // Add CDN-friendly cache headers
+        return withCache(data, CACHE_TIMES.WARDS);
     } catch (error) {
         console.error('Error fetching wards for province:', error);
         return NextResponse.json(

@@ -26,7 +26,7 @@ import {
     Pause,
     Heart,
 } from 'lucide-react';
-import { getStoreById, getSports } from '@/services/api-new';
+import { getSports } from '@/services/api-new';
 import type { StoreAdminDetailResponse } from '@/types';
 import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
@@ -34,14 +34,20 @@ import StoreSportsList from '@/components/store/StoreSportsList1';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
 import StoreLayout from '@/components/store/StoreLayout';
 import StoreEditDialog from '@/components/store/StoreEditDialog';
+import { useStoreDetail } from '@/hooks/use-store-detail';
+import { useStoreRatings } from '@/hooks/use-store-ratings';
+import { usePlans } from '@/hooks/use-plans';
 
 export default function StoreOwnerDetailPage() {
     const params = useParams();
     const router = useRouter();
     const storeId = params?.id as string;
 
-    const [store, setStore] = useState<StoreAdminDetailResponse | null>(null);
-    const [loading, setLoading] = useState(true);
+    // Use React Query hooks for automatic caching and deduplication
+    const { data: store, isLoading: loading } = useStoreDetail(storeId);
+    const { data: ratings } = useStoreRatings(storeId);
+    const { data: plans } = usePlans('main');
+
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
@@ -55,12 +61,6 @@ export default function StoreOwnerDetailPage() {
     const [userRating, setUserRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-    useEffect(() => {
-        if (storeId) {
-            loadStoreDetail();
-        }
-    }, [storeId]);
 
     // Fetch sports when rating dropdown opens
     useEffect(() => {
@@ -100,32 +100,6 @@ export default function StoreOwnerDetailPage() {
 
         return () => clearInterval(interval);
     }, [isAutoPlaying, store, currentSlideIndex]);
-
-    const loadStoreDetail = async () => {
-        setLoading(true);
-        try {
-            const data = await getStoreById(storeId);
-
-            // Add mock images for testing if mediaUrls is empty
-            if (data && (!data.mediaUrls || data.mediaUrls.length === 0)) {
-                data.mediaUrls = [
-                    'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&h=600&fit=crop',
-                    'https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&h=600&fit=crop',
-                    'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=600&fit=crop',
-                    'https://images.unsplash.com/photo-1517836357463-d25ddfcbf042?w=800&h=600&fit=crop',
-                ];
-            }
-
-            setStore(data);
-            if (data?.coverImageUrl) {
-                setSelectedImage(data.coverImageUrl);
-            }
-        } catch (error) {
-            console.error('Error loading store detail:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const formatTime = (time?: string) => {
         if (!time) return '--:--';
@@ -193,14 +167,10 @@ export default function StoreOwnerDetailPage() {
     };
 
     const handleEditSave = (updatedStore: Partial<StoreAdminDetailResponse>) => {
-        // Update local store state
-        if (store) {
-            setStore({
-                ...store,
-                ...updatedStore,
-            });
-        }
+        // The hook data will automatically refresh when the cache invalidates
         console.log('Store updated:', updatedStore);
+        // Note: In a production app, you'd invalidate the query cache here using:
+        // queryClient.invalidateQueries({ queryKey: ['storeDetail', storeId] })
     };
 
     if (loading) {

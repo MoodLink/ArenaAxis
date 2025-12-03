@@ -1,62 +1,23 @@
 // Import các components và services cần thiết
 "use client"
 
-import { useEffect, useState } from "react"
 import HeroSection from "@/components/home/HeroSection"
 import PopularFieldsSection from "@/components/home/PopularFieldsSection"
 import SportsCategoriesSection from "@/components/home/SportsCategoriesSection"
 import TournamentsSection from "@/components/home/TournamentsSection"
 import AboutSection from "@/components/home/AboutSection"
-import { getSports } from "@/services/api-new"
-import { getSportsNews } from "@/services/sports-news"
-import { getNearbyStoresFromGeolocation } from "@/services/nearby-store.service"
-import { Sport, SportsNews, StoreSearchItemResponse } from "@/types"
+import { useNearbyStores, useSports, useSportsNews } from "@/hooks/use-homepage-data"
 
-// Component trang chủ - sử dụng client-side data fetching
+// Component trang chủ - sử dụng React Query với automatic caching
 export default function HomePage() {
-  // State để lưu trữ dữ liệu từ API
-  const [nearbyStores, setNearbyStores] = useState<StoreSearchItemResponse[]>([])
-  const [sports, setSports] = useState<Sport[]>([])
-  const [sportsNews, setSportsNews] = useState<SportsNews[]>([])
-  const [loading, setLoading] = useState(true)
-  const [locationError, setLocationError] = useState<string | null>(null)
+  // React Query handles caching automatically - no data refetch on navigation back!
+  const { data: nearbyStores = [], isLoading: storesLoading, error: storesError } = useNearbyStores()
+  const { data: sports = [], isLoading: sportsLoading } = useSports()
+  const { data: newsResponse, isLoading: newsLoading } = useSportsNews('all', 'vi', 8, 1)
 
-  // useEffect để fetch dữ liệu khi component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Gọi các API song song để tăng hiệu suất
-        // 1. Lấy danh sách Trung tâm thể thao gần vị trí người dùng (10km)
-        let storesData: StoreSearchItemResponse[] = []
-        try {
-          storesData = await getNearbyStoresFromGeolocation(10000)
-          console.log(' Nearby stores loaded:', storesData.length)
-          setLocationError(null)
-        } catch (locationError: any) {
-          console.warn(' Cannot get nearby stores:', locationError.message)
-          setLocationError(locationError.message)
-          // Tiếp tục fetch dữ liệu khác ngay cả khi geolocation fail
-        }
-
-        // 2. Lấy danh sách môn thể thao
-        const sportsData = await getSports()
-
-        // 3. Lấy tin tức thể thao
-        const newsResponse = await getSportsNews('all', 'vi', 8, 1)
-
-        // Cập nhật state với dữ liệu từ API
-        setNearbyStores(storesData)
-        setSports(sportsData)
-        setSportsNews(newsResponse.articles || []) // Lấy articles từ response
-      } catch (error) {
-        console.error('Error fetching homepage data:', error)
-      } finally {
-        setLoading(false) // Kết thúc loading dù thành công hay thất bại
-      }
-    }
-
-    fetchData()
-  }, [])
+  const loading = storesLoading || sportsLoading || newsLoading
+  const locationError = storesError ? (storesError as Error).message : null
+  const sportsNews = newsResponse?.articles || []
 
 
   return (

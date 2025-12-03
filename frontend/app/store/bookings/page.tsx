@@ -27,6 +27,7 @@ import { StoreService } from '@/services/store.service';
 import { OrderService } from '@/services/order.service';
 import StoreLayout from '@/components/store/StoreLayout';
 import { useToast } from '@/hooks/use-toast';
+import { useStoreOrders } from '@/hooks/use-store-orders';
 import { getStoreById } from '@/services/api-new';
 import type { StoreClientDetailResponse } from '@/types';
 
@@ -62,6 +63,10 @@ export default function StoreBookingsPage() {
     const [selectedDate, setSelectedDate] = useState<string>(
         new Date().toISOString().split('T')[0]
     );
+
+    // Use React Query hook for automatic orders deduplication
+    const { data: ordersData } = useStoreOrders(storeId, selectedDate, selectedDate);
+
     const [bookingData, setBookingData] = useState<{
         [fieldId: string]: {
             [timeSlot: string]: "available" | "booked" | "locked" | "selected"
@@ -123,13 +128,9 @@ export default function StoreBookingsPage() {
             )
             console.log('🏟️ Fields response:', fieldsResponse)
 
-            // Also fetch orders from the store to get complete customer info
-            const ordersResponse = await OrderService.getOrdersByStore(
-                storeId,
-                selectedDate,
-                selectedDate
-            )
-            console.log('📦 Orders response:', ordersResponse)
+            // Use ordersData from React Query hook (already cached and deduplicated)
+            const ordersResponse = ordersData
+            console.log('📦 Orders response (from hook):', ordersResponse)
 
             // Build bookingData from statusField array (PAID bookings only)
             const bookingMap: { [fieldId: string]: { [timeSlot: string]: "available" | "booked" | "locked" | "selected" } } = {}

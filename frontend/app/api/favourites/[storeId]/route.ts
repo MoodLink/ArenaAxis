@@ -1,6 +1,9 @@
 // File: app/api/favourites/[storeId]/route.ts
 // Proxy API cho dynamic favourites endpoints - BYPASS CORS
 
+import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
+
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 /**
@@ -9,10 +12,10 @@ const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
  */
 export async function DELETE(
     request: Request,
-    { params }: { params: { storeId: string } }
+    { params }: { params: Promise<{ storeId: string }> }
 ) {
     try {
-        const { storeId } = params;
+        const { storeId } = await params;
         const authHeader = request.headers.get('authorization');
 
         if (!authHeader) {
@@ -67,9 +70,12 @@ export async function DELETE(
         }
 
         console.log(`[API Proxy] Remove favourite successful`);
-        return new Response(JSON.stringify({ success: true, ...data }), {
+
+        // Invalidate favourites cache after deletion
+        revalidateTag('favourites');
+
+        return NextResponse.json({ success: true, ...data }, {
             status: 200,
-            headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to remove favourite';
@@ -87,10 +93,10 @@ export async function DELETE(
  */
 export async function GET(
     request: Request,
-    { params }: { params: { storeId: string } }
+    { params }: { params: Promise<{ storeId: string }> }
 ) {
     try {
-        const { storeId } = params;
+        const { storeId } = await params;
         const authHeader = request.headers.get('authorization');
 
         if (!authHeader) {

@@ -15,6 +15,12 @@ export async function GET(
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add ISR caching
+      cache: 'force-cache',
+      next: {
+        revalidate: 300, // Revalidate every 5 minutes (300 seconds)
+        tags: ['fieldDetail', id], // Tag for manual invalidation
+      } as any,
     });
 
     if (!response.ok) {
@@ -29,6 +35,7 @@ export async function GET(
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
     });
   } catch (error) {

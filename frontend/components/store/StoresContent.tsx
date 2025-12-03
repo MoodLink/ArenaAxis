@@ -1,7 +1,10 @@
 // Component hiển thị stores theo grid hoặc list
+'use client';
+
 import { StoreSearchItemResponse } from "@/types"
 import { StoreCard } from "./StoreCard"
 import StoreListItem from "./StoreListItem"
+import { useFavourites, isFavouriteStore } from "@/hooks/use-favourites"
 
 interface StoresContentProps {
     stores: StoreSearchItemResponse[]
@@ -10,6 +13,8 @@ interface StoresContentProps {
 }
 
 export default function StoresContent({ stores, viewMode, selectedSportId }: StoresContentProps) {
+    // Fetch favourites once for all store cards
+    const { data: favourites = [] } = useFavourites()
     if (stores.length === 0) {
         return (
             <div className="text-center py-20">
@@ -44,7 +49,12 @@ export default function StoresContent({ stores, viewMode, selectedSportId }: Sto
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {stores.map((store) => (
-                    <StoreCard key={store.id} store={store} selectedSportId={selectedSportId} />
+                    <StoreCard
+                        key={store.id}
+                        store={store}
+                        selectedSportId={selectedSportId}
+                        isFav={isFavouriteStore(store.id, favourites)}
+                    />
                 ))}
             </div>
         )

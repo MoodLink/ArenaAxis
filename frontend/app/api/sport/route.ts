@@ -1,6 +1,9 @@
 // File: app/api/sport/route.ts
 // Proxy API để lấy danh sách môn thể thao và tạo môn thể thao mới
 
+import { NextResponse } from 'next/server';
+import { withCache, CACHE_TIMES } from '@/lib/cache-utils';
+
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
 export async function GET(request: Request) {
@@ -15,6 +18,12 @@ export async function GET(request: Request) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            // Next.js automatic caching (Request Memoization + Data Cache)
+            cache: 'force-cache',
+            next: {
+                revalidate: CACHE_TIMES.SPORTS.maxAge, // Revalidate every 24 hours
+                tags: ['sports-cache']
+            }
         });
 
         if (!response.ok) {
@@ -23,17 +32,13 @@ export async function GET(request: Request) {
 
         const data = await response.json();
 
-        return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+        // Add CDN-friendly cache headers
+        return withCache(data, CACHE_TIMES.SPORTS);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sports';
-        return new Response(
-            JSON.stringify({ error: errorMessage, message: 'Failed to fetch sports' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        return NextResponse.json(
+            { error: errorMessage, message: 'Failed to fetch sports' },
+            { status: 500 }
         );
     }
 }

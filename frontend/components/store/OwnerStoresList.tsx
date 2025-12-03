@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { StoreAdminDetailResponse } from '@/types'
-import { getStoresByOwnerId } from '@/services/api-new'
 import { getMyProfile } from '@/services/get-my-profile'
+import { useStoresByOwner } from '@/hooks/use-store-by-owner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,66 +16,49 @@ interface OwnerStoresListProps {
 }
 
 export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
-    const [stores, setStores] = useState<StoreAdminDetailResponse[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [currentOwnerId, setCurrentOwnerId] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
+    const [error, setError] = useState<string | null>(null)
 
+    // Get owner ID from prop or profile
     useEffect(() => {
-        const fetchStores = async () => {
-            try {
-                setLoading(true)
+        try {
+            let resolvedOwnerId = ownerId
 
-                //  Lấy owner-id: Ưu tiên prop, fallback sang getMyProfile()
-                let currentOwnerId = ownerId
-
-                if (!currentOwnerId) {
-                    console.log(' Owner ID not provided, fetching current user profile...')
-                    //  ĐÚNG: Gọi GET /users/myself để lấy thông tin user hiện tại
-                    const currentUser = getMyProfile()
-
-                    if (!currentUser?.id) {
-                        console.error(' Cannot get user ID from getMyProfile()')
-                        setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.')
-                        return
-                    }
-
-                    currentOwnerId = currentUser.id
-                    console.log(' Got owner ID from getMyProfile():', currentOwnerId)
+            if (!resolvedOwnerId) {
+                const currentUser = getMyProfile()
+                if (!currentUser?.id) {
+                    setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.')
+                    return
                 }
-
-                //  ĐÚNG: Gọi GET /stores/owner/{owner-id} với owner-id vừa lấy được
-                console.log(' Fetching stores for owner ID:', currentOwnerId)
-                const data = await getStoresByOwnerId(currentOwnerId)
-                console.log('Stores data received:', data, '| Total:', data.length)
-
-                setStores(data)
-                setError(null)
-
-                //  TẤT CẢ ĐỀU LỮU STORE ID VÀO LOCALSTORAGE
-                // Nếu chỉ có 1 Trung tâm thể thao → lưu ngay
-                // Nếu có nhiều Trung tâm thể thao → lưu cái đầu tiên (user sẽ sửa thành cái khác khi navigate)
-                if (data.length > 0) {
-                    const primaryStore = data[0]
-                    localStorage.setItem('storeId', primaryStore.id)
-                    localStorage.setItem('storeName', primaryStore.name)
-                    console.log(' Saved primary store to localStorage:', {
-                        storeId: primaryStore.id,
-                        storeName: primaryStore.name
-                    })
-                }
-            } catch (err) {
-                console.error(' Error fetching stores:', err)
-                const errorMsg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách Trung tâm thể thao'
-                setError(errorMsg)
-                setStores([])
-            } finally {
-                setLoading(false)
+                resolvedOwnerId = currentUser.id
             }
-        }
 
-        fetchStores()
+            setCurrentOwnerId(resolvedOwnerId)
+            setError(null)
+        } catch (err) {
+            console.error('Error fetching user profile:', err)
+            setError('Lỗi khi lấy thông tin người dùng')
+        }
     }, [ownerId])
+
+    // Fetch stores using React Query hook (with automatic caching & deduplication)
+    const queryResult = useStoresByOwner(currentOwnerId || '')
+    const stores = (queryResult.data || []) as StoreAdminDetailResponse[]
+    const { isLoading, isError } = queryResult
+
+    // Save stores to localStorage when loaded
+    useEffect(() => {
+        if (stores && stores.length > 0) {
+            const primaryStore = stores[0]
+            localStorage.setItem('storeId', primaryStore.id)
+            localStorage.setItem('storeName', primaryStore.name)
+            console.log('Saved primary store to localStorage:', {
+                storeId: primaryStore.id,
+                storeName: primaryStore.name
+            })
+        }
+    }, [stores])
 
     const formatTime = (time?: string) => {
         if (!time) return '--:--';
@@ -92,7 +75,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         })
     };
 
-    if (loading) {
+    if (isLoading && !stores.length) {
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -103,10 +86,10 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         )
     }
 
-    if (error) {
+    if (error || isError) {
         return (
             <div className="bg-red-50 text-red-800 p-6 rounded-xl border border-red-200">
-                <p className="font-semibold"> Lỗi: {error}</p>
+                <p className="font-semibold">Lỗi: {error}</p>
                 <p className="text-sm mt-2">Vui lòng thử lại hoặc liên hệ hỗ trợ</p>
             </div>
         )
