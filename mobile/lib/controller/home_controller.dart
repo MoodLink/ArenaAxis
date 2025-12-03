@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-import 'package:mobile/screens/store_page.dart';
+import 'package:mobile/screens/store_screen.dart';
 import 'package:mobile/screens/booking_screen.dart';
 import 'package:mobile/screens/profile_screen.dart';
 import 'package:mobile/screens/team_match_screen.dart';

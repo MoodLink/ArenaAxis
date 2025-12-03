@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:get/utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/login_screen.dart';
-import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/widgets/loading.dart';
 import 'package:mobile/widgets/progress_bar.dart';
 
@@ -23,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  bool _obscurePassword = true;
+  bool _obscurePassword = false;
   bool _isLoading = false;
 
   @override
@@ -40,51 +39,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = true;
       });
-  final authService = AuthService();
-      // Giả lập một quá trình đăng ký 2 giây
-      await Future.delayed(const Duration(seconds: 2));
-    try {
-      final authResponse = await authService.register(
-       fullName:  _userNameController.text,
-        email:  _emailController.text,
-        password:  _passwordController.text,
-        phone:  _phoneController.text,
-      );
+  // final authService = AuthService();
+  //   try {
+  //     final authResponse = await authService.register(
+  //      fullName:  _userNameController.text,
+  //       email:  _emailController.text,
+  //       password:  _passwordController.text,
+  //       phone:  _phoneController.text,
+  //     );
 
-      if (authResponse == null) {
-        // ❌ Sai email hoặc mật khẩu
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email hoặc mật khẩu không chính xác!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-
-
-
+  //     if (authResponse == null) {
+  //       // ❌ Sai email hoặc mật khẩu
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Email hoặc mật khẩu không chính xác!'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     } else {
+  
         Get.to(LoginScreen());
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đăng nhập thành công!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e, stack) {
-      log('Lỗi đăng nhập: $e\n$stack');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Có lỗi xảy ra: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       const SnackBar(
+    //         content: Text('Đăng nhập thành công!'),
+    //         backgroundColor: Colors.green,
+    //       ),
+    //     );
+    //   }
+    // } catch (e, stack) {
+    //   log('Lỗi đăng nhập: $e\n$stack');
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text('Có lỗi xảy ra: $e'),
+    //       backgroundColor: Colors.red,
+    //     ),
+    //   );
+    // } finally {
       setState(() {
         _isLoading = false;
       });
-    }
+    
   }}
 
 
@@ -129,6 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         // Username
                         TextFormField(
+                          key: const Key('usernameField'),
                           controller: _userNameController,
                           enabled: !_isLoading,
                           decoration: InputDecoration(
@@ -157,6 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Email
                         TextFormField(
+                          key: const Key('emailField'),
                           controller: _emailController,
                           enabled: !_isLoading,
                           keyboardType: TextInputType.emailAddress,
@@ -186,6 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Password
                         TextFormField(
+                          key: const Key('passwordField'),
                           controller: _passwordController,
                           enabled: !_isLoading,
                           obscureText: _obscurePassword,
@@ -227,6 +225,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Phone
                         TextFormField(
+                          key: const Key('phoneField'),
                           controller: _phoneController,
                           enabled: !_isLoading,
                           keyboardType: TextInputType.phone,
@@ -259,6 +258,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
+                            key: const Key('registerButton'),
                             onPressed: _isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFFD6326),

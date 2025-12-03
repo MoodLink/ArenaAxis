@@ -54,7 +54,7 @@ class LoginForm extends StatelessWidget {
 
             // Password field
             TextFormField(
-              key : const Key('passwordField'), 
+              key: const Key('passwordField'),
               controller: passwordController,
               obscureText: !isPasswordVisible,
               decoration: InputDecoration(
@@ -75,7 +75,13 @@ class LoginForm extends StatelessWidget {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập vào password';
+                  return 'Password không được để trống';
+                }
+                if (value.length < 6) {
+                  return 'Password phải có ít nhất 6 ký tự';
+                }
+                if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                  return 'Password phải chứa ít nhất 1 chữ hoa';
                 }
                 return null;
               },

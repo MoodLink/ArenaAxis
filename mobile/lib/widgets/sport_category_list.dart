@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:mobile/providers/sport_category_controller.dart';
+import 'package:mobile/controller/sport_category_controller.dart';
 import 'package:mobile/widgets/loading.dart';
 import 'package:mobile/widgets/sport_category_item.dart';
 

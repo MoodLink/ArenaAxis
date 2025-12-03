@@ -3,10 +3,10 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/field_search_controller.dart';
+import 'package:mobile/controller/sport_category_controller.dart';
 import 'package:mobile/models/location.dart';
-import 'package:mobile/screens/Search_result_page.dart';
 
-class FieldSearchWidget extends StatelessWidget {
+class FieldSearchWidget extends StatefulWidget {
   final Function(String, Province?, Ward?)? onSearch;
   final ThemeData theme;
   final Size screenSize;
@@ -19,11 +19,25 @@ class FieldSearchWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(FieldSearchController());
+  State<FieldSearchWidget> createState() => _FieldSearchWidgetState();
+}
 
+class _FieldSearchWidgetState extends State<FieldSearchWidget> {
+  late final FieldSearchController controller;
+  late final SportCategoryController sportController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controllers in initState to avoid context issues
+    controller = Get.find<FieldSearchController>();
+    sportController = Get.find<SportCategoryController>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(screenSize.width * 0.02),
+      padding: EdgeInsets.all(widget.screenSize.width * 0.02),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -46,16 +60,12 @@ class FieldSearchWidget extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     onChanged: (value) => controller.updateSearchQuery(value),
-                    onSubmitted: (value) => _performSearch(
-                      context,
-                      value,
-                      controller,
-                    ),
+                    onSubmitted: (value) => _performSearch(),
                     decoration: InputDecoration(
                       hintText: 'Tìm sân, địa điểm...',
                       hintStyle: TextStyle(
                         color: Colors.grey[500],
-                        fontSize: screenSize.width * 0.038,
+                        fontSize: widget.screenSize.width * 0.038,
                       ),
                       prefixIcon: Icon(
                         Icons.search,
@@ -63,8 +73,7 @@ class FieldSearchWidget extends StatelessWidget {
                         size: 22,
                       ),
                       border: InputBorder.none,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),
@@ -72,16 +81,12 @@ class FieldSearchWidget extends StatelessWidget {
                 Container(
                   width: 55,
                   decoration: BoxDecoration(
-                    border: Border(
-                      left: BorderSide(
-                        color: Colors.grey[300]!,
-                      ),
-                    ),
+                    border: Border(left: BorderSide(color: Colors.grey[300]!)),
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => _showLocationPicker(context, controller),
+                      onTap: _showLocationPicker,
                       child: Icon(
                         Icons.location_on_outlined,
                         color: Colors.blue[600],
@@ -94,55 +99,62 @@ class FieldSearchWidget extends StatelessWidget {
             ),
           ),
 
-          SizedBox(height: screenSize.height * 0.012),
+          SizedBox(height: widget.screenSize.height * 0.012),
 
           // Active Filters Display
           Obx(() {
             final hasFilters = controller.selectedWard.value != null ||
                 controller.selectedProvince.value != null ||
-                controller.searchQuery.isNotEmpty;
+                controller.searchQuery.isNotEmpty ||
+                sportController.selectedCategory.value != null;
 
             return hasFilters
                 ? Wrap(
                     spacing: 8,
+                    runSpacing: 8,
                     children: [
+                      // Sport Category Badge
+                      if (sportController.selectedCategory.value != null)
+                        _buildSportCategoryBadge(),
+
+                      // Search Query Badge
                       if (controller.searchQuery.isNotEmpty)
                         _buildFilterChip(
-                          context,
                           icon: Icons.search,
                           label: controller.searchQuery.value,
-                          onRemove: () =>
-                              controller.updateSearchQuery(''),
-                          theme: theme,
+                          onRemove: () => controller.clearSearchQuery(),
                         ),
+
+                      // Province Badge
                       if (controller.selectedProvince.value != null)
                         _buildFilterChip(
-                          context,
                           icon: Icons.map,
-                          label:
-                              controller.selectedProvince.value!.name,
-                          onRemove: () =>
-                              controller.clearFilters(),
-                          theme: theme,
+                          label: controller.selectedProvince.value!.name,
+                          onRemove: () async {
+                            controller.selectedProvince.value = null;
+                            controller.selectedProvinceId.value = '';
+                            controller.selectedWard.value = null;
+                            controller.selectedWardId.value = '';
+                            await controller.performSearch();
+                          },
                         ),
+
+                      // Ward Badge
                       if (controller.selectedWard.value != null)
                         _buildFilterChip(
-                          context,
                           icon: Icons.location_on,
-                          label:
-                              controller.selectedWard.value!.name,
-                          onRemove: () =>
-                              controller.setWard(
-                                  controller.selectedWard.value!),
-                          theme: theme,
+                          label: controller.selectedWard.value!.name,
+                          onRemove: () async {
+                            controller.selectedWard.value = null;
+                            controller.selectedWardId.value = '';
+                            await controller.performSearch();
+                          },
                         ),
+
+                      // Search Button
                       if (controller.searchQuery.isNotEmpty)
                         GestureDetector(
-                          onTap: () => _performSearch(
-                            context,
-                            controller.searchQuery.value,
-                            controller,
-                          ),
+                          onTap: _performSearch,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -184,9 +196,14 @@ class FieldSearchWidget extends StatelessWidget {
                             ),
                           ),
                         ),
+
+                      // Clear All Button
                       if (hasFilters && controller.searchQuery.isEmpty)
                         GestureDetector(
-                          onTap: () => controller.clearFilters(),
+                          onTap: () {
+                            controller.clearAllFilters();
+                            sportController.clearSelection();
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -217,7 +234,7 @@ class FieldSearchWidget extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Xóa',
+                                  'Xóa tất cả',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.red[600],
@@ -237,22 +254,75 @@ class FieldSearchWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(
-    BuildContext context, {
+  Widget _buildSportCategoryBadge() {
+    final selected = sportController.selectedCategory.value;
+    if (selected == null) return const SizedBox.shrink();
+
+    final color =
+        sportController.getSelectedColor() ?? const Color(0xFF2196F3);
+
+    return GestureDetector(
+      onTap: () => sportController.clearSelection(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withOpacity(0.5),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              sportController.getIconById(sportController.selectedCategoryId.value!),
+              size: 14,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              selected,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.close,
+              size: 14,
+              color: Colors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
     required IconData icon,
     required String label,
     required VoidCallback onRemove,
-    required ThemeData theme,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.blue[400]!,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.blue[400]!, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -264,11 +334,7 @@ class FieldSearchWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: Colors.blue[600],
-          ),
+          Icon(icon, size: 14, color: Colors.blue[600]),
           const SizedBox(width: 4),
           Text(
             label,
@@ -281,38 +347,30 @@ class FieldSearchWidget extends StatelessWidget {
           const SizedBox(width: 6),
           GestureDetector(
             onTap: onRemove,
-            child: Icon(
-              Icons.close,
-              size: 14,
-              color: Colors.blue[600],
-            ),
+            child: Icon(Icons.close, size: 14, color: Colors.blue[600]),
           ),
         ],
       ),
     );
   }
 
-  void _performSearch(
-    BuildContext context,
-    String query,
-    FieldSearchController controller,
-  ) {
-    if (query.isEmpty) return;
-    log('Performing search for: $query');
-    Get.to(
-      () => SearchResultsPage(
-        searchQuery: query,
-        provinceFilter:
-            controller.selectedProvince.value?.name,
-        wardFilter: controller.selectedWard.value?.name,
-      ),
+  void _performSearch() async {
+    if (controller.searchQuery.isEmpty &&
+        controller.selectedWard.value == null &&
+        controller.selectedProvince.value == null) {
+      return;
+    }
+
+    log(
+      'Performing search with: query=${controller.searchQuery.value}, ward=${controller.selectedWard.value?.name}, province=${controller.selectedProvince.value?.name}',
     );
+
+    await controller.performSearch();
   }
 
-  void _showLocationPicker(
-    BuildContext context,
-    FieldSearchController controller,
-  ) {
+  void _showLocationPicker() {
+    if (!mounted) return;
+    
     showModalBottomSheet(
       context: context,
       builder: (context) => _LocationPickerModal(controller: controller),
@@ -345,9 +403,7 @@ class _LocationPickerModal extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.outlineVariant,
-                ),
+                bottom: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
             ),
             child: Row(
@@ -363,10 +419,7 @@ class _LocationPickerModal extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: Icon(
-                    Icons.close,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                  child: Icon(Icons.close, color: theme.colorScheme.onSurface),
                 ),
               ],
             ),
@@ -388,9 +441,7 @@ class _LocationPickerModal extends StatelessWidget {
                   return Center(
                     child: Text(
                       'Không có dữ liệu',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                   );
                 }
@@ -421,9 +472,7 @@ class _LocationPickerModal extends StatelessWidget {
                   return Center(
                     child: Text(
                       'Không có quận/huyện',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onSurface),
                     ),
                   );
                 }
@@ -445,6 +494,7 @@ class _LocationPickerModal extends StatelessWidget {
                           GestureDetector(
                             onTap: () {
                               controller.selectedProvince.value = null;
+                              controller.selectedProvinceId.value = '';
                             },
                             child: Row(
                               children: [
@@ -492,9 +542,7 @@ class _LocationPickerModal extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(
-                  color: theme.colorScheme.outlineVariant,
-                ),
+                top: BorderSide(color: theme.colorScheme.outlineVariant),
               ),
             ),
             child: SizedBox(
@@ -577,9 +625,11 @@ class _LocationPickerModal extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          controller.setWard(ward);
-          Navigator.pop(context);
+        onTap: () async {
+          await controller.setWard(ward);
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

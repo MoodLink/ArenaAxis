@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/models/Authentiacate.dart';
 import '../models/user.dart';
 
-
 class AuthService {
   final String baseUrl;
 
@@ -26,8 +25,17 @@ class AuthService {
       final data = jsonDecode(response.body);
       return AuthResponse.fromJson(data);
     } else {
-      print('Login failed: ${response.body}');
-      return null;
+      final url = Uri.parse('$baseUrl/auth/client');
+      final ClientResponse = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+      final data = jsonDecode(ClientResponse.body);
+      return AuthResponse.fromJson(data);
     }
   }
 
@@ -50,7 +58,6 @@ class AuthService {
         'name': fullName,
         'phone': phone,
       }),
-
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -83,20 +90,26 @@ class AuthService {
 
   // ---------------------- GET CURRENT USER ----------------------
   Future<User?> getCurrentUser(String token) async {
-    final url = Uri.parse('$baseUrl/auth/me');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final url = Uri.parse('$baseUrl/users/myself');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return User.fromJson(data);
-    } else {
-      print('Get current user failed: ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        log('Get current user success: $data');
+        return User.fromJson(data);
+      } else {
+        log('Get current user failed: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      log('Error getting current user: $e');
       return null;
     }
   }

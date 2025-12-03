@@ -64,6 +64,7 @@ class Store {
     };
   }
 
+  
   /// Getter cho địa chỉ đầy đủ
   String get fullAddress => '${ward.name}, ${province.name}';
 

@@ -26,7 +26,7 @@ class LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
+  bool _isPasswordVisible = true;
   bool _isLoading = false;
 
   @override
@@ -88,32 +88,51 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginButton() {
-    return Padding(
-      padding: const EdgeInsets.all(10.0),
-      child: ElevatedButton(
-        key: const Key('loginButton'),
-        onPressed: _isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFFFD6326),
-          foregroundColor: Theme.of(context).colorScheme.onError,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
+Widget _buildLoginButton() {
+  return Padding(
+    padding: const EdgeInsets.all(10.0),
+    child: ElevatedButton(
+      key: const Key('loginButton'),
+      onPressed: _isLoading ? null : _handleLogin,
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.zero, // Quan trọng để gradient hoạt động đúng
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          'Đăng nhập',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
+        elevation: 2,
+        backgroundColor: Colors.transparent, // Bắt buộc
+        shadowColor: Colors.black,
+      ),
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF1976D2),
+              Color(0xFF2196F3),
+              Color(0xFF00C17C),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          alignment: Alignment.center,
+          child: Text(
+            'Đăng nhập',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildRegisterSection() {
     return Row(

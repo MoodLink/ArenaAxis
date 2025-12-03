@@ -1,52 +1,56 @@
-import 'package:mobile/models/FieldPrincing.dart';
+// Model cho Slot đã bị đặt (nằm trong statusField của API)
+class BookedSlot {
+  final String startTime;
+  final String endTime;
 
-class Field {
-  final String id;
-  final String name;
-  final String description;
-  final String storeId;
-  final String sportId;
-  final String status;
-  final List<String> images;
-  final List<FieldPricing> prices;
+  BookedSlot({required this.startTime, required this.endTime});
 
-  Field({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.storeId,
-    required this.sportId,
-    required this.status,
-    required this.images,
-    required this.prices,
-  });
-
-  factory Field.fromJson(Map<String, dynamic> json) {
-    return Field(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      storeId: json['storeId'],
-      sportId: json['sportId'], 
-      status: json['status'],
-      images: List<String>.from(json['images']),
-      prices: (json['prices'] as List)
-          .map((price) => FieldPricing.fromJson(price))
-          .toList(),
+  factory BookedSlot.fromJson(Map<String, dynamic> json) {
+    // Giả sử API trả về start_time/end_time hoặc startAt/endAt
+    // Bạn hãy điều chỉnh key này theo đúng API thực tế trả về trong statusField
+    return BookedSlot(
+      startTime: json['start_time'] ?? json['startAt'] ?? '', 
+      endTime: json['end_time'] ?? json['endAt'] ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'storeId': storeId,
-      'sportId': sportId,
-      'status': status,
-      'images': images,
-      'prices': prices.map((price) => price.toJson()).toList(),
-    };
   }
 }
 
+class FieldModel {
+  final String id;
+  final String name;
+  final String sportId;
+  final String storeId;
+  final double defaultPrice;
+  final String status;
+  final List<BookedSlot> bookedSlots; // Quan trọng: Danh sách giờ đã có người đặt
+
+  FieldModel({
+    required this.id,
+    required this.name,
+    required this.sportId,
+    required this.storeId,
+    required this.defaultPrice,
+    required this.status,
+    required this.bookedSlots,
+  });
+
+  factory FieldModel.fromJson(Map<String, dynamic> json) {
+    // Parse statusField thành List<BookedSlot>
+    List<BookedSlot> bookings = [];
+    if (json['statusField'] != null && json['statusField'] is List) {
+      bookings = (json['statusField'] as List)
+          .map((e) => BookedSlot.fromJson(e))
+          .toList();
+    }
+
+    return FieldModel(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? 'Sân chưa đặt tên',
+      sportId: json['sportId'] ?? '',
+      storeId: json['storeId'] ?? '',
+      defaultPrice: double.tryParse(json['defaultPrice'].toString()) ?? 0.0,
+      status: json['activeStatus'] == true ? 'active' : 'inactive',
+      bookedSlots: bookings,
+    );
+  }
+}

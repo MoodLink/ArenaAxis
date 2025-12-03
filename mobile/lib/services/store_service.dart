@@ -2,49 +2,122 @@ import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:mobile/models/Store.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 
 class StoreService {
-  final String baseUrl = 'https://arena-user-service.onrender.com';
+  final String _baseUrl = 'https://arena-user-service.onrender.com';
 
-  /// Lấy danh sách cửa hàng gần vị trí
-  /// latitude, longitude, distance là bắt buộc
-  /// wardName, provinceName là optional
-  Future<List<Store>> getStoresNearby({
-    double? latitude,
-    double? longitude,
-    int? distance, // meters
-    String? wardName,
-    String? provinceName,
+  /// Search stores with filters - POST to /stores/search
+  Future<List<Store>> searchStores({
+    required String name,
+    required String wardId,
+    required String provinceId,
+    required String sportId,
   }) async {
     try {
-      final Uri uri = Uri.parse('$baseUrl/recommends/near-by');
-      log('Fetching stores from: $uri');
+      final url = Uri.parse('$_baseUrl/stores/search');
 
-      // Tạo body JSON, chỉ include các giá trị không null
-      final Map<String, dynamic> bodyMap = {
-        // // if (latitude != null  && latitude.isZero)    "latitude": latitude,
-        // // if (longitude != null && longitude.isZero)  "longitude": longitude,
-        // // if (distance != null && distance.isNegative) "distance": distance,
-        // if (wardName != null && wardName.isNotEmpty) "wardName": wardName,
-        if (provinceName != null && provinceName.isNotEmpty) "provinceName": provinceName,
-      };
+      // Chỉ thêm field nếu giá trị không rỗng và không phải là "null" string
+      final Map<String, dynamic> body = {};
+
+      if (name.isNotEmpty) {
+        body['name'] = name;
+      }
+      if (wardId.isNotEmpty && wardId != 'null') {
+        body['wardId'] = wardId;
+      }
+      if (provinceId.isNotEmpty && provinceId != 'null') {
+        body['provinceId'] = provinceId;
+      }
+      if (sportId.isNotEmpty && sportId != 'null') {
+        body['sportId'] = sportId;
+      }
+
+      // Nếu tất cả đều rỗng → có thể trả về sớm hoặc để backend xử lý
+      log('Searching stores with body: $body');
 
       final response = await http.post(
-        uri,
+        url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(bodyMap),
+        body: jsonEncode(body), // Chỉ gửi những field có giá trị
       );
 
-      log('Response status: ${response.statusCode}');
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => Store.fromJson(json)).toList();
+        final List<dynamic> data = jsonDecode(response.body);
+        final stores = data.map((e) => Store.fromJson(e)).toList();
+        log('Got ${stores.length} stores from search');
+        return stores;
       } else {
-        throw Exception('Failed to load stores: ${response.statusCode}');
+        throw Exception(
+          'Failed to search stores: ${response.statusCode} ${response.body}',
+        );
       }
     } catch (e) {
-      throw Exception('Error fetching stores: $e');
+      log('Error searching stores: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getStoreDetail(String storeId) async {
+    try {
+      final url = Uri.parse('$_baseUrl/stores/detail/$storeId');
+
+      log('Fetching store detail for: $storeId');
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        log('Got store detail: ${data['name']}');
+        return data;
+      } else {
+        throw Exception('Failed to fetch store detail: ${response.statusCode}');
+      }
+    } catch (e) {
+      log('Error fetching store detail: $e');
+      rethrow;
+    }
+  }
+
+  /// Get stores nearby - POST to /recommends/near-by
+  Future<List<Store>> getStoresNearby({
+    required double? latitude,
+    required double? longitude,
+    required String? wardName,
+    required String? provinceName,
+    int distance = 10000,
+  }) async {
+    try {
+      final url = Uri.parse('$_baseUrl/recommends/near-by');
+
+      final body = {
+        // // 'latitude': latitude ?? 0.0,
+        // // 'longitude': longitude ?? 0.0,
+        // // 'distance': distance,
+        // 'wardName': wardName ?? '',
+        'provinceName': provinceName ?? '',
+      };
+
+      log('Fetching nearby stores with: $body');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final stores = data.map((e) => Store.fromJson(e)).toList();
+        log('Got ${stores.length} nearby stores');
+        return stores;
+      } else {
+        throw Exception(
+          'Failed to fetch nearby stores: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      log('Error fetching nearby stores: $e');
+      rethrow;
     }
   }
 }

@@ -2,16 +2,31 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile/controller/field_search_controller.dart';
 import 'package:mobile/models/sport_category.dart';
+import 'package:mobile/controller/store_controller.dart';
+import 'package:mobile/utilities/local_storage.dart';
 
 class SportCategoryController extends GetxController {
   final Rx<String?> selectedCategory = Rx<String?>(null);
+  final Rx<String?> selectedCategoryId = Rx<String?>(null);
   final RxList<SportCategory> categories = <SportCategory>[].obs;
   final RxBool isLoading = false.obs;
+
+  late StoreController storeController;
+  late FieldSearchController fieldSearchController;
+
+  @override
+  void onReady() {
+    super.onReady();
+    fieldSearchController =
+        Get.find<FieldSearchController>(); // ✔ KHÔNG gọi trong onInit
+  }
 
   @override
   void onInit() {
     super.onInit();
+    storeController = Get.find<StoreController>();
     fetchCategoriesFromAPI();
   }
 
@@ -30,7 +45,7 @@ class SportCategoryController extends GetxController {
           return SportCategory(
             id: item['id'],
             name: item['name'],
-            icon: _getIconById(item['id']),
+            icon: getIconById(item['id']),
             color: _getColorById(item['id']),
           );
         }).toList();
@@ -57,7 +72,7 @@ class SportCategoryController extends GetxController {
   }
 
   /// Lấy icon dựa theo id
-  IconData _getIconById(String id) {
+  IconData getIconById(String id) {
     switch (id) {
       case 'football':
         return Icons.sports_soccer;
@@ -99,21 +114,48 @@ class SportCategoryController extends GetxController {
     }
   }
 
-  /// Chọn/bỏ chọn danh mục
   void selectCategory(String categoryName) {
-    if (selectedCategory.value == categoryName) {
+    final isCurrentlySelected = selectedCategory.value == categoryName;
+
+    if (isCurrentlySelected) {
+      // Bỏ chọn danh mục
       selectedCategory.value = null;
+      selectedCategoryId.value = null;
+
+      // Kiểm tra nếu còn filter khác trong FieldSearchController
+      if (fieldSearchController.hasAnyFilter()) {
+        fieldSearchController.performSearch();
+      } else {
+        storeController.fetchStores();
+      }
     } else {
+      // Chọn danh mục
       selectedCategory.value = categoryName;
+      final category = categories.firstWhereOrNull(
+        (c) => c.name == categoryName,
+      );
+      selectedCategoryId.value = category?.id;
+
+      _performStoreSearch();
     }
-    onCategoryChanged(selectedCategory.value);
+
+    onCategoryChanged(selectedCategory.value, selectedCategoryId.value);
   }
 
-  bool isSelected(String categoryName) => selectedCategory.value == categoryName;
+  bool isSelected(String categoryName) =>
+      selectedCategory.value == categoryName;
 
   void clearSelection() {
     selectedCategory.value = null;
-    onCategoryChanged(null);
+    selectedCategoryId.value = null;
+
+    if (fieldSearchController.hasAnyFilter()) {
+      fieldSearchController.performSearch();
+    } else {
+      storeController.fetchStores();
+    }
+
+    onCategoryChanged(null, null);
   }
 
   Color? getSelectedColor() {
@@ -124,11 +166,26 @@ class SportCategoryController extends GetxController {
     return category?.color;
   }
 
-  void onCategoryChanged(String? category) {
-    if (category != null) {
-      print('Đã chọn danh mục: $category');
+  void onCategoryChanged(String? category, String? categoryId) {
+    if (category != null && categoryId != null) {
+      print('Đã chọn danh mục: $category (ID: $categoryId)');
     } else {
       print('Đã bỏ chọn danh mục');
     }
+  }
+
+  /// Perform store search with current sport category
+  Future<void> _performStoreSearch() async {
+
+    await storeController.searchStores(
+      name: storeController.searchQuery.value,
+      wardId: storeController.selectedWardId.value.isEmpty
+          ? null
+          : storeController.selectedWardId.value,
+      provinceId: storeController.selectedProvinceId.value.isEmpty
+          ? null
+          : storeController.selectedProvinceId.value,
+      sportId: selectedCategoryId.value ?? '',
+    );
   }
 }
