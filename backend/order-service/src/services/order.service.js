@@ -34,6 +34,37 @@ export const createOrderService = async (paymentData) => {
       throw new Error("Missing required fields: amount, description, or items");
     }
 
+    // check item ordertails exists, if exists, throw error
+    for (const item of items) {
+      const startDateTime = new Date(`${item.date}T${item.start_time}:00`);
+      const endDateTime = new Date(`${item.date}T${item.end_time}:00`);
+      const existingOrderDetails = await OrderDetail.find({
+        fieldId: item.field_id,
+        $or: [
+          {
+            startTime: { $lt: endDateTime, $gte: startDateTime },
+          },
+          {
+            endTime: { $gt: startDateTime, $lte: endDateTime },
+          },
+          {
+            startTime: { $lte: startDateTime },
+            endTime: { $gte: endDateTime },
+          },
+        ],
+      }).lean();
+      if (existingOrderDetails.length > 0) {
+        for (const detail of existingOrderDetails) {
+          const order = await Order.findById(detail.orderId);
+          if (order && order.statusPayment !== "FAILED") {
+            throw new Error(
+              `Field ${item.field_id} is already booked for the selected time slot.`
+            );
+          }
+        }
+      }
+    }
+
     const orderCode = Date.now();
 
     const order = new Order({
@@ -155,7 +186,9 @@ export const getOrderByFieldIdAndDateTime = async (fieldId, dateTime) => {
     const orderDetails = await OrderDetail.find({
       fieldId,
       endTime: { $gte: start, $lte: end },
-    }).select("orderId fieldId startTime endTime").lean();
+    })
+      .select("orderId fieldId startTime endTime")
+      .lean();
 
     // for each orderDetail, get order statusPayment, if not FAILED, push to results. With orderDetails having same orderId, only get one and set similar to another
     const results = [];
