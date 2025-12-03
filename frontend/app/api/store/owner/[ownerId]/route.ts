@@ -45,7 +45,7 @@ export async function GET(
         }
 
         const data = await response.json();
-        console.log(`[API Proxy] ✅ Stores by owner retrieved: ${data?.length || 0} items`);
+        console.log(`[API Proxy]  Stores by owner retrieved: ${data?.length || 0} items`);
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {

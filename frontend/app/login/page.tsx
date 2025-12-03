@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // ✅ Lấy redirect URL từ query parameters
+  //  Lấy redirect URL từ query parameters
   const redirectUrl = searchParams.get('redirect')
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,14 +35,14 @@ export default function LoginPage() {
           localStorage.setItem("user", JSON.stringify(result.user));
           const successRole = result.user.role;
 
-          // ✅ Nếu có redirectUrl, ưu tiên chuyển về đó (trừ khi là ADMIN)
+          //  Nếu có redirectUrl, ưu tiên chuyển về đó (trừ khi là ADMIN)
           if (redirectUrl && successRole !== "ADMIN") {
-            console.log('🔄 Redirecting to:', redirectUrl)
+            console.log(' Redirecting to:', redirectUrl)
 
-            // ✅ Kiểm tra và khôi phục thông tin đặt sân nếu có
+            //  Kiểm tra và khôi phục thông tin đặt sân nếu có
             const pendingBooking = sessionStorage.getItem('pendingBooking')
             if (pendingBooking) {
-              console.log('📋 Restoring pending booking:', pendingBooking)
+              console.log(' Restoring pending booking:', pendingBooking)
               // Không cần làm gì, data đã có trong sessionStorage
             }
 

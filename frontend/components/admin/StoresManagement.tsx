@@ -29,7 +29,7 @@ export default function StoresManagement() {
                 const allStores = await getUserStores(1, 1000)
                 if (Array.isArray(allStores)) {
                     setTotalStores(allStores.length)
-                    console.log('✅ Total stores:', allStores.length)
+                    console.log(' Total stores:', allStores.length)
                 }
             } catch (error) {
                 console.error('Error fetching total stores:', error)

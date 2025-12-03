@@ -103,9 +103,9 @@ export default function StoreBookingsPage() {
     // State for time slots
     const [timeSlots, setTimeSlots] = useState<string[]>([]);
 
-    // 🔄 Helper function to refresh booking data from store orders
+    //  Helper function to refresh booking data from store orders
     const refreshBookingData = useCallback(async () => {
-        console.log('🔄 refreshBookingData called with:', { storeId, fields: fields.length, selectedDate })
+        console.log(' refreshBookingData called with:', { storeId, fields: fields.length, selectedDate })
 
         if (!storeId || fields.length === 0) {
             console.log('⏭️ Skipping refresh - no storeId or fields yet')
@@ -113,9 +113,9 @@ export default function StoreBookingsPage() {
         }
 
         try {
-            console.log('🔄 Refreshing booking data from statusField for date:', selectedDate)
+            console.log(' Refreshing booking data from statusField for date:', selectedDate)
 
-            // 🎯 Fetch fields with statusField data for selected date
+            //  Fetch fields with statusField data for selected date
             const fieldsResponse = await FieldService.getFieldsWithAllData(
                 storeId,
                 '', // No specific sport filter - get all sports
@@ -142,36 +142,36 @@ export default function StoreBookingsPage() {
 
             // Process each field's statusField array
             const fieldsData = fieldsResponse.data || []
-            console.log(`📊 Processing ${fieldsData.length} fields for date ${selectedDate}`)
+            console.log(` Processing ${fieldsData.length} fields for date ${selectedDate}`)
 
             fieldsData.forEach((field: any) => {
                 const fieldId = field._id
-                console.log(`🔍 Processing field ${fieldId}`)
+                console.log(` Processing field ${fieldId}`)
 
                 if (!field.statusField || field.statusField.length === 0) {
-                    console.log(`  ℹ️ No statusField data for field ${fieldId}`)
+                    console.log(`   No statusField data for field ${fieldId}`)
                     return
                 }
 
-                console.log(`  📋 Found ${field.statusField.length} status entries`)
+                console.log(`  Found ${field.statusField.length} status entries`)
 
                 // Filter PAID status only and extract booked slots
                 const paidStatuses = field.statusField.filter((status: any) => status.statusPayment === 'PAID')
-                console.log(`  ✅ Found ${paidStatuses.length} PAID bookings`)
+                console.log(`   Found ${paidStatuses.length} PAID bookings`)
 
                 paidStatuses.forEach((status: any) => {
                     const startTime = status.startTime  // ISO format: "2025-12-01T06:30:00.000Z"
                     const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
 
                     console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
-                    console.log(`    📝 Booking details:`, status)
+                    console.log(`     Booking details:`, status)
 
                     // Parse ISO datetime to extract time part WITHOUT timezone conversion
                     const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
                     const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
 
                     if (!startTimeMatch || !endTimeMatch) {
-                        console.warn(`    ⚠️ Could not parse time from: ${startTime} to ${endTime}`)
+                        console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
                         return
                     }
 
@@ -183,7 +183,7 @@ export default function StoreBookingsPage() {
                     const startTimeStr = `${startHours}:${startMins}`
                     const endTimeStr = `${endHours}:${endMins}`
 
-                    console.log(`    ⏱️ Parsed time: ${startTimeStr} to ${endTimeStr}`)
+                    console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
 
                     // Generate all 30-minute slots between start and end time
                     const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
@@ -199,7 +199,7 @@ export default function StoreBookingsPage() {
                         const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 
                         bookingMap[fieldId][slotTime] = 'booked'
-                        console.log(`      ✅ Marked as booked: ${slotTime}`)
+                        console.log(`       Marked as booked: ${slotTime}`)
 
                         // Try to find matching order from ordersResponse to get complete customer info
                         let bookingInfo: BookingInfo | null = null
@@ -216,7 +216,7 @@ export default function StoreBookingsPage() {
                                                 const detailStartTime = `${detailStartMatch[1]}:${detailStartMatch[2]}`
                                                 if (detailStartTime === slotTime) {
                                                     // Found matching order detail
-                                                    console.log(`        🎯 Found matching order for slot ${slotTime}:`, order)
+                                                    console.log(`         Found matching order for slot ${slotTime}:`, order)
                                                     bookingInfo = {
                                                         id: order._id || `booking-${slotTime}`,
                                                         fieldId: fieldId,
@@ -256,19 +256,19 @@ export default function StoreBookingsPage() {
 
                         const bookingKey = `${fieldId}-${slotTime}`
                         bookingWithCustomerMap[bookingKey] = bookingInfo
-                        console.log(`      👤 Saved booking info for slot ${slotTime}:`, bookingInfo)
+                        console.log(`       Saved booking info for slot ${slotTime}:`, bookingInfo)
                     }
                 })
             })
 
             setBookingData(bookingMap)
-            console.log('📊 Final booking data:', bookingMap)
+            console.log(' Final booking data:', bookingMap)
             Object.entries(bookingMap).forEach(([fieldId, slots]) => {
                 const bookedCount = Object.values(slots).filter((s: string) => s === 'booked').length
                 console.log(`  Field ${fieldId}: ${bookedCount} booked slots`)
             })
         } catch (error) {
-            console.error('❌ Error refreshing booking data:', error)
+            console.error(' Error refreshing booking data:', error)
         }
     }, [storeId, fields, selectedDate])
 
@@ -309,10 +309,10 @@ export default function StoreBookingsPage() {
         loadStoreAndFields();
     }, [storeId]);
 
-    // 🔄 Trigger refresh when fields are first loaded
+    //  Trigger refresh when fields are first loaded
     useEffect(() => {
         if (fields.length > 0 && storeId) {
-            console.log('✅ Fields loaded - refreshing booking data immediately')
+            console.log(' Fields loaded - refreshing booking data immediately')
             refreshBookingData()
         }
     }, [fields.length, storeId, refreshBookingData])
@@ -325,11 +325,11 @@ export default function StoreBookingsPage() {
         }
     }, [selectedDate, fields.length, storeId, refreshBookingData])
 
-    // 🔄 Re-fetch booking data when page is focused
+    //  Re-fetch booking data when page is focused
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                console.log('👁️ Page focused - refreshing booking data')
+                console.log(' Page focused - refreshing booking data')
                 if (fields.length > 0 && storeId) {
                     refreshBookingData()
                 }
@@ -352,7 +352,7 @@ export default function StoreBookingsPage() {
             }
         }
 
-        // ✅ Listen to custom event for same-tab payment completion
+        //  Listen to custom event for same-tab payment completion
         const handlePaymentCompleted = (e: any) => {
             console.log('💳 Payment completed (custom event) - refreshing booking data', e.detail)
             if (fields.length > 0 && storeId) {
@@ -387,7 +387,7 @@ export default function StoreBookingsPage() {
         }
     }, [refreshBookingData, fields.length, storeId])
 
-    // 🔄 Auto-refresh every 30 seconds
+    //  Auto-refresh every 30 seconds
     useEffect(() => {
         console.log('⏰ Setting up auto-refresh interval')
         const interval = setInterval(() => {
@@ -450,10 +450,10 @@ export default function StoreBookingsPage() {
                 }
             }
 
-            // 🔄 Refresh booking data after loading fields and pricings
+            //  Refresh booking data after loading fields and pricings
             setLoading(false);
             if (storeId && fieldsData.length > 0) {
-                console.log('✅ Fields and pricings loaded - refreshing booking data immediately')
+                console.log(' Fields and pricings loaded - refreshing booking data immediately')
                 // Set timeout to ensure state is updated first
                 setTimeout(() => {
                     refreshBookingData();
@@ -651,7 +651,7 @@ export default function StoreBookingsPage() {
         try {
             // Note: Update store endpoint may not exist, just show success
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Thông tin Trung tâm thể thao đã được cập nhật',
             });
 
@@ -705,7 +705,7 @@ export default function StoreBookingsPage() {
             }
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Đã thêm giá đặc biệt',
             });
 
@@ -726,7 +726,7 @@ export default function StoreBookingsPage() {
             setPricingMode('day-of-week');
             setShowPricingModal(false);
 
-            // 🔄 Reload pricings for the updated field
+            //  Reload pricings for the updated field
             const updatedPricingsResponse = await FieldPricingService.getAllFieldPricings(pricingForm.field_id);
             if (updatedPricingsResponse.data) {
                 setFieldPricingsMap(prev => ({
@@ -735,7 +735,7 @@ export default function StoreBookingsPage() {
                 }));
             }
 
-            // 🔄 Refresh booking data immediately to reflect new pricing without full page reload
+            //  Refresh booking data immediately to reflect new pricing without full page reload
             refreshBookingData();
         } catch (error) {
             toast({
@@ -751,7 +751,7 @@ export default function StoreBookingsPage() {
             await FieldPricingService.deleteFieldPricing(pricingId);
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Đã xóa giá đặc biệt',
             });
 

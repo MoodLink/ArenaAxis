@@ -33,7 +33,7 @@ export interface CreatePaymentOrderRequest {
         field_id: string;
         start_time: string;
         end_time: string;
-        date: string;  // ✅ Each item now includes its booking date
+        date: string;  //  Each item now includes its booking date
         name: string;
         quantity: number;
         price: number;
@@ -95,10 +95,10 @@ export async function createPaymentOrder(
     try {
         const token = getToken();
 
-        // ✅ Normalize và validate request
-        console.log('🔍 Normalizing request data...');
+        //  Normalize và validate request
+        console.log(' Normalizing request data...');
         const normalizedRequest = normalizePaymentOrderRequest(request);
-        console.log('✅ Request normalized successfully');
+        console.log(' Request normalized successfully');
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
@@ -111,8 +111,8 @@ export async function createPaymentOrder(
             headers['X-Auth-Token'] = token;
         }
 
-        console.log('📤 Creating payment order:', normalizedRequest);
-        console.log('🔐 Token available:', !!token);
+        console.log(' Creating payment order:', normalizedRequest);
+        console.log(' Token available:', !!token);
 
         const response = await fetch('/api/orders/create-payment', {
             method: 'POST',
@@ -121,23 +121,23 @@ export async function createPaymentOrder(
         });
 
         const data = await response.json();
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response data:', JSON.stringify(data, null, 2));
+        console.log(' Response status:', response.status);
+        console.log(' Response data:', JSON.stringify(data, null, 2));
 
         if (!response.ok) {
             const errorMessage = data.message || data.error || data.details?.message || 'Failed to create payment order';
             const fullError = `[${response.status}] ${errorMessage}`;
-            console.error('❌ API error response:', { status: response.status, data });
-            console.error('❌ Full error message:', fullError);
+            console.error(' API error response:', { status: response.status, data });
+            console.error(' Full error message:', fullError);
             throw new Error(fullError);
         }
 
         const typedData: CreatePaymentOrderResponse = data;
-        console.log('✅ Payment order created:', typedData);
+        console.log(' Payment order created:', typedData);
 
         return typedData;
     } catch (error) {
-        console.error('❌ Error creating payment order:', error);
+        console.error(' Error creating payment order:', error);
         throw error;
     }
 }
@@ -146,7 +146,7 @@ export async function createPaymentOrder(
  * Normalize và validate payment order request
  */
 function normalizePaymentOrderRequest(request: CreatePaymentOrderRequest): CreatePaymentOrderRequest {
-    console.log('🔧 Normalizing payment order request...');
+    console.log(' Normalizing payment order request...');
 
     // Normalize amount
     const normalizedAmount = normalizeAmount(request.amount);
@@ -161,7 +161,7 @@ function normalizePaymentOrderRequest(request: CreatePaymentOrderRequest): Creat
         field_id: String(item.field_id).trim(),
         start_time: normalizeTime(item.start_time),
         end_time: normalizeTime(item.end_time),
-        date: normalizeDate(item.date),  // ✅ Normalize each item's date
+        date: normalizeDate(item.date),  //  Normalize each item's date
         name: String(item.name).trim(),
         quantity: Math.max(1, Math.round(item.quantity)),
         price: normalizeAmount(item.price),
@@ -199,12 +199,12 @@ export async function getOrderByCode(orderId: string): Promise<OrderResponse> {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        console.log('📤 Fetching order:', orderId);
+        console.log(' Fetching order:', orderId);
 
         // Use local proxy to avoid CORS issues (same as POST)
         const apiUrl = `/api/orders/${orderId}`;
 
-        console.log('📍 API URL:', apiUrl);
+        console.log(' API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -217,11 +217,11 @@ export async function getOrderByCode(orderId: string): Promise<OrderResponse> {
         }
 
         const data: OrderResponse = await response.json();
-        console.log('✅ Order fetched:', data);
+        console.log(' Order fetched:', data);
 
         return data;
     } catch (error) {
-        console.error('❌ Error fetching order:', error);
+        console.error(' Error fetching order:', error);
         throw error;
     }
 }
@@ -251,12 +251,12 @@ export async function getOrdersByStore(
         const formattedStartDate = startDate.split('T')[0];
         const formattedEndDate = endDate.split('T')[0];
 
-        console.log('📤 Fetching orders for store:', { storeId, startDate: formattedStartDate, endDate: formattedEndDate });
+        console.log(' Fetching orders for store:', { storeId, startDate: formattedStartDate, endDate: formattedEndDate });
 
         // Call frontend proxy route (which will forward to backend)
         const apiUrl = `/api/orders/store/${storeId}?start_time=${formattedStartDate}&end_time=${formattedEndDate}`;
 
-        console.log('📍 API URL:', apiUrl);
+        console.log(' API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -265,16 +265,16 @@ export async function getOrdersByStore(
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.warn(`⚠️ Failed to fetch orders: ${response.status}`, errorData);
+            console.warn(` Failed to fetch orders: ${response.status}`, errorData);
             return [];
         }
 
         const data: OrdersByStoreResponse = await response.json();
-        console.log('✅ Orders fetched for store:', { count: data.data.length, orders: data.data });
+        console.log(' Orders fetched for store:', { count: data.data.length, orders: data.data });
 
         return data.data || [];
     } catch (error) {
-        console.error('❌ Error fetching orders by store:', error);
+        console.error(' Error fetching orders by store:', error);
         // Return empty array on error instead of throwing
         return [];
     }
@@ -289,7 +289,7 @@ export async function getUserOrders(userId: string): Promise<OrderResponse[]> {
         const token = getToken();
 
         if (!token) {
-            console.warn('⚠️ No auth token available');
+            console.warn(' No auth token available');
             throw new Error('Authentication required');
         }
 
@@ -298,12 +298,12 @@ export async function getUserOrders(userId: string): Promise<OrderResponse[]> {
             'Authorization': `Bearer ${token}`,
         };
 
-        console.log('📤 Fetching orders for user:', userId);
+        console.log(' Fetching orders for user:', userId);
 
         // Call frontend proxy route
         const apiUrl = `/api/orders/user?userId=${userId}`;
 
-        console.log('📍 API URL:', apiUrl);
+        console.log(' API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
             method: 'GET',
@@ -312,16 +312,16 @@ export async function getUserOrders(userId: string): Promise<OrderResponse[]> {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.warn(`⚠️ Failed to fetch user orders: ${response.status}`, errorData);
+            console.warn(` Failed to fetch user orders: ${response.status}`, errorData);
             return [];
         }
 
         const data: OrdersByStoreResponse = await response.json();
-        console.log('✅ Orders fetched for user:', { count: data.data.length, orders: data.data });
+        console.log(' Orders fetched for user:', { count: data.data.length, orders: data.data });
 
         return data.data || [];
     } catch (error) {
-        console.error('❌ Error fetching user orders:', error);
+        console.error(' Error fetching user orders:', error);
         // Return empty array on error instead of throwing
         return [];
     }

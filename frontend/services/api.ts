@@ -312,7 +312,7 @@ export async function getFields(filters?: {
                 // Backend: activeStatus = true → 'available', false → 'unavailable'
                 const statusString = field.activeStatus === true ? 'available' : 'unavailable'
                 mappedField.activeStatus = statusString
-                console.log(`✅ Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
+                console.log(` Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
             }
 
             // Fetch và map Store data
@@ -334,7 +334,7 @@ export async function getFields(filters?: {
                     mappedField.closingHours = store.endTime.substring(0, 5) // "21:00:00" → "21:00"
                 }
 
-                console.log(`✅ Store data mapped for "${field.name}": times="${mappedField.openingHours} - ${mappedField.closingHours}"`)
+                console.log(` Store data mapped for "${field.name}": times="${mappedField.openingHours} - ${mappedField.closingHours}"`)
             }
             return mappedField
         })
@@ -404,7 +404,7 @@ export async function getFieldById(id: string): Promise<Field | null> {
         if (typeof field.activeStatus === 'boolean') {
             const statusString = field.activeStatus === true ? 'available' : 'unavailable'
             field.activeStatus = statusString
-            console.log(`✅ Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
+            console.log(` Field "${field.name}": activeStatus=${field.activeStatus} (boolean) → "${statusString}" (string)`)
         }
 
         // Fetch Store data để lấy introduction, startTime, endTime, owner info
@@ -441,7 +441,7 @@ export async function getFieldById(id: string): Promise<Field | null> {
                         field.address = store.address
                     }
 
-                    console.log(`✅ Store data mapped for "${field.name}": times="${field.openingHours} - ${field.closingHours}", contact="${field.phone}"`)
+                    console.log(` Store data mapped for "${field.name}": times="${field.openingHours} - ${field.closingHours}", contact="${field.phone}"`)
                 }
             } catch (error) {
                 console.warn(`Could not fetch store ${field.storeId}:`, error)

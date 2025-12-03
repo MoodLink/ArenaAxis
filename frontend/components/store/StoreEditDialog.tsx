@@ -200,8 +200,8 @@ export default function StoreEditDialog({
 
             // ⏳ Backend chưa hỗ trợ PUT endpoint
             // Tạm thời chỉ validate frontend, không gọi API
-            console.log('📝 Form data validated (Backend update pending):', formData);
-            console.log('ℹ️ Backend chưa implement PUT /stores/{storeId}');
+            console.log('Form data validated (Backend update pending):', formData);
+            console.log('Backend chưa implement PUT /stores/{storeId}');
 
             // Move to step 2
             setCurrentStep(2);
@@ -221,7 +221,7 @@ export default function StoreEditDialog({
 
             // Upload images if any
             if (store?.id && (files.avatar || files.coverImage || files.businessLicense)) {
-                console.log('📤 Starting image upload...');
+                console.log(' Starting image upload...');
                 const uploadResult = await updateStoreImages(store.id, {
                     avatar: files.avatar,
                     coverImage: files.coverImage,
@@ -234,10 +234,10 @@ export default function StoreEditDialog({
                     return;
                 }
 
-                console.log('✅ Upload request sent successfully!');
+                console.log(' Upload request sent successfully!');
                 console.log('⏳ Backend is processing images asynchronously...');
             } else {
-                console.log('ℹ️ No images selected - skipping upload');
+                console.log(' No images selected - skipping upload');
             }
 
             setCurrentStep(3);
@@ -259,7 +259,7 @@ export default function StoreEditDialog({
             if (store?.id && selectedPlanId) {
                 const selectedPlanData = mainPlans.find((p) => p.id === selectedPlanId);
                 console.log(
-                    `🎯 Registering plan: ${selectedPlanData?.name} for store: ${store.id}`
+                    ` Registering plan: ${selectedPlanData?.name} for store: ${store.id}`
                 );
 
                 const planResult = await purchaseMainPlan(store.id, selectedPlanId);
@@ -270,17 +270,17 @@ export default function StoreEditDialog({
                     return;
                 }
 
-                console.log('✅ Main plan registered successfully!');
-                console.log('📋 Plan Details:', planResult.data);
+                console.log(' Main plan registered successfully!');
+                console.log('Plan Details:', planResult.data);
             }
 
             if (onSave) {
                 onSave(formData);
             }
 
-            console.log('✅ All steps completed!');
-            console.log('📝 Form data saved to state:', formData);
-            console.log('ℹ️ Waiting for backend to implement PUT /stores/{storeId}');
+            console.log(' All steps completed!');
+            console.log('Form data saved to state:', formData);
+            console.log('Waiting for backend to implement PUT /stores/{storeId}');
             onClose();
         } catch (err) {
             setError(
@@ -763,7 +763,7 @@ export default function StoreEditDialog({
                             className="bg-green-600 hover:bg-green-700"
                         >
                             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {isLoading ? 'Đang hoàn thành...' : '✅ Hoàn thành'}
+                            {isLoading ? 'Đang hoàn thành...' : ' Hoàn thành'}
                         </Button>
                     )}
                 </DialogFooter>

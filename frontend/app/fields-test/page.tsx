@@ -161,7 +161,7 @@ export default function FieldsTestPage() {
       });
 
       toast({
-        title: 'Success ✅',
+        title: 'Success ',
         description: 'Field created successfully',
       });
 
@@ -202,7 +202,7 @@ export default function FieldsTestPage() {
       });
 
       toast({
-        title: 'Success ✅',
+        title: 'Success ',
         description: 'Field updated successfully',
       });
 
@@ -224,7 +224,7 @@ export default function FieldsTestPage() {
       await FieldService.toggleFieldStatus(field._id, field.activeStatus);
 
       toast({
-        title: 'Success ✅',
+        title: 'Success ',
         description: `Field ${field.activeStatus ? 'deactivated' : 'activated'} successfully`,
       });
 
@@ -246,7 +246,7 @@ export default function FieldsTestPage() {
       await FieldService.deleteField(fieldId);
 
       toast({
-        title: 'Success ✅',
+        title: 'Success ',
         description: 'Field deleted successfully',
       });
 
@@ -635,11 +635,11 @@ export default function FieldsTestPage() {
                       <TableCell>
                         {field.activeStatus ? (
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                            ✅ Active
+                            Active
                           </Badge>
                         ) : (
                           <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
-                            ❌ Inactive
+                            Inactive
                           </Badge>
                         )}
                       </TableCell>
@@ -790,9 +790,9 @@ export default function FieldsTestPage() {
                   <p className="text-xs text-muted-foreground">Status</p>
                   <p className="font-semibold">
                     {selectedField.activeStatus ? (
-                      <Badge className="bg-green-100 text-green-800">✅ Active</Badge>
+                      <Badge className="bg-green-100 text-green-800"> Active</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-800">❌ Inactive</Badge>
+                      <Badge className="bg-gray-100 text-gray-800"> Inactive</Badge>
                     )}
                   </p>
                 </div>

@@ -78,7 +78,7 @@ export default function FieldCard({
                         </Badge>
                     </div>
                     <p className="text-sm text-gray-500 line-clamp-1">
-                        📍 {address}
+                        {address}
                     </p>
                 </div>
             </CardHeader>

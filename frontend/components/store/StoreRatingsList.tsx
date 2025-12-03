@@ -107,13 +107,13 @@ export default function StoreRatingsList({
         try {
             await deleteRating(ratingId);
             toast({
-                title: '✅ Đã xóa',
+                title: ' Đã xóa',
                 description: 'Đánh giá của bạn đã được xóa',
             });
             setRatings((prev) => prev.filter((r) => r.id !== ratingId));
         } catch (error: any) {
             toast({
-                title: '❌ Lỗi',
+                title: ' Lỗi',
                 description: error?.message || 'Không thể xóa đánh giá',
                 variant: 'destructive',
             });
@@ -137,7 +137,7 @@ export default function StoreRatingsList({
         try {
             await updateRating(editingRating.id, data);
             toast({
-                title: '✅ Cập nhật thành công',
+                title: ' Cập nhật thành công',
                 description: 'Đánh giá của bạn đã được cập nhật',
             });
 

@@ -19,13 +19,13 @@ interface SportRating {
 }
 
 export default function StoreSportsList({ store, onBookClick }: StoreSportsListProps) {
-    // ✅ Dùng sports từ store (backend trả về) thay vì gọi getSports()
+    //  Dùng sports từ store (backend trả về) thay vì gọi getSports()
     const sports = store.sports || []
     const router = useRouter()
     const [sportRatings, setSportRatings] = useState<Record<string, SportRating>>({})
     const [loading, setLoading] = useState(true)
 
-    // ✅ Fetch ratings và tính average rating cho từng sport
+    //  Fetch ratings và tính average rating cho từng sport
     useEffect(() => {
         const fetchRatings = async () => {
             try {
@@ -142,7 +142,7 @@ export default function StoreSportsList({ store, onBookClick }: StoreSportsListP
                                                     <span className="text-xs text-gray-600">
                                                         {sport.nameEn && `(${sport.nameEn})`}
                                                     </span>
-                                                    {/* ✅ Hiển thị rating */}
+                                                    {/*  Hiển thị rating */}
                                                     {sportRatings[sport.id] && (
                                                         <div className="flex items-center gap-0.5">
                                                             <div className="flex">

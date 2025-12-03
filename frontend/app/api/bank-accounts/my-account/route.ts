@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        console.log(`[API Proxy] ✅ Bank account retrieved`);
+        console.log(`[API Proxy]  Bank account retrieved`);
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch bank account';
@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        console.log(`[API Proxy] ✅ Bank account updated`);
+        console.log(`[API Proxy]  Bank account updated`);
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update bank account';
@@ -112,7 +112,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        console.log(`[API Proxy] ✅ Bank account deleted`);
+        console.log(`[API Proxy]  Bank account deleted`);
         return NextResponse.json(
             { message: 'My bank account deleted successfully' },
             { status: 200 }

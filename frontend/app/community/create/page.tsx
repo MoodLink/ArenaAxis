@@ -468,7 +468,7 @@ export default function CreatePostPage() {
                       onClick={() => handleInputChange("location", location)}
                       className="text-left p-2 text-sm text-blue-600 hover:bg-blue-50 rounded border border-blue-200 hover:border-blue-300 transition-colors"
                     >
-                      📍 {location}
+                      {location}
                     </button>
                   ))}
                 </div>
@@ -864,7 +864,7 @@ export default function CreatePostPage() {
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-blue-900 mb-1">💡 Mẹo để có hoạt động thu hút:</p>
+                    <p className="font-medium text-blue-900 mb-1"> Mẹo để có hoạt động thu hút:</p>
                     <ul className="text-blue-700 space-y-1">
                       <li>• Tiêu đề rõ ràng, cụ thể về môn thể thao và thời gian</li>
                       <li>• Mô tả chi tiết về địa điểm và yêu cầu kỹ năng</li>

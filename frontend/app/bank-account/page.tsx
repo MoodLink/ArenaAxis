@@ -88,16 +88,16 @@ export default function BankAccountPage() {
                 }
 
                 // Fetch banks list
-                console.log("🏦 Fetching banks list...")
+                console.log("Fetching banks list...")
                 const banksData = await getBanks()
-                console.log("✅ Banks data:", banksData)
+                console.log(" Banks data:", banksData)
                 setBanks(banksData)
 
                 // Fetch current bank account
-                console.log("💳 Fetching current bank account...")
+                console.log("Fetching current bank account...")
                 try {
                     const accountData = await getMyBankAccount()
-                    console.log("✅ Bank account data:", accountData)
+                    console.log(" Bank account data:", accountData)
 
                     if (accountData) {
                         setBankAccount(accountData)
@@ -107,13 +107,13 @@ export default function BankAccountPage() {
                             bankId: accountData.bank?.id || ""
                         })
                     } else {
-                        console.log("ℹ️ No bank account found, user can create one")
+                        console.log(" No bank account found, user can create one")
                         setIsEditing(true) // Auto switch to create mode
                     }
                 } catch (error: any) {
                     // If 404, user doesn't have bank account yet
                     if (error?.status === 404) {
-                        console.log("ℹ️ No bank account found (404), user can create one")
+                        console.log(" No bank account found (404), user can create one")
                         setIsEditing(true)
                     } else {
                         throw error
@@ -121,7 +121,7 @@ export default function BankAccountPage() {
                 }
 
             } catch (error: any) {
-                console.error("❌ Error fetching data:", error)
+                console.error(" Error fetching data:", error)
                 toast({
                     title: "Lỗi",
                     description: error?.message || "Không thể tải dữ liệu",
@@ -194,7 +194,7 @@ export default function BankAccountPage() {
 
             if (bankAccount) {
                 // Update existing account
-                console.log("📝 Updating bank account:", request)
+                console.log(" Updating bank account:", request)
                 result = await updateMyBankAccount(request)
                 toast({
                     title: "Cập nhật thành công",
@@ -210,12 +210,12 @@ export default function BankAccountPage() {
                 })
             }
 
-            console.log("✅ Result:", result)
+            console.log(" Result:", result)
             setBankAccount(result)
             setIsEditing(false)
 
         } catch (error: any) {
-            console.error("❌ Error submitting:", error)
+            console.error(" Error submitting:", error)
             toast({
                 title: "Lỗi",
                 description: error?.message || "Không thể lưu thông tin",
@@ -231,7 +231,7 @@ export default function BankAccountPage() {
         setSubmitting(true)
 
         try {
-            console.log("🗑️ Deleting bank account...")
+            console.log(" Deleting bank account...")
             await deleteMyBankAccount()
 
             toast({
@@ -245,7 +245,7 @@ export default function BankAccountPage() {
             setShowDeleteDialog(false)
 
         } catch (error: any) {
-            console.error("❌ Error deleting:", error)
+            console.error(" Error deleting:", error)
             toast({
                 title: "Lỗi",
                 description: error?.message || "Không thể xóa tài khoản",

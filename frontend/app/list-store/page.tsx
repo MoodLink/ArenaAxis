@@ -67,11 +67,11 @@ export default function ListStorePage() {
         if (hasFilters) {
           // Có filter → dùng searchStores (POST /stores/search)
           apiStores = await searchStores(selectedFilters, currentPage - 1, itemsPerPage);
-          console.log('📍 Using searchStores (has filters)');
+          console.log(' Using searchStores (has filters)');
         } else {
           // Không có filter → dùng getStores (GET /stores)
           apiStores = await getStores(currentPage - 1, itemsPerPage);
-          console.log('📍 Using getStores (no filters)');
+          console.log(' Using getStores (no filters)');
         }
 
         setStores(apiStores);
@@ -107,7 +107,7 @@ export default function ListStorePage() {
 
         const total = await calculateTotalStores();
         setTotalStores(total);
-        console.log(`📊 Total stores: ${total}`);
+        console.log(` Total stores: ${total}`);
       } catch (error) {
         console.error("Error fetching stores:", error);
         setStores([]);

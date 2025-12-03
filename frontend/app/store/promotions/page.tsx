@@ -498,7 +498,7 @@ export default function StorePromotions() {
         }
 
         setAppliedPromotions([...appliedPromotions, newApplied])
-        setSuccessMessage(`Đã áp dụng khuyến mãi "${selectedPromotionForApply.name}" thành công! ✅`)
+        setSuccessMessage(`Đã áp dụng khuyến mãi "${selectedPromotionForApply.name}" thành công! `)
 
         setTimeout(() => {
             setSuccessMessage('')

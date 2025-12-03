@@ -25,7 +25,7 @@ import { useUserId } from "@/hooks/use-user-id"
 import { formatVNDWithSymbol, formatDateVN } from "@/utils/data-formatter"
 
 interface StoreBookingSummaryProps {
-    selectedSlots: { [date: string]: string[] }  // ✅ Changed to object with dates as keys
+    selectedSlots: { [date: string]: string[] }  //  Changed to object with dates as keys
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ [date: string]: string[] }>>
     selectedDate: string
     fields: FieldServiceType[]
@@ -53,9 +53,9 @@ export default function StoreBookingSummary({
     const [isProcessing, setIsProcessing] = useState(false)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [showLoginDialog, setShowLoginDialog] = useState(false)
-    const userId = useUserId()  // ✅ Sử dụng hook để lấy user ID
+    const userId = useUserId()  //  Sử dụng hook để lấy user ID
 
-    // ✅ Kiểm tra trạng thái đăng nhập khi component mount và khi userId thay đổi
+    //  Kiểm tra trạng thái đăng nhập khi component mount và khi userId thay đổi
     useEffect(() => {
         const checkAuth = () => {
             if (typeof window === 'undefined') return
@@ -67,7 +67,7 @@ export default function StoreBookingSummary({
             const authenticated = !!(token && user && userId && userId !== '0')
             setIsAuthenticated(authenticated)
 
-            console.log('🔐 Auth status:', {
+            console.log(' Auth status:', {
                 hasToken: !!token,
                 hasUser: !!user,
                 userId,
@@ -90,7 +90,7 @@ export default function StoreBookingSummary({
     const groupedSlotsByDate: { [date: string]: { [fieldId: string]: string[] } } = {}
     let totalPrice = 0
 
-    console.log('🔍 StoreBookingSummary - Processing selectedSlots:', selectedSlots)
+    console.log(' StoreBookingSummary - Processing selectedSlots:', selectedSlots)
 
     // Group slots by date and field
     Object.entries(selectedSlots).forEach(([date, slotsForDate]) => {
@@ -104,7 +104,7 @@ export default function StoreBookingSummary({
             const fieldId = slotKey.substring(0, colonIndex)
             const timeSlot = slotKey.substring(colonIndex + 1) // "HH:MM"
 
-            console.log(`  📌 Parsing slot: "${slotKey}" -> date="${date}", fieldId="${fieldId}", timeSlot="${timeSlot}"`)
+            console.log(`  Parsing slot: "${slotKey}" -> date="${date}", fieldId="${fieldId}", timeSlot="${timeSlot}"`)
 
             if (!groupedSlotsByDate[date][fieldId]) {
                 groupedSlotsByDate[date][fieldId] = []
@@ -129,22 +129,22 @@ export default function StoreBookingSummary({
                     slotPrice = specialPrice || defaultPrice
                 }
                 totalPrice += slotPrice
-                console.log(`    💰 Field: ${field.name}, Date: ${date}, TimeSlot: ${timeSlot}, Price: ${slotPrice}, Running Total: ${totalPrice}`)
+                console.log(`    Field: ${field.name}, Date: ${date}, TimeSlot: ${timeSlot}, Price: ${slotPrice}, Running Total: ${totalPrice}`)
             } else {
-                console.warn(`    ⚠️ Field not found for fieldId: ${fieldId}`)
+                console.warn(`     Field not found for fieldId: ${fieldId}`)
             }
         })
     })
 
-    console.log('✅ Final groupedSlotsByDate:', groupedSlotsByDate)
-    console.log('✅ Final totalPrice:', totalPrice)
+    console.log(' Final groupedSlotsByDate:', groupedSlotsByDate)
+    console.log(' Final totalPrice:', totalPrice)
 
     const handleCheckout = async () => {
         if (isProcessing) return
 
-        // ✅ Kiểm tra đăng nhập trước khi thanh toán
+        //  Kiểm tra đăng nhập trước khi thanh toán
         if (!isAuthenticated) {
-            console.log('⚠️ User not authenticated - showing login dialog')
+            console.log(' User not authenticated - showing login dialog')
 
             // Lưu thông tin đặt sân để quay lại sau khi đăng nhập
             const bookingData = {
@@ -164,10 +164,10 @@ export default function StoreBookingSummary({
         try {
             setIsProcessing(true)
 
-            console.log('🔍 DEBUG - selectedSlots:', selectedSlots)
-            console.log('🔍 DEBUG - groupedSlotsByDate:', groupedSlotsByDate)
-            console.log('🔍 DEBUG - totalPrice:', totalPrice)
-            console.log('👤 Using user_id:', userId)
+            console.log(' DEBUG - selectedSlots:', selectedSlots)
+            console.log(' DEBUG - groupedSlotsByDate:', groupedSlotsByDate)
+            console.log(' DEBUG - totalPrice:', totalPrice)
+            console.log('Using user_id:', userId)
 
             // Build items array with new format - each time slot is 30 minutes
             // Now we need to handle multiple dates
@@ -190,12 +190,12 @@ export default function StoreBookingSummary({
                         const endMins = endMinutes % 60
                         const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
 
-                        // ✅ Keep both format - include date for backend processing
+                        //  Keep both format - include date for backend processing
                         allItems.push({
                             field_id: fieldId,
                             start_time: timeSlot,
                             end_time: endTime,
-                            date: date,  // ✅ Include the booking date for each item
+                            date: date,  //  Include the booking date for each item
                             name: field?.name || `Sân ${fieldLetter}`,
                             quantity: 1,
                             price: price,
@@ -204,7 +204,7 @@ export default function StoreBookingSummary({
                 })
             })
 
-            console.log('🔍 DEBUG - allItems:', allItems)
+            console.log(' DEBUG - allItems:', allItems)
 
             if (allItems.length === 0) {
                 throw new Error('Vui lòng chọn ít nhất một khung giờ')
@@ -245,22 +245,22 @@ export default function StoreBookingSummary({
                 descriptionText = descriptionText.substring(0, 25)
             }
 
-            console.log(`📝 Description length: ${descriptionText.length} chars (max 25): "${descriptionText}"`)
+            console.log(`Description length: ${descriptionText.length} chars (max 25): "${descriptionText}"`)
 
             // Create payment order request with new format
             const orderRequest = {
                 store_id: storeId,
                 user_id: userId,
                 amount: totalPrice,
-                description: descriptionText,  // ✅ Now max 25 chars
+                description: descriptionText,  //  Now max 25 chars
                 date: uniqueDates[0] || selectedDate,  // Use first date as main order date
                 items: allItems,
             }
 
-            console.log('🎯 Creating payment order:', JSON.stringify(orderRequest, null, 2))
+            console.log(' Creating payment order:', JSON.stringify(orderRequest, null, 2))
 
-            // 🔍 Detailed validation logging
-            console.log('📊 Request summary:')
+            //  Detailed validation logging
+            console.log('Request summary:')
             console.log(`   Store ID: ${orderRequest.store_id}`)
             console.log(`   User ID: ${orderRequest.user_id}`)
             console.log(`   Amount: ${orderRequest.amount} VND`)
@@ -275,26 +275,26 @@ export default function StoreBookingSummary({
 
             // Verify total price calculation
             const itemsTotal = orderRequest.items.reduce((sum, item) => sum + item.price, 0)
-            console.log(`   ✅ Items total: ${itemsTotal} VND`)
-            console.log(`   ✅ Request amount: ${orderRequest.amount} VND`)
-            console.log(`   ✅ Match: ${itemsTotal === orderRequest.amount ? '✓ YES' : '✗ NO'}`)
+            console.log(`    Items total: ${itemsTotal} VND`)
+            console.log(`    Request amount: ${orderRequest.amount} VND`)
+            console.log(`    Match: ${itemsTotal === orderRequest.amount ? 'YES' : 'NO'}`)
 
-            // ✅ Validate request format before sending
+            //  Validate request format before sending
             const validation = validatePaymentOrderRequest(orderRequest)
             logValidationResult(validation)
 
             if (!validation.isValid) {
                 const errorMessage = validation.errors.join('\n')
-                console.warn('⚠️ Validation warnings (continuing anyway):', errorMessage)
+                console.warn(' Validation warnings (continuing anyway):', errorMessage)
                 // Don't throw - let's see if backend accepts it
             }
 
-            console.log('✅ Proceeding with order creation...')
+            console.log(' Proceeding with order creation...')
 
             // Call API to create payment order
             const response = await OrderService.createPaymentOrder(orderRequest)
 
-            console.log('✅ Payment order response:', response)
+            console.log(' Payment order response:', response)
 
             // Save order data to sessionStorage for success page
             sessionStorage.setItem('pendingOrderData', JSON.stringify({
@@ -316,7 +316,7 @@ export default function StoreBookingSummary({
                 throw new Error('Không nhận được URL thanh toán')
             }
         } catch (error: any) {
-            console.error('❌ Error creating payment order:', error)
+            console.error(' Error creating payment order:', error)
             toast({
                 title: "Lỗi thanh toán",
                 description: error.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
@@ -604,7 +604,7 @@ export default function StoreBookingSummary({
                 </div>
             </CardContent>
 
-            {/* ✅ Login Required Dialog */}
+            {/*  Login Required Dialog */}
             <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
                 <AlertDialogContent className="bg-white">
                     <AlertDialogHeader>

@@ -13,11 +13,11 @@ export function useUserId(): string {
             const userObj = JSON.parse(userStr);
             // Try different possible property names
             const id = userObj.id || userObj._id || userObj.userId || userObj.sub || '0';
-            console.log('👤 useUserId - Retrieved user ID:', id);
+            console.log('useUserId - Retrieved user ID:', id);
             return id;
         }
     } catch (e) {
-        console.error('❌ useUserId - Error parsing user from localStorage:', e);
+        console.error(' useUserId - Error parsing user from localStorage:', e);
     }
 
     return '0';
@@ -37,7 +37,7 @@ export function useUser() {
             return JSON.parse(userStr);
         }
     } catch (e) {
-        console.error('❌ useUser - Error parsing user from localStorage:', e);
+        console.error(' useUser - Error parsing user from localStorage:', e);
     }
 
     return null;

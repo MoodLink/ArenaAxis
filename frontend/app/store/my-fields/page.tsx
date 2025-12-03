@@ -155,7 +155,7 @@ export default function MyFields() {
 
       setFields(allFields)
     } catch (err) {
-      console.error('❌ Error fetching data:', err)
+      console.error(' Error fetching data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load data')
     } finally {
       setLoading(false)
@@ -192,7 +192,7 @@ export default function MyFields() {
       setFields([...fields, { ...fieldToAdd, sport_name: sportName || fieldToAdd.sport_name }])
 
       toast({
-        title: 'Thành công ✅',
+        title: 'Thành công ',
         description: 'Sân mới đã được tạo',
       })
 
@@ -237,7 +237,7 @@ export default function MyFields() {
       ))
 
       toast({
-        title: 'Thành công ✅',
+        title: 'Thành công ',
         description: 'Sân đã được cập nhật',
       })
 
@@ -263,7 +263,7 @@ export default function MyFields() {
       setFields(fields.filter(f => f._id !== deleteFieldId))
 
       toast({
-        title: 'Thành công ✅',
+        title: 'Thành công ',
         description: 'Sân đã được xóa',
       })
 
@@ -291,7 +291,7 @@ export default function MyFields() {
       ))
 
       toast({
-        title: 'Thành công ✅',
+        title: 'Thành công ',
         description: `Sân đã được ${field.activeStatus ? 'tắt' : 'bật'}`,
       })
     } catch (err) {

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
         // Get request body
         const body = await request.json();
 
-        console.log('📤 [API Proxy] Creating payment order:');
+        console.log(' [API Proxy] Creating payment order:');
         console.log('   Store ID:', body.store_id);
         console.log('   User ID:', body.user_id);
         console.log('   Amount:', body.amount, 'Type:', typeof body.amount);
@@ -27,8 +27,8 @@ export async function POST(request: NextRequest) {
         const targetUrl = `${orderServiceUrl}/orders/create-payment`;
 
         console.log('🔗 [API Proxy] Target URL:', targetUrl);
-        console.log('🔐 [API Proxy] Authorization header:', authHeader ? 'Present (Bearer format)' : 'Missing');
-        console.log('🔐 [API Proxy] X-Auth-Token header:', authToken ? 'Present' : 'Missing');
+        console.log(' [API Proxy] Authorization header:', authHeader ? 'Present (Bearer format)' : 'Missing');
+        console.log(' [API Proxy] X-Auth-Token header:', authToken ? 'Present' : 'Missing');
 
         // Prepare request body
         const requestBody = JSON.stringify(body);
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Log full request before sending
-        console.log('🚀 [API Proxy] Sending to backend:', {
+        console.log(' [API Proxy] Sending to backend:', {
             url: targetUrl,
             method: 'POST',
             headers: backendHeaders,
@@ -61,17 +61,17 @@ export async function POST(request: NextRequest) {
             body: requestBody,
         });
 
-        console.log('📥 [API Proxy] Response status:', response.status);
-        console.log('📥 [API Proxy] Response statusText:', response.statusText);
+        console.log(' [API Proxy] Response status:', response.status);
+        console.log(' [API Proxy] Response statusText:', response.statusText);
 
         let data;
         try {
             data = await response.json();
-            console.log('📥 [API Proxy] Response body:', JSON.stringify(data, null, 2));
+            console.log(' [API Proxy] Response body:', JSON.stringify(data, null, 2));
         } catch (parseError) {
-            console.error('❌ [API Proxy] Failed to parse JSON response:', parseError);
+            console.error(' [API Proxy] Failed to parse JSON response:', parseError);
             const text = await response.text();
-            console.error('❌ [API Proxy] Raw response:', text.substring(0, 500));
+            console.error(' [API Proxy] Raw response:', text.substring(0, 500));
             return NextResponse.json(
                 {
                     error: true,
@@ -83,17 +83,17 @@ export async function POST(request: NextRequest) {
         }
 
         if (!response.ok) {
-            console.error('❌ [API Proxy] Order service returned error:', {
+            console.error(' [API Proxy] Order service returned error:', {
                 status: response.status,
                 message: data.message,
                 error: data.error,
                 data
             });
 
-            // 🔧 FALLBACK: If backend fails, generate mock payment response
+            //  FALLBACK: If backend fails, generate mock payment response
             // This allows frontend testing without backend fix
             if (response.status >= 500 || response.status === 400) {
-                console.warn('⚠️ [API Proxy FALLBACK] Backend error detected, creating mock order and redirecting to success');
+                console.warn(' [API Proxy FALLBACK] Backend error detected, creating mock order and redirecting to success');
 
                 const mockOrderCode = Number(String(Date.now()).slice(-6));
                 const mockResponse = {
@@ -124,11 +124,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('✅ [API Proxy] Payment order created successfully');
+        console.log(' [API Proxy] Payment order created successfully');
         return NextResponse.json(data, { status: 200 });
 
     } catch (error: any) {
-        console.error('❌ [API Proxy] Unexpected error:', error);
+        console.error(' [API Proxy] Unexpected error:', error);
         return NextResponse.json(
             {
                 error: true,

@@ -153,10 +153,10 @@ export default function BookingHistoryPage() {
     if (userInfo?.id) {
       setUserId(userInfo.id)
       setUserProfile(userInfo)
-      console.log('✅ User ID loaded:', userInfo.id)
-      console.log('✅ User Profile:', userInfo)
+      console.log(' User ID loaded:', userInfo.id)
+      console.log(' User Profile:', userInfo)
     } else {
-      console.error('❌ No user info found')
+      console.error(' No user info found')
       router.push('/login')
     }
   }, [router])
@@ -168,9 +168,9 @@ export default function BookingHistoryPage() {
     const fetchBookings = async () => {
       try {
         setLoading(true)
-        console.log('📤 Fetching orders for user:', userId)
+        console.log(' Fetching orders for user:', userId)
         const ordersData = await getUserOrders(userId)
-        console.log('📥 Orders fetched:', ordersData)
+        console.log(' Orders fetched:', ordersData)
 
         // Store raw orders data
         setOrdersData(ordersData)
@@ -179,10 +179,10 @@ export default function BookingHistoryPage() {
         const transformedBookings = ordersData.map((order, index) =>
           mapOrderToBooking(order, index)
         )
-        console.log('✅ Bookings transformed:', transformedBookings)
+        console.log(' Bookings transformed:', transformedBookings)
         setBookings(transformedBookings)
       } catch (error) {
-        console.error('❌ Error fetching booking history:', error)
+        console.error(' Error fetching booking history:', error)
         setBookings([])
       } finally {
         setLoading(false)
@@ -207,7 +207,7 @@ export default function BookingHistoryPage() {
         ).filter(Boolean)
       )] as string[];
 
-      console.log('📤 Fetching names for', uniqueStoreIds.length, 'stores and', uniqueFieldIds.length, 'fields');
+      console.log(' Fetching names for', uniqueStoreIds.length, 'stores and', uniqueFieldIds.length, 'fields');
 
       // Fetch all store names in parallel
       const storeNamePromises = uniqueStoreIds.map(async (storeId) => {
@@ -238,7 +238,7 @@ export default function BookingHistoryPage() {
         fieldCache[result.id] = result.name;
       });
 
-      console.log('✅ Names cached:', { stores: Object.keys(storeCache).length, fields: Object.keys(fieldCache).length });
+      console.log(' Names cached:', { stores: Object.keys(storeCache).length, fields: Object.keys(fieldCache).length });
 
       setStoreNamesCache(storeCache);
       setFieldNamesCache(fieldCache);

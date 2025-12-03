@@ -30,10 +30,10 @@ export default function HomePage() {
         let storesData: StoreSearchItemResponse[] = []
         try {
           storesData = await getNearbyStoresFromGeolocation(10000)
-          console.log('✅ Nearby stores loaded:', storesData.length)
+          console.log(' Nearby stores loaded:', storesData.length)
           setLocationError(null)
         } catch (locationError: any) {
-          console.warn('⚠️ Cannot get nearby stores:', locationError.message)
+          console.warn(' Cannot get nearby stores:', locationError.message)
           setLocationError(locationError.message)
           // Tiếp tục fetch dữ liệu khác ngay cả khi geolocation fail
         }
@@ -75,9 +75,9 @@ export default function HomePage() {
       {locationError && (
         <div className="container mx-auto px-4 py-4 mb-4">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
-            <p className="font-semibold">⚠️ Không thể lấy vị trí của bạn</p>
+            <p className="font-semibold"> Không thể lấy vị trí của bạn</p>
             <p className="text-sm">{locationError}</p>
-            <p className="text-sm mt-2">💡 Hãy cho phép ứng dụng truy cập vị trí để xem Trung tâm thể thao gần đây</p>
+            <p className="text-sm mt-2"> Hãy cho phép ứng dụng truy cập vị trí để xem Trung tâm thể thao gần đây</p>
           </div>
         </div>
       )}

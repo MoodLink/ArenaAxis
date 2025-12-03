@@ -50,15 +50,15 @@ export default function EditProfilePage() {
     push: false
   })
 
-  // ✅ Lấy dữ liệu user từ API thật - SỬ DỤNG ĐÚNG ENDPOINT
+  //  Lấy dữ liệu user từ API thật - SỬ DỤNG ĐÚNG ENDPOINT
   useEffect(() => {
     async function fetchUser() {
       try {
         const userData = getMyProfile()
-        console.log("✅ User data from API:", userData)
+        console.log(" User data from API:", userData)
 
         if (!userData) {
-          console.error("❌ API trả về null, không có dữ liệu user")
+          console.error(" API trả về null, không có dữ liệu user")
           router.push("/login")
           return
         }
@@ -91,7 +91,7 @@ export default function EditProfilePage() {
         setUser(mappedUser)
         if (mappedUser) updateFormData(mappedUser)
       } catch (error) {
-        console.error("❌ Error fetching user:", error)
+        console.error(" Error fetching user:", error)
         router.push("/login")
       } finally {
         setLoading(false)

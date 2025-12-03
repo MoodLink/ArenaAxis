@@ -18,7 +18,7 @@ export async function GET(
             'Accept': 'application/json',
         };
 
-        // ⚠️ Không gửi token cho endpoint public này
+        //  Không gửi token cho endpoint public này
         // Store detail endpoint không cần authentication
         console.log(`[API Proxy] GET /stores/detail/${id}`, {
             hasAuth: !!authHeader,
@@ -36,7 +36,7 @@ export async function GET(
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[API Proxy] ❌ Backend error (${response.status}):`, errorText);
+            console.error(`[API Proxy]  Backend error (${response.status}):`, errorText);
 
             return NextResponse.json(
                 {
@@ -52,12 +52,12 @@ export async function GET(
         }
 
         const data = await response.json();
-        console.log(`[API Proxy] ✅ Store detail retrieved: ${data?.name || id}`);
+        console.log(`[API Proxy]  Store detail retrieved: ${data?.name || id}`);
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Không thể lấy thông tin Trung tâm thể thao';
-        console.error('[API Proxy] ❌ Error:', errorMessage, error);
+        console.error('[API Proxy]  Error:', errorMessage, error);
 
         return NextResponse.json(
             {

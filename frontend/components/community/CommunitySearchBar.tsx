@@ -81,10 +81,10 @@ export default function CommunitySearchBar({
                             className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                         >
                             <option value="Tất cả">Mọi khoảng cách</option>
-                            <option value="< 1km">📍 Dưới 1km</option>
-                            <option value="1-5km">📍 1-5km</option>
-                            <option value="5-10km">📍 5-10km</option>
-                            <option value="> 10km">📍 Trên 10km</option>
+                            <option value="< 1km"> Dưới 1km</option>
+                            <option value="1-5km"> 1-5km</option>
+                            <option value="5-10km"> 5-10km</option>
+                            <option value="> 10km"> Trên 10km</option>
                         </select> */}
 
                         {/* Active filters count */}

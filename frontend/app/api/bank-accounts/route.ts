@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        console.log(`[API Proxy] ✅ Bank account created`);
+        console.log(`[API Proxy]  Bank account created`);
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to create bank account';
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }
 
-        console.log(`[API Proxy] ✅ Bank accounts retrieved`);
+        console.log(`[API Proxy]  Bank accounts retrieved`);
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch bank accounts';

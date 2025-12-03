@@ -88,7 +88,7 @@ export default function FieldsPage() {
         }
 
         // Fetch fields
-        console.log('🔍 Fetching fields with filters:', {
+        console.log(' Fetching fields with filters:', {
           store_id: storeId,
           sport_id: sportId,
           active_status: true
@@ -100,8 +100,8 @@ export default function FieldsPage() {
           active_status: true // Only show active fields
         })
 
-        console.log('📦 API Response:', response)
-        console.log('📊 Total fields from API:', response.data?.length)
+        console.log(' API Response:', response)
+        console.log(' Total fields from API:', response.data?.length)
 
         // Convert FieldServiceType[] to FieldType[]
         const convertedFields = (response.data || []).map(convertField)
@@ -112,11 +112,11 @@ export default function FieldsPage() {
           finalFields = convertedFields.filter(field => {
             const matches = field.sportId === sportId
             if (!matches) {
-              console.log(`❌ Filtering out field "${field.name}" - sportId: ${field.sportId} (expected: ${sportId})`)
+              console.log(` Filtering out field "${field.name}" - sportId: ${field.sportId} (expected: ${sportId})`)
             }
             return matches
           })
-          console.log(`✅ Filtered to ${finalFields.length} fields matching sport_id: ${sportId}`)
+          console.log(` Filtered to ${finalFields.length} fields matching sport_id: ${sportId}`)
         }
 
         setFields(finalFields)

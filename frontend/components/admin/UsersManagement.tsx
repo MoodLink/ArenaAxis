@@ -26,8 +26,8 @@ export default function UsersManagement() {
   const [pageSize, setPageSize] = useState(10)
   const [totalUsers, setTotalUsers] = useState(0)
 
-  const [allUsers, setAllUsers] = useState<AdminUser[]>([])  // ✅ Tất cả users (cho stats)
-  const [users, setUsers] = useState<AdminUser[]>([])        // ✅ Users trang hiện tại (cho table)
+  const [allUsers, setAllUsers] = useState<AdminUser[]>([])  //  Tất cả users (cho stats)
+  const [users, setUsers] = useState<AdminUser[]>([])        //  Users trang hiện tại (cho table)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,11 +47,11 @@ export default function UsersManagement() {
       try {
         // Fetch tất cả users từ API (lấy từ page 0 với size lớn)
         const allApiUsers = await getUsers(0, 1000)
-        console.log('🔍 DEBUG: API Response for all users:', allApiUsers) // DEBUG
+        console.log(' DEBUG: API Response for all users:', allApiUsers) // DEBUG
 
         if (allApiUsers && allApiUsers.length > 0) {
           // Log từng user để xem structure
-          console.log('🔍 DEBUG: First user:', allApiUsers[0]) // DEBUG
+          console.log(' DEBUG: First user:', allApiUsers[0]) // DEBUG
 
           const mappedAllUsers: AdminUser[] = allApiUsers.map((user: any, index: number) => ({
             id: user.id?.toString() || (index + 1).toString(),
@@ -81,7 +81,7 @@ export default function UsersManagement() {
             status: user.active ? 'active' : 'inactive'
           }))
 
-          console.log('🔍 DEBUG: First mapped user:', mappedAllUsers[0]) // DEBUG
+          console.log(' DEBUG: First mapped user:', mappedAllUsers[0]) // DEBUG
 
           setAllUsers(mappedAllUsers)
           setTotalUsers(mappedAllUsers.length)
@@ -108,8 +108,8 @@ export default function UsersManagement() {
 
         // Fetch với page và pageSize
         const apiUsers = await getUsers(currentPage, pageSize)
-        console.log('🔍 DEBUG: API Response for page users:', apiUsers) // DEBUG
-        console.log('🔍 DEBUG: First page user:', apiUsers[0]) // DEBUG
+        console.log(' DEBUG: API Response for page users:', apiUsers) // DEBUG
+        console.log(' DEBUG: First page user:', apiUsers[0]) // DEBUG
 
         if (apiUsers && apiUsers.length > 0) {
           // Map API users (UserResponse) to AdminUser format
@@ -141,7 +141,7 @@ export default function UsersManagement() {
             status: user.active ? 'active' : 'inactive'
           }))
 
-          console.log('🔍 DEBUG: First mapped page user:', mappedUsers[0]) // DEBUG
+          console.log(' DEBUG: First mapped page user:', mappedUsers[0]) // DEBUG
           setUsers(mappedUsers)
         } else {
           // Fallback to mock data if API returns empty
@@ -214,7 +214,7 @@ export default function UsersManagement() {
 
       // Call API to toggle active status
       const updatedUser = await toggleUserActive(userId)
-      console.log('✅ User status toggled:', updatedUser)
+      console.log(' User status toggled:', updatedUser)
 
       // Update local state
       setUsers(users.map(user =>
@@ -246,7 +246,7 @@ export default function UsersManagement() {
       // Auto-clear success message after 3 seconds
       setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
-      console.error(`❌ Error toggling user status:`, err)
+      console.error(` Error toggling user status:`, err)
       setActionError(
         action === 'ban'
           ? 'Lỗi khi khóa người dùng'
@@ -270,7 +270,7 @@ export default function UsersManagement() {
 
       // Call API to delete user
       await deleteUserAPI(userId)
-      console.log('✅ User deleted:', userId)
+      console.log(' User deleted:', userId)
 
       // Update local state
       setUsers(users.filter(user => user.id !== userId))
@@ -283,7 +283,7 @@ export default function UsersManagement() {
       // Auto-clear success message after 3 seconds
       setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
-      console.error('❌ Error deleting user:', err)
+      console.error(' Error deleting user:', err)
       setActionError('Lỗi khi xóa người dùng')
     } finally {
       setIsActionLoading(false)

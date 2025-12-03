@@ -70,7 +70,7 @@ async function fetchWithTokenRefresh(
 
     // Nếu nhận được 401 Unauthorized, thử refresh token và retry
     if (response.status === 401 && token) {
-        console.log('🔄 Token expired (401), attempting to refresh...');
+        console.log(' Token expired (401), attempting to refresh...');
         
         try {
             // Refresh token
@@ -94,11 +94,11 @@ async function fetchWithTokenRefresh(
                         'Authorization': `Bearer ${newToken}`
                     };
                     
-                    console.log('✅ Token refreshed successfully, retrying request...');
+                    console.log(' Token refreshed successfully, retrying request...');
                     response = await fetch(url, options);
                 }
             } else {
-                console.warn('⚠️ Token refresh failed, redirecting to login...');
+                console.warn(' Token refresh failed, redirecting to login...');
                 // Token refresh failed, clear auth data and redirect to login
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('token');
@@ -109,7 +109,7 @@ async function fetchWithTokenRefresh(
                 }
             }
         } catch (error) {
-            console.error('❌ Error during token refresh:', error);
+            console.error(' Error during token refresh:', error);
             // Clear auth data and redirect to login on error
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('token');
@@ -124,7 +124,7 @@ async function fetchWithTokenRefresh(
 }
 
 // =================
-// AUTH SERVICES - Match AuthenticationController ✅
+// AUTH SERVICES - Match AuthenticationController 
 // =================
 
 // Đăng nhập user
@@ -206,7 +206,7 @@ export async function logout(token: string): Promise<void> {
 }
 
 // =================
-// USER SERVICES - Match UserController ✅
+// USER SERVICES - Match UserController 
 // =================
 
 // Đăng ký user
@@ -268,7 +268,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
         });
 
         if (!response.ok) {
-            console.error('❌ Failed to get users:', response.status, response.statusText);
+            console.error(' Failed to get users:', response.status, response.statusText);
             return [];
         }
 
@@ -276,7 +276,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 
         // If backend returned fallback data
         if (data.fallback) {
-            console.warn('⚠️ Using fallback data for users:', data.message);
+            console.warn(' Using fallback data for users:', data.message);
             return data.data || [];
         }
 
@@ -292,7 +292,7 @@ export async function getUsers(page: number = 0, pageSize: number = 30): Promise
 
         return [];
     } catch (error: any) {
-        console.error('❌ Error getting users:', error.message);
+        console.error(' Error getting users:', error.message);
         return [];
     }
 }
@@ -473,7 +473,7 @@ export async function changeMyPassword(data: { currentPassword: string; newPassw
 }
 
 // =================
-// SPORT SERVICES - Match SportController ✅
+// SPORT SERVICES - Match SportController 
 // =================
 
 // Lấy danh sách tất cả môn thể thao
@@ -591,12 +591,12 @@ export async function searchStores(
 
         if (!response.ok) {
             console.error(`API error: ${response.status} ${response.statusText}`);
-            console.warn('⚠️ Backend not available, returning empty array');
+            console.warn(' Backend not available, returning empty array');
             return [];
         }
 
         const stores: StoreSearchItemResponse[] = await response.json();
-        console.log(`🔍 Search: Found ${stores.length} stores from API (page ${backendPage})`);
+        console.log(` Search: Found ${stores.length} stores from API (page ${backendPage})`);
 
         // Client-side filtering nếu có search request
         let filteredStores = stores;
@@ -636,7 +636,7 @@ export async function searchStores(
 
     } catch (error) {
         console.error('Error searching stores:', error);
-        console.warn('⚠️ Backend not available, returning empty array');
+        console.warn(' Backend not available, returning empty array');
         return [];
     }
 }
@@ -669,7 +669,7 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
         }
 
         const storeDetail: StoreClientDetailResponse = await response.json();
-        console.log(`📍 Store detail from API: ${storeDetail.name}`);
+        console.log(` Store detail from API: ${storeDetail.name}`);
         return storeDetail;
 
     } catch (error) {
@@ -686,7 +686,7 @@ export async function updateStoreInfo(
     try {
         const token = getToken();
         if (!token) {
-            console.error('❌ No authentication token');
+            console.error(' No authentication token');
             return {
                 success: false,
                 message: 'Vui lòng đăng nhập'
@@ -711,7 +711,7 @@ export async function updateStoreInfo(
             longitude: (updateData as any)?.longitude || null,
         };
 
-        console.log('📝 Updating store:', storeId, payload);
+        console.log(' Updating store:', storeId, payload);
 
         const response = await fetch(
             `${API_BASE_URL}/stores/${storeId}`,
@@ -724,7 +724,7 @@ export async function updateStoreInfo(
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            console.error(`❌ API error: ${response.status} ${response.statusText}`, errorData);
+            console.error(` API error: ${response.status} ${response.statusText}`, errorData);
             return {
                 success: false,
                 message: errorData?.message || `Lỗi cập nhật: ${response.statusText}`
@@ -732,7 +732,7 @@ export async function updateStoreInfo(
         }
 
         const result = await response.json();
-        console.log('✅ Store updated successfully:', result);
+        console.log(' Store updated successfully:', result);
         return {
             success: true,
             message: 'Cập nhật thông tin Trung tâm thể thao thành công',
@@ -740,7 +740,7 @@ export async function updateStoreInfo(
         };
 
     } catch (error: any) {
-        console.error('❌ Error updating store:', error);
+        console.error(' Error updating store:', error);
         return {
             success: false,
             message: error?.message || 'Có lỗi xảy ra khi cập nhật thông tin'
@@ -839,7 +839,7 @@ export async function updateStoreImages(
     try {
         const token = getToken();
         if (!token) {
-            console.error('❌ No authentication token');
+            console.error(' No authentication token');
             return {
                 success: false,
                 message: 'Vui lòng đăng nhập'
@@ -852,7 +852,7 @@ export async function updateStoreImages(
         // Kiểm tra xem có file nào được cung cấp không
         const hasFiles = images.avatar || images.coverImage || images.businessLicenseImage || (images.medias && images.medias.length > 0);
         if (!hasFiles) {
-            console.warn('⚠️ No files provided to upload');
+            console.warn(' No files provided to upload');
             return {
                 success: false,
                 message: 'Vui lòng chọn ít nhất một ảnh để upload'
@@ -865,20 +865,20 @@ export async function updateStoreImages(
         // Backend: avatar, coverImage, businessLicenceImage, medias
         if (images.avatar) {
             formData.append('avatar', images.avatar);
-            console.log(`✅ Avatar: ${images.avatar.name} (${(images.avatar.size / 1024).toFixed(1)}KB)`);
+            console.log(` Avatar: ${images.avatar.name} (${(images.avatar.size / 1024).toFixed(1)}KB)`);
         }
         if (images.coverImage) {
             formData.append('coverImage', images.coverImage);
-            console.log(`✅ Cover: ${images.coverImage.name} (${(images.coverImage.size / 1024).toFixed(1)}KB)`);
+            console.log(` Cover: ${images.coverImage.name} (${(images.coverImage.size / 1024).toFixed(1)}KB)`);
         }
         if (images.businessLicenseImage) {
             formData.append('businessLicenceImage', images.businessLicenseImage);
-            console.log(`✅ License: ${images.businessLicenseImage.name} (${(images.businessLicenseImage.size / 1024).toFixed(1)}KB)`);
+            console.log(` License: ${images.businessLicenseImage.name} (${(images.businessLicenseImage.size / 1024).toFixed(1)}KB)`);
         }
         if (images.medias && images.medias.length > 0) {
             images.medias.forEach((media, index) => {
                 formData.append('medias', media);
-                console.log(`✅ Media ${index + 1}: ${media.name} (${(media.size / 1024).toFixed(1)}KB)`);
+                console.log(` Media ${index + 1}: ${media.name} (${(media.size / 1024).toFixed(1)}KB)`);
             });
         }
 
@@ -890,7 +890,7 @@ export async function updateStoreImages(
             }
         }
         console.log(`📦 Total upload size: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`);
-        console.log('📤 Uploading to:', `${API_BASE_URL}/stores/${storeId}/images`);
+        console.log(' Uploading to:', `${API_BASE_URL}/stores/${storeId}/images`);
 
         const response = await fetch(`${API_BASE_URL}/stores/${storeId}/images`, {
             method: 'PUT',
@@ -902,9 +902,9 @@ export async function updateStoreImages(
             body: formData
         });
 
-        console.log('📥 Response status:', response.status);
-        console.log('📥 Response statusText:', response.statusText);
-        console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+        console.log(' Response status:', response.status);
+        console.log(' Response statusText:', response.statusText);
+        console.log(' Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             let errorMessage = 'Có lỗi xảy ra khi upload ảnh';
@@ -912,7 +912,7 @@ export async function updateStoreImages(
 
             try {
                 errorBody = await response.text();
-                console.error('❌ Error response body:', errorBody);
+                console.error(' Error response body:', errorBody);
 
                 // Kiểm tra xem response có phải JSON không
                 const contentType = response.headers.get('content-type');
@@ -920,16 +920,16 @@ export async function updateStoreImages(
                     try {
                         const jsonError = JSON.parse(errorBody);
                         errorMessage = jsonError.message || jsonError.error || errorMessage;
-                        console.error('📋 Error details:', jsonError);
+                        console.error(' Error details:', jsonError);
                     } catch (e) {
                         console.error('Failed to parse JSON error:', e);
                     }
                 } else {
                     // Xử lý response không phải JSON
                     if (response.status === 401) {
-                        errorMessage = '❌ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                        errorMessage = ' Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
                     } else if (response.status === 403) {
-                        errorMessage = '❌ Không có quyền truy cập!\n' +
+                        errorMessage = ' Không có quyền truy cập!\n' +
                             '• Bạn cần đăng nhập với tài khoản CLIENT/OWNER\n' +
                             '• Hoặc Trung tâm thể thao này không thuộc về bạn\n' +
                             '• Vui lòng kiểm tra token và role';
@@ -950,12 +950,12 @@ export async function updateStoreImages(
                         if (errorBody.includes('MaxUploadSizeExceededException') ||
                             errorBody.includes('upload size exceeded') ||
                             errorBody.includes('maximum upload size')) {
-                            errorMessage = '❌ File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB. Vui lòng:\n' +
+                            errorMessage = ' File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB. Vui lòng:\n' +
                                 '• Chọn ảnh nhỏ hơn (< 2MB)\n' +
                                 '• Hoặc nén ảnh trước khi upload';
                         } else if (errorBody.includes('AuthorizationDeniedException') ||
                             errorBody.includes('Access Denied')) {
-                            errorMessage = '❌ Lỗi phân quyền!\n' +
+                            errorMessage = ' Lỗi phân quyền!\n' +
                                 '• Backend từ chối truy cập\n' +
                                 '• Cần đăng nhập với role CLIENT hoặc OWNER\n' +
                                 '• Store phải thuộc về user hiện tại';
@@ -967,10 +967,10 @@ export async function updateStoreImages(
                     }
                 }
             } catch (parseError) {
-                console.error('❌ Error parsing error response:', parseError);
+                console.error(' Error parsing error response:', parseError);
             }
 
-            console.error('❌ Upload failed:', errorMessage);
+            console.error(' Upload failed:', errorMessage);
             return {
                 success: false,
                 message: errorMessage
@@ -991,18 +991,18 @@ export async function updateStoreImages(
                 data = {};
             }
         } catch (e) {
-            console.warn('⚠️ Response is not valid JSON');
+            console.warn(' Response is not valid JSON');
             data = {};
         }
 
-        console.log('✅ Upload request accepted! Backend will process images asynchronously. Response:', data);
+        console.log(' Upload request accepted! Backend will process images asynchronously. Response:', data);
         return {
             success: true,
             message: 'Upload ảnh thành công (xử lý ở background)',
             data
         };
     } catch (error) {
-        console.error('❌ Error uploading store images:', error);
+        console.error(' Error uploading store images:', error);
         return {
             success: false,
             message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi upload ảnh'
@@ -1015,34 +1015,34 @@ export async function getMyStore(): Promise<StoreAdminDetailResponse | null> {
     try {
         const token = getToken();
         if (!token) {
-            console.warn('⚠️ No token - user not logged in');
+            console.warn(' No token - user not logged in');
             return null;
         }
 
         // Step 1: Get current user profile to get owner ID
-        console.log('📍 Step 1: Fetching current user profile...')
+        console.log(' Step 1: Fetching current user profile...')
         const currentUser = await getMyProfile()
         if (!currentUser?.id) {
-            console.warn('⚠️ Cannot get current user ID');
+            console.warn(' Cannot get current user ID');
             return null;
         }
 
-        console.log('✅ Got owner ID:', currentUser.id)
+        console.log(' Got owner ID:', currentUser.id)
 
         // Step 2: Get stores for this owner
-        console.log('🔍 Step 2: Fetching stores for owner...')
+        console.log(' Step 2: Fetching stores for owner...')
         const stores = await getStoresByOwnerId(currentUser.id)
 
         // Return first store or null if no stores
         if (stores && stores.length > 0) {
-            console.log('✅ Got store:', stores[0].id)
+            console.log(' Got store:', stores[0].id)
             return stores[0];
         }
 
-        console.log('ℹ️ User has no store yet');
+        console.log(' User has no store yet');
         return null;
     } catch (error) {
-        console.error('❌ Error getting my store:', error);
+        console.error(' Error getting my store:', error);
         return null;
     }
 }
@@ -1065,14 +1065,14 @@ export async function getUserStores(page: number = 1, perPage: number = 12): Pro
         });
 
         if (!response.ok) {
-            console.error('❌ Failed to get user stores:', response.status, response.statusText);
+            console.error(' Failed to get user stores:', response.status, response.statusText);
             return [];
         }
 
         const data = await response.json();
         return Array.isArray(data) ? data : [];
     } catch (error) {
-        console.error('❌ Error getting user stores:', error);
+        console.error(' Error getting user stores:', error);
         return [];
     }
 }
@@ -1082,21 +1082,21 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
     try {
         const token = getToken();
 
-        // ✅ REQUIRED: Token là bắt buộc vì backend yêu cầu @PreAuthorize
+        //  REQUIRED: Token là bắt buộc vì backend yêu cầu @PreAuthorize
         if (!token) {
-            console.error('❌ ERROR: No token found! Endpoint /stores/owner/{owner-id} requires authentication!')
+            console.error(' ERROR: No token found! Endpoint /stores/owner/{owner-id} requires authentication!')
             console.error('   localStorage keys:', Object.keys(localStorage))
             return [];
         }
 
-        console.log('✅ Token found:', token.substring(0, 50) + '...')
+        console.log(' Token found:', token.substring(0, 50) + '...')
 
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`  // ✅ REQUIRED
+            'Authorization': `Bearer ${token}`  //  REQUIRED
         };
 
-        console.log(`🔍 Fetching stores for owner: ${ownerId}`)
+        console.log(` Fetching stores for owner: ${ownerId}`)
         console.log(`📡 Headers:`, { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token.substring(0, 30) + '...' })
 
         const response = await fetch(`${API_BASE_URL}/stores/owner/${ownerId}`, {
@@ -1114,30 +1114,30 @@ export async function getStoresByOwnerId(ownerId: string): Promise<StoreAdminDet
             } catch (e) {
                 // Response không phải JSON
             }
-            console.error(`❌ Failed to get stores by owner: ${errorMsg}`)
+            console.error(` Failed to get stores by owner: ${errorMsg}`)
 
             if (response.status === 401) {
-                console.error('🔐 Error 401: Token invalid or expired - please login again')
+                console.error(' Error 401: Token invalid or expired - please login again')
             } else if (response.status === 403) {
-                console.error('🔐 Error 403: User does not have permission - check user role')
+                console.error(' Error 403: User does not have permission - check user role')
             } else if (response.status === 500) {
-                console.error('🔐 Error 500: Server error - check backend logs')
+                console.error(' Error 500: Server error - check backend logs')
             }
 
             return [];
         }
 
         const data = await response.json();
-        console.log('✅ Stores retrieved for owner:', data);
+        console.log(' Stores retrieved for owner:', data);
         return Array.isArray(data) ? data : [];
     } catch (error) {
-        console.error('❌ Error getting stores by owner:', error);
+        console.error(' Error getting stores by owner:', error);
         return [];
     }
 }
 
 // =================
-// OPTIONAL PLAN SERVICES - Controller chưa có ❌
+// OPTIONAL PLAN SERVICES - Controller chưa có 
 // =================
 // MAIN PLAN SERVICES - Fake API (Backend chưa implement) ⏳
 // =================
@@ -1168,7 +1168,7 @@ const MAIN_PLANS_DATA = [
 
 // Lấy danh sách tất cả Main Plans
 export async function getMainPlans(): Promise<any[]> {
-    console.log('📋 Getting main plans from backend...')
+    console.log(' Getting main plans from backend...')
 
     try {
         const response = await fetch(`${API_BASE_URL}/main-plans`, {
@@ -1184,17 +1184,17 @@ export async function getMainPlans(): Promise<any[]> {
         }
 
         const data = await response.json();
-        console.log('✅ Main plans retrieved:', data.length)
+        console.log(' Main plans retrieved:', data.length)
         return data
     } catch (error: any) {
-        console.error('❌ Error getting main plans:', error)
+        console.error(' Error getting main plans:', error)
         throw error
     }
 }
 
 // Đăng ký Main Plan cho Store
 export async function purchaseMainPlan(storeId: string, planId: string): Promise<{ success: boolean; message: string; data?: any }> {
-    console.log(`📋 Registering Main Plan: ${planId} for store ${storeId}`)
+    console.log(` Registering Main Plan: ${planId} for store ${storeId}`)
 
     try {
         const token = getToken();
@@ -1218,7 +1218,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
             }
         }
 
-        console.log(`✅ Main Plan registered successfully!`)
+        console.log(` Main Plan registered successfully!`)
         return {
             success: true,
             message: `Đã đăng ký gói dịch vụ thành công`,
@@ -1230,7 +1230,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
             }
         }
     } catch (error: any) {
-        console.error('❌ Error registering main plan:', error)
+        console.error(' Error registering main plan:', error)
         return {
             success: false,
             message: error?.message || 'Có lỗi xảy ra khi đăng ký gói dịch vụ'
@@ -1239,7 +1239,7 @@ export async function purchaseMainPlan(storeId: string, planId: string): Promise
 }
 
 // =================
-// OPTIONAL PLAN SERVICES - Controller chưa có ❌
+// OPTIONAL PLAN SERVICES - Controller chưa có 
 // =================
 
 // Lấy danh sách tất cả Optional Plans
@@ -1341,13 +1341,13 @@ export async function getMyOptionalPlans(storeId: string): Promise<ApplyOptional
 }
 
 // =================
-// BANK SERVICES - Match BankController ✅
+// BANK SERVICES - Match BankController 
 // =================
 
 // Lấy danh sách tất cả banks
 export async function getBanks(): Promise<BankResponse[]> {
     const token = getToken();
-    console.log("🔍 getBanks - Token:", token ? "Present" : "Missing");
+    console.log(" getBanks - Token:", token ? "Present" : "Missing");
 
     const response = await fetch(`${API_BASE_URL}/banks`, {
         headers: {
@@ -1361,12 +1361,12 @@ export async function getBanks(): Promise<BankResponse[]> {
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ getBanks - Error response:", errorText);
+        console.error(" getBanks - Error response:", errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log("✅ getBanks - Success:", data);
+    console.log(" getBanks - Success:", data);
     return data;
 }
 
@@ -1425,7 +1425,7 @@ export async function updateBank(id: string, name: string, logo?: File): Promise
 }
 
 // =================
-// BANK ACCOUNT SERVICES - Match BankAccountController ✅
+// BANK ACCOUNT SERVICES - Match BankAccountController 
 // =================
 
 // Tạo bank account cho user hiện tại
@@ -1516,7 +1516,7 @@ export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
 }
 
 // =================
-// LOCATION SERVICES - Match ProvinceController & WardController ✅
+// LOCATION SERVICES - Match ProvinceController & WardController 
 // =================
 
 // Lấy danh sách tất cả provinces
@@ -1584,7 +1584,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // =================
 
 // =================
-// FIELD SERVICES - Controller chưa có ❌
+// FIELD SERVICES - Controller chưa có 
 // =================
 // export async function getFields(): Promise<Field[]> {
 //     // TODO: Implement FieldController
@@ -1606,7 +1606,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// BOOKING SERVICES - Controller chưa có ❌
+// BOOKING SERVICES - Controller chưa có 
 // =================
 // export async function getBookings(): Promise<Booking[]> {
 //     // TODO: Implement BookingController
@@ -1639,7 +1639,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// TOURNAMENT SERVICES - Controller chưa có ❌
+// TOURNAMENT SERVICES - Controller chưa có 
 // =================
 // export async function getTournaments(): Promise<Tournament[]> {
 //     // TODO: Implement TournamentController
@@ -1664,7 +1664,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// COMMUNITY SERVICES - Controller chưa có ❌
+// COMMUNITY SERVICES - Controller chưa có 
 // =================
 // export async function getCommunityPosts(filters?: any): Promise<CommunityPost[]> {
 //     // TODO: Implement CommunityController
@@ -1690,7 +1690,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// CHAT SERVICES - Controller chưa có ❌
+// CHAT SERVICES - Controller chưa có 
 // =================
 // export async function getChatRooms(): Promise<ChatRoom[]> {
 //     // TODO: Implement ChatController
@@ -1715,7 +1715,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// PAYMENT SERVICES - Controller chưa có ❌
+// PAYMENT SERVICES - Controller chưa có 
 // =================
 // export async function processPayment(bookingId: string, paymentData: any): Promise<PaymentResponse> {
 //     // TODO: Implement PaymentController
@@ -1728,7 +1728,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// REVIEW SERVICES - Controller chưa có ❌
+// REVIEW SERVICES - Controller chưa có 
 // =================
 // export async function getFieldReviews(fieldId: string): Promise<{ fieldData: any, reviews: Review[] }> {
 //     // TODO: Implement ReviewController
@@ -1747,7 +1747,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// USER PROFILE SERVICES - Controller chưa có ❌
+// USER PROFILE SERVICES - Controller chưa có 
 // =================
 // export async function getCurrentUser(): Promise<UserResponse> {
 //     // TODO: Implement User Profile endpoints
@@ -1787,13 +1787,13 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// BOOKING SERVICES - Controller chưa có ❌
+// BOOKING SERVICES - Controller chưa có 
 // =================
 // =================
-// TOURNAMENT SERVICES - Controller chưa có ❌
+// TOURNAMENT SERVICES - Controller chưa có 
 // =================
 // =================
-// CHAT SERVICES - Controller chưa có ❌
+// CHAT SERVICES - Controller chưa có 
 // =================
 // export async function getChatRooms(): Promise<ChatRoom[]> {
 //     // TODO: Implement ChatController
@@ -1818,7 +1818,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// PAYMENT SERVICES - Controller chưa có ❌
+// PAYMENT SERVICES - Controller chưa có 
 // =================
 // export async function processPayment(bookingId: string, paymentData: any): Promise<PaymentResponse> {
 //     // TODO: Implement PaymentController
@@ -1831,7 +1831,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// REVIEW SERVICES - Controller chưa có ❌
+// REVIEW SERVICES - Controller chưa có 
 // =================
 // export async function getFieldReviews(fieldId: string): Promise<{ fieldData: any, reviews: Review[] }> {
 //     // TODO: Implement ReviewController
@@ -1850,7 +1850,7 @@ export async function getWardById(id: string): Promise<WardResponse> {
 // }
 
 // =================
-// USER PROFILE SERVICES - Controller chưa có ❌
+// USER PROFILE SERVICES - Controller chưa có 
 // =================
 // export async function getCurrentUser(): Promise<UserResponse> {
 //     // TODO: Implement User Profile endpoints
@@ -2181,7 +2181,7 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
     try {
         const token = getToken();
         if (!token) {
-            console.log('⚠️ Không có token, không thể lấy current user')
+            console.log(' Không có token, không thể lấy current user')
             return null;
         }
 
@@ -2195,7 +2195,7 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
 
         if (!response.ok) {
             if (response.status === 401) {
-                console.log('⚠️ User not authenticated')
+                console.log(' User not authenticated')
                 return null;
             }
             const error = await response.json();
@@ -2203,10 +2203,10 @@ export async function getCurrentUser(): Promise<UserResponse | null> {
         }
 
         const data = await response.json();
-        console.log('✅ Current user retrieved:', data);
+        console.log(' Current user retrieved:', data);
         return data;
     } catch (error) {
-        console.error('❌ Error getting current user:', error)
+        console.error(' Error getting current user:', error)
         return null;
     }
 }
@@ -2306,7 +2306,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 }
 
 // =================
-// STORE FAVOURITE SERVICES - Match StoreFavouriteController ✅
+// STORE FAVOURITE SERVICES - Match StoreFavouriteController 
 // =================
 
 /**
@@ -2316,7 +2316,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
     const token = getToken();
     if (!token) {
-        console.warn('⚠️ Không có token, không thể lấy danh sách yêu thích');
+        console.warn(' Không có token, không thể lấy danh sách yêu thích');
         return [];
     }
 
@@ -2337,7 +2337,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
         if (!response.ok) {
             if (response.status === 401) {
-                console.warn('⚠️ Token hết hạn, không thể lấy yêu thích');
+                console.warn(' Token hết hạn, không thể lấy yêu thích');
                 return [];
             }
             const error = await response.json();
@@ -2345,7 +2345,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
         }
 
         const data = await response.json();
-        console.log('✅ Danh sách yêu thích đã được tải:', data.length);
+        console.log(' Danh sách yêu thích đã được tải:', data.length);
 
         // Update cache
         favouritesCache = data;
@@ -2353,7 +2353,7 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
         return data;
     } catch (error: any) {
-        console.error('❌ Lỗi khi lấy danh sách yêu thích:', error.message);
+        console.error(' Lỗi khi lấy danh sách yêu thích:', error.message);
         return [];
     }
 }
@@ -2370,10 +2370,10 @@ export async function isFavourite(storeId: string): Promise<boolean> {
     try {
         const favourites = await getFavourites();
         const result = favourites.some(store => store.id === storeId);
-        console.log(`🔍 Store ${storeId} favourite:`, result);
+        console.log(` Store ${storeId} favourite:`, result);
         return result;
     } catch (error) {
-        console.error('❌ Lỗi khi kiểm tra yêu thích:', error);
+        console.error(' Lỗi khi kiểm tra yêu thích:', error);
         return false;
     }
 }
@@ -2385,7 +2385,7 @@ export async function isFavourite(storeId: string): Promise<boolean> {
 export async function addFavourite(storeId: string): Promise<StoreClientDetailResponse | null> {
     const token = getToken();
     if (!token) {
-        console.error('❌ Không có token, không thể thêm yêu thích');
+        console.error(' Không có token, không thể thêm yêu thích');
         throw new Error('Vui lòng đăng nhập để thêm yêu thích');
     }
 
@@ -2405,10 +2405,10 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
         }
 
         const data = await response.json();
-        console.log('✅ Đã thêm vào yêu thích:', storeId);
+        console.log(' Đã thêm vào yêu thích:', storeId);
         return data;
     } catch (error: any) {
-        console.error('❌ Lỗi khi thêm yêu thích:', error.message);
+        console.error(' Lỗi khi thêm yêu thích:', error.message);
         throw error;
     }
 }
@@ -2420,7 +2420,7 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
 export async function removeFavourite(storeId: string): Promise<void> {
     const token = getToken();
     if (!token) {
-        console.error('❌ Không có token, không thể xóa yêu thích');
+        console.error(' Không có token, không thể xóa yêu thích');
         throw new Error('Vui lòng đăng nhập để xóa yêu thích');
     }
 
@@ -2433,11 +2433,11 @@ export async function removeFavourite(storeId: string): Promise<void> {
             }
         });
 
-        console.log('🔍 Delete response status:', response.status);
+        console.log(' Delete response status:', response.status);
 
         // Thành công: 204 No Content hoặc 200 OK
         if (response.ok || response.status === 204) {
-            console.log('✅ Đã xóa khỏi yêu thích:', storeId);
+            console.log(' Đã xóa khỏi yêu thích:', storeId);
             favouritesCache = null;
             return;
         }
@@ -2462,7 +2462,7 @@ export async function removeFavourite(storeId: string): Promise<void> {
         throw new Error(errorMsg);
     } catch (error: any) {
         if (error.message) {
-            console.error('❌ Lỗi khi xóa yêu thích:', error.message);
+            console.error(' Lỗi khi xóa yêu thích:', error.message);
         }
         throw error;
     }
@@ -2495,7 +2495,7 @@ export async function toggleFavourite(storeId: string): Promise<boolean> {
 }
 
 // =================
-// RATING SERVICES - Match RatingController ✅
+// RATING SERVICES - Match RatingController 
 // =================
 
 /**
@@ -2559,7 +2559,7 @@ export async function createRating(request: {
 
         return response.json();
     } catch (error: any) {
-        console.error('❌ Error creating rating:', error);
+        console.error(' Error creating rating:', error);
         throw error;
     }
 }
@@ -2587,7 +2587,7 @@ export async function deleteRating(ratingId: string): Promise<void> {
             throw new Error(error.message || 'Không thể xóa đánh giá');
         }
     } catch (error: any) {
-        console.error('❌ Error deleting rating:', error);
+        console.error(' Error deleting rating:', error);
         throw error;
     }
 }
@@ -2643,7 +2643,7 @@ export async function updateRating(
 
         return response.json();
     } catch (error: any) {
-        console.error('❌ Error updating rating:', error);
+        console.error(' Error updating rating:', error);
         throw error;
     }
 }
@@ -2665,14 +2665,14 @@ export async function getStoreRatings(
         );
 
         if (!response.ok) {
-            console.warn('⚠️ Cannot fetch store ratings');
+            console.warn(' Cannot fetch store ratings');
             return [];
         }
 
         const data = await response.json();
         return Array.isArray(data) ? data : data.content || [];
     } catch (error: any) {
-        console.error('❌ Error fetching store ratings:', error);
+        console.error(' Error fetching store ratings:', error);
         return [];
     }
 }

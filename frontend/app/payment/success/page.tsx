@@ -40,7 +40,7 @@ export default function PaymentSuccessPage() {
 
                 setOrderId(id)
 
-                console.log('🔍 Looking for order ID:', {
+                console.log(' Looking for order ID:', {
                     fromParams: searchParams.get("orderId") || searchParams.get("order_id") || searchParams.get("id"),
                     fromSessionStorage: sessionStorage.getItem('pendingOrderId'),
                     final: id
@@ -48,13 +48,13 @@ export default function PaymentSuccessPage() {
 
                 // Try to fetch order if id exists
                 if (id) {
-                    console.log('📤 Fetching order data for orderId:', id)
+                    console.log(' Fetching order data for orderId:', id)
                     try {
                         const order = await OrderService.getOrderByCode(id)
-                        console.log('✅ Order data received:', order)
+                        console.log(' Order data received:', order)
                         setOrderData(order)
 
-                        // 🔄 Get customer info from profile or order
+                        //  Get customer info from profile or order
                         const profile = getMyProfile()
                         const customerName = profile?.name || order.name || "Khách hàng"
                         const customerAddress = order.address || ""
@@ -63,9 +63,9 @@ export default function PaymentSuccessPage() {
                             name: customerName,
                             address: customerAddress
                         })
-                        console.log('👤 Customer info:', { name: customerName, address: customerAddress })
+                        console.log(' Customer info:', { name: customerName, address: customerAddress })
 
-                        // 📍 Get store info for address if not in order
+                        //  Get store info for address if not in order
                         if (order.storeId && !order.address) {
                             try {
                                 const storeInfo = await StoreService.getMyStore()
@@ -74,20 +74,20 @@ export default function PaymentSuccessPage() {
                                     console.log('🏪 Store address:', storeInfo.address)
                                 }
                             } catch (storeErr: any) {
-                                console.warn('⚠️ Could not fetch store info:', storeErr.message)
+                                console.warn(' Could not fetch store info:', storeErr.message)
                             }
                         }
 
                         // 🏐 Enrich order details with field names
                         if (order.orderDetails && order.orderDetails.length > 0) {
-                            console.log('🔄 Enriching order details with field names...')
+                            console.log(' Enriching order details with field names...')
                             const enrichedDetails: OrderDetailWithFieldName[] = []
 
                             for (const detail of order.orderDetails) {
                                 try {
                                     const fieldResponse = await FieldService.getFieldById(detail.fieldId)
                                     const fieldName = fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`
-                                    console.log(`✅ Field ${detail.fieldId}: ${fieldName}`)
+                                    console.log(` Field ${detail.fieldId}: ${fieldName}`)
 
                                     enrichedDetails.push({
                                         fieldId: detail.fieldId,
@@ -97,7 +97,7 @@ export default function PaymentSuccessPage() {
                                         price: detail.price
                                     })
                                 } catch (fieldErr: any) {
-                                    console.warn(`⚠️ Could not fetch field ${detail.fieldId}:`, fieldErr.message)
+                                    console.warn(` Could not fetch field ${detail.fieldId}:`, fieldErr.message)
                                     enrichedDetails.push({
                                         fieldId: detail.fieldId,
                                         fieldName: `Sân ${detail.fieldId.slice(-4)}`,
@@ -109,7 +109,7 @@ export default function PaymentSuccessPage() {
                             }
 
                             setEnrichedOrderDetails(enrichedDetails)
-                            console.log('✅ Enriched order details:', enrichedDetails)
+                            console.log(' Enriched order details:', enrichedDetails)
 
                             // Extract date from first order detail (format: "2025-11-12 HH:MM")
                             const bookingDateStr = enrichedDetails[0].startTime.split(' ')[0]
@@ -118,17 +118,17 @@ export default function PaymentSuccessPage() {
                         }
 
                         sessionStorage.setItem('paymentCompleted', 'true')
-                        // ✅ Dispatch storage event to notify other tabs/windows
+                        //  Dispatch storage event to notify other tabs/windows
                         window.dispatchEvent(new StorageEvent('storage', {
                             key: 'paymentCompleted',
                             newValue: 'true',
                             oldValue: null,
                             storageArea: sessionStorage
                         }))
-                        // ✅ Also dispatch custom event for same-tab listeners
+                        //  Also dispatch custom event for same-tab listeners
                         window.dispatchEvent(new CustomEvent('paymentCompleted', { detail: { orderCode: id } }))
                     } catch (apiErr: any) {
-                        console.warn('⚠️ Could not fetch order from API:', apiErr.message)
+                        console.warn(' Could not fetch order from API:', apiErr.message)
                         // If API fails, we'll just show success page without detailed order info
                         // This is acceptable since payment is successful
                         setError(null) // Clear error since it's a success page
@@ -140,7 +140,7 @@ export default function PaymentSuccessPage() {
                 // Clear pending order from sessionStorage
                 sessionStorage.removeItem('pendingOrderId')
             } catch (err: any) {
-                console.error('❌ Error in success page:', err)
+                console.error(' Error in success page:', err)
                 setError(err.message || "Có lỗi xảy ra")
             } finally {
                 setLoading(false)

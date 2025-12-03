@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const queryString = searchParams.toString();
     const url = `${API_BASE_URL}/fields/${queryString ? '?' + queryString : ''}`;
 
-    console.log('🔍 Proxying fields request to:', url);
+    console.log(' Proxying fields request to:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -22,12 +22,12 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Backend error (${response.status}):`, errorText);
+      console.error(` Backend error (${response.status}):`, errorText);
       throw new Error(`API responded with status: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('✅ Fields data received:', data);
+    console.log(' Fields data received:', data);
 
     return new Response(JSON.stringify(data), {
       status: response.status,
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch fields';
-    console.error('❌ GET /api/fields error:', errorMessage);
+    console.error(' GET /api/fields error:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage, message: 'Failed to fetch fields' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

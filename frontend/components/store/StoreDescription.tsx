@@ -54,7 +54,7 @@ export default function StoreDescription({ store }: StoreDescriptionProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     {store.address && (
                         <div className="flex items-center p-3 bg-blue-50 rounded-lg">
-                            <div className="text-3xl mr-3">📍</div>
+                            <div className="text-3xl mr-3"></div>
                             <div>
                                 <div className="text-sm text-gray-600">Địa chỉ</div>
                                 <div className="font-semibold text-gray-800">{store.address}</div>

@@ -34,7 +34,7 @@ export default function DebugLocationPage() {
         const originalWarn = console.warn
 
         const captureLog = (args: any[]) => {
-            const message = args.map(arg => 
+            const message = args.map(arg =>
                 typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
             ).join(' ')
             setConsoleOutput(prev => [...prev, `[LOG] ${message}`])
@@ -42,7 +42,7 @@ export default function DebugLocationPage() {
         }
 
         const captureError = (args: any[]) => {
-            const message = args.map(arg => 
+            const message = args.map(arg =>
                 typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
             ).join(' ')
             setConsoleOutput(prev => [...prev, `[ERROR] ${message}`])
@@ -50,7 +50,7 @@ export default function DebugLocationPage() {
         }
 
         const captureWarn = (args: any[]) => {
-            const message = args.map(arg => 
+            const message = args.map(arg =>
                 typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
             ).join(' ')
             setConsoleOutput(prev => [...prev, `[WARN] ${message}`])
@@ -83,7 +83,7 @@ export default function DebugLocationPage() {
             async (position) => {
                 try {
                     const { latitude, longitude } = position.coords
-                    console.log(`📍 Got location: ${latitude}, ${longitude}`)
+                    console.log(` Got location: ${latitude}, ${longitude}`)
 
                     setDebugInfo((prev) => ({
                         ...prev,
@@ -93,7 +93,7 @@ export default function DebugLocationPage() {
 
                     // Test reverse geocoding
                     const locationInfo = await reverseGeocodeAndFindLocation(latitude, longitude)
-                    console.log("🗺️ Location info:", locationInfo)
+                    console.log(" Location info:", locationInfo)
 
                     setDebugInfo((prev) => ({
                         ...prev,
@@ -137,7 +137,7 @@ export default function DebugLocationPage() {
 
                 {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
-                        <p className="text-red-800 font-semibold">❌ Error</p>
+                        <p className="text-red-800 font-semibold"> Error</p>
                         <p className="text-red-700">{error}</p>
                     </div>
                 )}
@@ -147,7 +147,7 @@ export default function DebugLocationPage() {
                     <div>
                         {debugInfo.latitude && (
                             <div className="bg-white rounded-lg shadow p-6">
-                                <h2 className="text-xl font-bold mb-4">📍 Location Info</h2>
+                                <h2 className="text-xl font-bold mb-4"> Location Info</h2>
                                 <div className="space-y-3 font-mono text-sm">
                                     <div>
                                         <span className="font-semibold">Latitude:</span>
@@ -177,7 +177,7 @@ export default function DebugLocationPage() {
                     {/* Right: Console Output */}
                     <div>
                         <div className="bg-black rounded-lg shadow p-4 h-96 overflow-y-auto">
-                            <h2 className="text-white text-sm font-bold mb-2">📋 Console Logs</h2>
+                            <h2 className="text-white text-sm font-bold mb-2"> Console Logs</h2>
                             <div className="space-y-1">
                                 {consoleOutput.map((log, idx) => {
                                     const isError = log.startsWith('[ERROR]')
@@ -241,8 +241,8 @@ export default function DebugLocationPage() {
                                         const wrongWards = stores.filter(s => s.ward?.name !== debugInfo.wardName && s.ward?.name);
                                         return (
                                             <>
-                                                <p>✅ Correct ward ({debugInfo.wardName}): <span className="font-bold text-green-600">{correctWards.length}</span></p>
-                                                <p>❌ Wrong wards: <span className="font-bold text-red-600">{wrongWards.length}</span></p>
+                                                <p> Correct ward ({debugInfo.wardName}): <span className="font-bold text-green-600">{correctWards.length}</span></p>
+                                                <p> Wrong wards: <span className="font-bold text-red-600">{wrongWards.length}</span></p>
                                                 {wrongWards.length > 0 && (
                                                     <p className="text-red-700">
                                                         Wrong wards: {wrongWards.map(s => s.ward?.name).join(', ')}
@@ -259,7 +259,7 @@ export default function DebugLocationPage() {
 
                 {stores.length === 0 && debugInfo.latitude && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-8">
-                        <p className="text-yellow-800">⚠️ No stores found nearby</p>
+                        <p className="text-yellow-800"> No stores found nearby</p>
                     </div>
                 )}
             </div>

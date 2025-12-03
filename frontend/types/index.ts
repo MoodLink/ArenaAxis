@@ -233,7 +233,7 @@ export interface UserResponse {
     name: string;
     phone: string;
     avatarUrl?: string;
-    active?: boolean;  // ✅ Thêm field active từ backend
+    active?: boolean;  //  Thêm field active từ backend
     bankAccount?: BankAccountResponse;
 }
 
@@ -621,7 +621,7 @@ export interface StoreClientDetailResponse {
     avatarUrl?: string;
     coverImageUrl?: string;
     mediaUrls?: string[]; // List<String>
-    sports?: Sport[]; // ✅ List<SportResponse> từ backend
+    sports?: Sport[]; //  List<SportResponse> từ backend
     latitude?: number; // Float -> number
     longitude?: number; // Float -> number
 }

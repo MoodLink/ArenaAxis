@@ -41,7 +41,7 @@ export default function PaymentFailurePage() {
 
                 setOrderId(id)
 
-                console.log('🔍 Looking for order ID:', {
+                console.log(' Looking for order ID:', {
                     fromParams: searchParams.get("orderId") || searchParams.get("order_id") || searchParams.get("id"),
                     fromSessionStorage: sessionStorage.getItem('pendingOrderId'),
                     final: id
@@ -57,13 +57,13 @@ export default function PaymentFailurePage() {
 
                 // Try to fetch order if id exists
                 if (id) {
-                    console.log('📤 Fetching order data for orderId:', id)
+                    console.log(' Fetching order data for orderId:', id)
                     try {
                         const order = await OrderService.getOrderByCode(id)
-                        console.log('✅ Order data received:', order)
+                        console.log(' Order data received:', order)
                         setOrderData(order)
 
-                        // 🔄 Get customer info from profile or order
+                        //  Get customer info from profile or order
                         const profile = getMyProfile()
                         const customerName = profile?.name || order.name || "Khách hàng"
                         const customerAddress = order.address || ""
@@ -72,9 +72,9 @@ export default function PaymentFailurePage() {
                             name: customerName,
                             address: customerAddress
                         })
-                        console.log('👤 Customer info:', { name: customerName, address: customerAddress })
+                        console.log(' Customer info:', { name: customerName, address: customerAddress })
 
-                        // 📍 Get store info for address if not in order
+                        //  Get store info for address if not in order
                         if (order.storeId && !order.address) {
                             try {
                                 const storeInfo = await StoreService.getMyStore()
@@ -83,20 +83,20 @@ export default function PaymentFailurePage() {
                                     console.log('🏪 Store address:', storeInfo.address)
                                 }
                             } catch (storeErr: any) {
-                                console.warn('⚠️ Could not fetch store info:', storeErr.message)
+                                console.warn(' Could not fetch store info:', storeErr.message)
                             }
                         }
 
                         // 🏐 Enrich order details with field names
                         if (order.orderDetails && order.orderDetails.length > 0) {
-                            console.log('🔄 Enriching order details with field names...')
+                            console.log(' Enriching order details with field names...')
                             const enrichedDetails: OrderDetailWithFieldName[] = []
 
                             for (const detail of order.orderDetails) {
                                 try {
                                     const fieldResponse = await FieldService.getFieldById(detail.fieldId)
                                     const fieldName = fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`
-                                    console.log(`✅ Field ${detail.fieldId}: ${fieldName}`)
+                                    console.log(` Field ${detail.fieldId}: ${fieldName}`)
 
                                     enrichedDetails.push({
                                         fieldId: detail.fieldId,
@@ -106,7 +106,7 @@ export default function PaymentFailurePage() {
                                         price: detail.price
                                     })
                                 } catch (fieldErr: any) {
-                                    console.warn(`⚠️ Could not fetch field ${detail.fieldId}:`, fieldErr.message)
+                                    console.warn(` Could not fetch field ${detail.fieldId}:`, fieldErr.message)
                                     enrichedDetails.push({
                                         fieldId: detail.fieldId,
                                         fieldName: `Sân ${detail.fieldId.slice(-4)}`,
@@ -118,10 +118,10 @@ export default function PaymentFailurePage() {
                             }
 
                             setEnrichedOrderDetails(enrichedDetails)
-                            console.log('✅ Enriched order details:', enrichedDetails)
+                            console.log(' Enriched order details:', enrichedDetails)
                         }
                     } catch (apiErr: any) {
-                        console.warn('⚠️ Could not fetch order from API:', apiErr.message)
+                        console.warn(' Could not fetch order from API:', apiErr.message)
                         // If API fails, we'll just show the error page without order details
                         // This is acceptable for failure page
                     }
@@ -130,7 +130,7 @@ export default function PaymentFailurePage() {
                 // Clear pending order from sessionStorage
                 sessionStorage.removeItem('pendingOrderId')
             } catch (err: any) {
-                console.error('❌ Error in failure page:', err)
+                console.error(' Error in failure page:', err)
                 setErrorMessage(err.message || "Thanh toán thất bại")
                 setErrorCode("PAYMENT_FAILED")
             } finally {
@@ -185,7 +185,7 @@ export default function PaymentFailurePage() {
                     {orderData && (
                         <div className="mb-8">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>📋</span> Thông Tin Đặt Sân
+                                <span></span> Thông Tin Đặt Sân
                             </h3>
                             <div className="bg-gray-50 rounded-lg p-6 space-y-4">
                                 <div className="flex justify-between items-center border-b pb-4">

@@ -111,9 +111,9 @@ export default function FieldDetailPage() {
     // Toast notification
     const { toast } = useToast()
 
-    // 🔄 Helper function to refresh booking data from statusField (giống store-booking page)
+    //  Helper function to refresh booking data from statusField (giống store-booking page)
     const refreshBookingData = useCallback(async () => {
-        console.log('🔄 refreshBookingData called for field:', fieldId)
+        console.log(' refreshBookingData called for field:', fieldId)
 
         if (!fieldId || !field?.storeId || !field?.sportId) {
             console.log('⏭️ Skipping refresh - no fieldId, storeId or sportId yet')
@@ -121,9 +121,9 @@ export default function FieldDetailPage() {
         }
 
         try {
-            console.log('🔄 Fetching field data with statusField for date:', selectedDate)
+            console.log(' Fetching field data with statusField for date:', selectedDate)
 
-            // 🎯 Call API to get field with statusField data for selected date
+            //  Call API to get field with statusField data for selected date
             const fieldsResponse = await FieldService.getFieldsWithAllData(
                 field.storeId,
                 field.sportId,
@@ -154,40 +154,40 @@ export default function FieldDetailPage() {
             const currentFieldData = fieldsData.find((f: APIField) => f._id === fieldId)
 
             if (!currentFieldData) {
-                console.log('⚠️ Field not found in response')
+                console.log(' Field not found in response')
                 setBookingData(bookingMap)
                 setBookingDataWithCustomer(bookingWithCustomerMap)
                 return
             }
 
-            console.log(`📊 Processing field ${fieldId}`)
+            console.log(` Processing field ${fieldId}`)
 
             if (!currentFieldData.statusField || currentFieldData.statusField.length === 0) {
-                console.log(`  ℹ️ No statusField data for field ${fieldId}`)
+                console.log(`   No statusField data for field ${fieldId}`)
                 setBookingData(bookingMap)
                 setBookingDataWithCustomer(bookingWithCustomerMap)
                 return
             }
 
-            console.log(`  📋 Found ${currentFieldData.statusField.length} status entries`)
+            console.log(`  Found ${currentFieldData.statusField.length} status entries`)
 
             // Filter PAID status only and extract booked slots
             const paidStatuses = currentFieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
-            console.log(`  ✅ Found ${paidStatuses.length} PAID bookings`)
+            console.log(`   Found ${paidStatuses.length} PAID bookings`)
 
             paidStatuses.forEach((status: any) => {
                 const startTime = status.startTime  // ISO format: "2025-12-01T06:30:00.000Z"
                 const endTime = status.endTime      // ISO format: "2025-12-01T07:00:00.000Z"
 
                 console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
-                console.log(`    📝 Booking details:`, status)
+                console.log(`     Booking details:`, status)
 
                 // Parse ISO datetime to extract time part WITHOUT timezone conversion
                 const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
                 const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
 
                 if (!startTimeMatch || !endTimeMatch) {
-                    console.warn(`    ⚠️ Could not parse time from: ${startTime} to ${endTime}`)
+                    console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
                     return
                 }
 
@@ -199,7 +199,7 @@ export default function FieldDetailPage() {
                 const startTimeStr = `${startHours}:${startMins}`
                 const endTimeStr = `${endHours}:${endMins}`
 
-                console.log(`    ⏱️ Parsed time: ${startTimeStr} to ${endTimeStr}`)
+                console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
 
                 // Generate all 30-minute slots between start and end time
                 const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
@@ -214,7 +214,7 @@ export default function FieldDetailPage() {
                     const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 
                     bookingMap[targetSubcourt][slotTime] = 'booked'
-                    console.log(`      ✅ Marked as booked: ${slotTime}`)
+                    console.log(`       Marked as booked: ${slotTime}`)
 
                     // Try to find matching order from ordersResponse to get complete customer info
                     let bookingInfo: BookingInfo | null = null
@@ -231,7 +231,7 @@ export default function FieldDetailPage() {
                                             const detailStartTime = `${detailStartMatch[1]}:${detailStartMatch[2]}`
                                             if (detailStartTime === slotTime) {
                                                 // Found matching order detail
-                                                console.log(`        🎯 Found matching order for slot ${slotTime}:`, order)
+                                                console.log(`         Found matching order for slot ${slotTime}:`, order)
                                                 bookingInfo = {
                                                     id: order._id || `booking-${slotTime}`,
                                                     courtId: targetSubcourt,
@@ -271,16 +271,16 @@ export default function FieldDetailPage() {
 
                     const bookingKey = `${targetSubcourt}-${slotTime}`
                     bookingWithCustomerMap[bookingKey] = bookingInfo
-                    console.log(`      👤 Saved booking info for slot ${slotTime}:`, bookingInfo)
+                    console.log(`       Saved booking info for slot ${slotTime}:`, bookingInfo)
                 }
             })
 
             setBookingData(bookingMap)
             setBookingDataWithCustomer(bookingWithCustomerMap)
-            console.log('📊 Final booking data:', bookingMap)
-            console.log('👥 Final customer data:', bookingWithCustomerMap)
+            console.log(' Final booking data:', bookingMap)
+            console.log(' Final customer data:', bookingWithCustomerMap)
         } catch (error) {
-            console.error('❌ Error refreshing booking data:', error)
+            console.error(' Error refreshing booking data:', error)
         }
     }, [fieldId, field?.storeId, field?.sportId, selectedDate, field?.defaultPrice])
 
@@ -389,10 +389,10 @@ export default function FieldDetailPage() {
         fetchFieldData()
     }, [fieldId])
 
-    // 🔄 Trigger refresh when field is loaded
+    //  Trigger refresh when field is loaded
     useEffect(() => {
         if (field && field.storeId && !loading) {
-            console.log('✅ Field loaded - refreshing booking data immediately')
+            console.log(' Field loaded - refreshing booking data immediately')
             refreshBookingData()
         }
     }, [field?._id, loading])
@@ -405,11 +405,11 @@ export default function FieldDetailPage() {
         }
     }, [selectedDate, field?._id, loading])
 
-    // 🔄 Re-fetch booking data when page is focused
+    //  Re-fetch booking data when page is focused
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden) {
-                console.log('👁️ Page focused - refreshing booking data')
+                console.log(' Page focused - refreshing booking data')
                 refreshBookingData()
             }
         }
@@ -437,7 +437,7 @@ export default function FieldDetailPage() {
         }
     }, [refreshBookingData])
 
-    // 🔄 Auto-refresh every 30 seconds
+    //  Auto-refresh every 30 seconds
     useEffect(() => {
         console.log('⏰ Setting up auto-refresh interval')
         const interval = setInterval(() => {
@@ -529,7 +529,7 @@ export default function FieldDetailPage() {
             })
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Thông tin sân đã được cập nhật',
             })
 
@@ -557,7 +557,7 @@ export default function FieldDetailPage() {
             await FieldService.deleteField(field._id)
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Sân đã được xóa',
             })
 
@@ -641,7 +641,7 @@ export default function FieldDetailPage() {
             }
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: `Đã thêm giá đặc biệt ${pricingMode === 'day-of-week' ? 'theo thứ trong tuần' : 'cho ngày cụ thể'}`,
             })
 
@@ -675,7 +675,7 @@ export default function FieldDetailPage() {
             await FieldPricingService.deleteFieldPricing(pricingId)
 
             toast({
-                title: 'Thành công ✅',
+                title: 'Thành công ',
                 description: 'Đã xóa giá đặc biệt',
             })
 
@@ -815,7 +815,7 @@ export default function FieldDetailPage() {
             })
 
             if (specialDatePricing) {
-                console.log(`[getSlotPrice] ✅ Found special date pricing: ${specialDatePricing.specialPrice}`)
+                console.log(`[getSlotPrice]  Found special date pricing: ${specialDatePricing.specialPrice}`)
                 return specialDatePricing.specialPrice || parseInt(field?.defaultPrice || '0')
             }
         }

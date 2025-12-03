@@ -10,7 +10,7 @@ interface SportModalProps {
     isOpen: boolean
     onClose: () => void
     onConfirm: (sportId: string) => void
-    storeSports?: Sport[]  // ✅ Thêm sports từ store
+    storeSports?: Sport[]  //  Thêm sports từ store
 }
 
 interface DisplaySport extends Sport {
@@ -19,7 +19,7 @@ interface DisplaySport extends Sport {
 
 export default function SportSelectionModal({ isOpen, onClose, onConfirm, storeSports = [] }: SportModalProps) {
     const [selectedSport, setSelectedSport] = useState<string | null>(null)
-    // ✅ Dùng storeSports từ props (backend trả về) thay vì gọi getSports()
+    //  Dùng storeSports từ props (backend trả về) thay vì gọi getSports()
     const sports = storeSports
     const loading = false
     const error = sports.length === 0 ? 'Sân này không có môn thể thao nào' : null

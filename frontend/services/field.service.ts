@@ -83,7 +83,7 @@ export class FieldService {
     const queryString = queryParams.toString();
     const url = queryString ? `${API_BASE_URL}?${queryString}` : API_BASE_URL;
 
-    console.log('🔍 FieldService.getFields - Request URL:', url);
+    console.log(' FieldService.getFields - Request URL:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -94,12 +94,12 @@ export class FieldService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ FieldService.getFields - Error:', response.status, errorText);
+      console.error(' FieldService.getFields - Error:', response.status, errorText);
       throw new Error(`Failed to fetch fields: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ FieldService.getFields - Response:', data);
+    console.log(' FieldService.getFields - Response:', data);
     return data;
   }
 

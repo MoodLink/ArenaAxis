@@ -101,7 +101,7 @@ export default function StoreDetailPage() {
   // Fetch sports when rating dropdown opens
   useEffect(() => {
     if (isRatingDropdownOpen && sports.length === 0 && store?.sports) {
-      // ✅ Dùng sports từ store thay vì gọi getSports()
+      //  Dùng sports từ store thay vì gọi getSports()
       setSports(store.sports);
       setSportsLoading(false);
     }
@@ -207,12 +207,12 @@ export default function StoreDetailPage() {
       emitFavouriteChange(storeId, newState);
 
       toast({
-        title: newState ? '✅ Đã thêm vào yêu thích' : '✅ Đã xóa khỏi yêu thích',
+        title: newState ? ' Đã thêm vào yêu thích' : ' Đã xóa khỏi yêu thích',
         description: `"${store?.name}"`,
       });
     } catch (error: any) {
       toast({
-        title: '❌ Lỗi',
+        title: ' Lỗi',
         description: error?.message || 'Không thể cập nhật yêu thích',
         variant: 'destructive',
       });
@@ -230,7 +230,7 @@ export default function StoreDetailPage() {
   const handleRatingClick = (sport: any) => {
     if (!currentUser) {
       toast({
-        title: '⚠️ Vui lòng đăng nhập',
+        title: ' Vui lòng đăng nhập',
         description: 'Bạn cần đăng nhập để đánh giá sân',
         variant: 'destructive',
       });
@@ -251,7 +251,7 @@ export default function StoreDetailPage() {
     // Limit to 5 images
     if (files.length + ratingImages.length > 5) {
       toast({
-        title: '⚠️ Tối đa 5 ảnh',
+        title: ' Tối đa 5 ảnh',
         description: 'Bạn chỉ có thể tải lên tối đa 5 ảnh',
         variant: 'destructive',
       });
@@ -279,7 +279,7 @@ export default function StoreDetailPage() {
   const handleSubmitRating = async () => {
     if (userRating <= 0) {
       toast({
-        title: '⚠️ Vui lòng chọn số sao',
+        title: ' Vui lòng chọn số sao',
         description: 'Bạn cần chọn từ 1 đến 5 sao để đánh giá',
         variant: 'destructive',
       });
@@ -301,7 +301,7 @@ export default function StoreDetailPage() {
       await createRating(request);
 
       toast({
-        title: '✅ Cảm ơn bạn!',
+        title: ' Cảm ơn bạn!',
         description: 'Đánh giá của bạn đã được gửi thành công',
       });
 
@@ -314,7 +314,7 @@ export default function StoreDetailPage() {
       setRatingImagePreviews([]);
     } catch (error: any) {
       toast({
-        title: '❌ Lỗi',
+        title: ' Lỗi',
         description: error?.message || 'Không thể gửi đánh giá',
         variant: 'destructive',
       });

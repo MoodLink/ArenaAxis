@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'https://arena-axis.vercel.app/api/v1'
         const url = `${BACKEND_URL}/orders/user/${userId}`
 
-        console.log('🔄 [API Proxy] Fetching user orders from backend:', url)
+        console.log(' [API Proxy] Fetching user orders from backend:', url)
 
         try {
             const response = await fetch(url, {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
             })
 
             if (!response.ok) {
-                console.error(`❌ [API Proxy] Backend error: ${response.status} ${response.statusText}`)
+                console.error(` [API Proxy] Backend error: ${response.status} ${response.statusText}`)
                 const errorData = await response.text()
                 console.error('Error response:', errorData)
                 return NextResponse.json(
@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
             }
 
             const data = await response.json()
-            console.log('✅ [API Proxy] User orders fetched from backend:', data)
+            console.log(' [API Proxy] User orders fetched from backend:', data)
 
             return NextResponse.json(data)
         } catch (fetchError) {
-            console.warn('⚠️ [API Proxy] Backend fetch failed:', fetchError)
+            console.warn(' [API Proxy] Backend fetch failed:', fetchError)
             // Return empty orders array when backend is not available
             return NextResponse.json(
                 {
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
             )
         }
     } catch (error) {
-        console.error('❌ [API Proxy] Error in user orders proxy:', error)
+        console.error(' [API Proxy] Error in user orders proxy:', error)
         return NextResponse.json(
             {
                 error: 'Failed to fetch user orders',

@@ -16,7 +16,7 @@ export async function GET(
         // Get Authorization header from request
         const authHeader = request.headers.get('authorization');
 
-        console.log('📤 [API Proxy] Fetching order:', orderId);
+        console.log(' [API Proxy] Fetching order:', orderId);
 
         // Get ORDER_SERVICE_URL from environment
         const orderServiceUrl = process.env.ORDER_SERVICE_DOMAIN || 'https://arena-axis.vercel.app/api/v1';
@@ -33,7 +33,7 @@ export async function GET(
         const data = await response.json();
 
         if (!response.ok) {
-            console.error('❌ [API Proxy] Order service error:', data);
+            console.error(' [API Proxy] Order service error:', data);
             return NextResponse.json(
                 {
                     error: true,
@@ -44,14 +44,14 @@ export async function GET(
             );
         }
 
-        console.log('✅ [API Proxy] Order fetched:', data);
+        console.log(' [API Proxy] Order fetched:', data);
 
         // Backend returns { message, data: OrderResponse }, extract the data part
         const orderData = data.data || data;
         return NextResponse.json(orderData, { status: 200 });
 
     } catch (error: any) {
-        console.error('❌ [API Proxy] Error:', error);
+        console.error(' [API Proxy] Error:', error);
         return NextResponse.json(
             {
                 error: true,

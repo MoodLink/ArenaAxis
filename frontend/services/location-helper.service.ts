@@ -64,8 +64,8 @@ export async function findProvinceByName(provinceName: string): Promise<Province
         // Chuẩn hóa tên tìm kiếm - xóa accents và chuyển thành lowercase
         const normalizedSearch = normalizeVietnameseName(provinceName.trim());
 
-        console.log(`🔍 Searching provinces for: "${provinceName}" (normalized: "${normalizedSearch}")`);
-        console.log(`📊 Total provinces available: ${provinces.length}`);
+        console.log(` Searching provinces for: "${provinceName}" (normalized: "${normalizedSearch}")`);
+        console.log(`Total provinces available: ${provinces.length}`);
 
         // Tìm exact match trước (priority cao)
         let foundProvince = provinces.find(p => {
@@ -74,7 +74,7 @@ export async function findProvinceByName(provinceName: string): Promise<Province
         });
 
         if (foundProvince) {
-            console.log(`✅ Found exact match: "${foundProvince.name}"`);
+            console.log(` Found exact match: "${foundProvince.name}"`);
             return foundProvince;
         }
 
@@ -85,12 +85,12 @@ export async function findProvinceByName(provinceName: string): Promise<Province
         });
 
         if (foundProvince) {
-            console.log(`✅ Found partial match: "${foundProvince.name}"`);
+            console.log(` Found partial match: "${foundProvince.name}"`);
             return foundProvince;
         }
 
         // Nếu không tìm thấy, log danh sách tất cả provinces để debug
-        console.warn(`❌ No province found for: "${provinceName}"`);
+        console.warn(` No province found for: "${provinceName}"`);
         console.log('Available provinces:', provinces.map(p => ({
             name: p.name,
             normalized: normalizeVietnameseName(p.name || '')
@@ -110,7 +110,7 @@ export async function findProvinceByName(provinceName: string): Promise<Province
  */
 function normalizeVietnameseName(name: string): string {
     if (!name) return '';
-    
+
     // Bảng tương ứng các ký tự có dấu sang không dấu
     const vietnameseCharMap: { [key: string]: string } = {
         'à': 'a', 'á': 'a', 'ả': 'a', 'ã': 'a', 'ạ': 'a', 'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ẳ': 'a', 'ẵ': 'a', 'ặ': 'a',
@@ -155,15 +155,15 @@ export async function findWardByName(wardName: string, provinceId: string): Prom
         const wards = await getWardsByProvinceId(provinceId);
 
         if (wards.length === 0) {
-            console.warn(`⚠️ No wards found for province ID: ${provinceId}`);
+            console.warn(` No wards found for province ID: ${provinceId}`);
             return null;
         }
 
         // Chuẩn hóa tên tìm kiếm - xóa accents và chuyển thành lowercase
         const normalizedSearch = normalizeVietnameseName(wardName.trim());
 
-        console.log(`🔍 Searching wards for: "${wardName}" (normalized: "${normalizedSearch}")`);
-        console.log(`📊 Total wards available: ${wards.length}`);
+        console.log(` Searching wards for: "${wardName}" (normalized: "${normalizedSearch}")`);
+        console.log(`Total wards available: ${wards.length}`);
 
         // Tìm exact match trước (priority cao)
         let foundWard = wards.find(w => {
@@ -172,7 +172,7 @@ export async function findWardByName(wardName: string, provinceId: string): Prom
         });
 
         if (foundWard) {
-            console.log(`✅ Found exact match: "${foundWard.name}"`);
+            console.log(` Found exact match: "${foundWard.name}"`);
             return foundWard;
         }
 
@@ -183,12 +183,12 @@ export async function findWardByName(wardName: string, provinceId: string): Prom
         });
 
         if (foundWard) {
-            console.log(`✅ Found partial match: "${foundWard.name}"`);
+            console.log(` Found partial match: "${foundWard.name}"`);
             return foundWard;
         }
 
         // Nếu không tìm thấy, log danh sách wards để debug
-        console.warn(`❌ No ward found for: "${wardName}"`);
+        console.warn(` No ward found for: "${wardName}"`);
         console.log('Available wards (first 10):', wards.slice(0, 10).map(w => ({
             name: w.name,
             normalized: normalizeVietnameseName(w.name || '')
@@ -217,7 +217,7 @@ export async function reverseGeocodeAndFindLocation(
     ward?: WardResponse | null;
 }> {
     try {
-        console.log(`🔄 Reverse geocoding for [${latitude}, ${longitude}]...`);
+        console.log(`Reverse geocoding for [${latitude}, ${longitude}]...`);
 
         // 1. Lấy address từ tọa độ
         const reverseResponse = await fetch(
@@ -232,22 +232,22 @@ export async function reverseGeocodeAndFindLocation(
 
         const addressData = await reverseResponse.json();
         const address = addressData.address || '';
-        console.log('📍 Address from OSM (full data):', JSON.stringify(addressData, null, 2));
+        console.log(' Address from OSM (full data):', JSON.stringify(addressData, null, 2));
 
         // 2. Parse province + ward từ display_name
         // Format: "Đường XYZ, Phường ABC, Thành phố Đà Nẵng, 12345, Việt Nam"
         //         hoặc "Xã XYZ, Huyện ABC, Tỉnh Cà Mau, Việt Nam"
-        
+
         let provinceName: string | undefined;
         let wardNameFromDisplay: string | undefined;
 
         if (addressData.display_name) {
             const displayStr = addressData.display_name;
-            console.log('🔍 Parsing display_name:', displayStr);
+            console.log(' Parsing display_name:', displayStr);
 
             // Split by comma để parse từng phần
             const parts = displayStr.split(',').map((p: string) => p.trim());
-            console.log('📊 Display name parts:', parts);
+            console.log('Display name parts:', parts);
 
             // PART 1: Tìm province từ display_name
             // Cách 1: Tìm "Thành phố XXX" hoặc "Tỉnh XXX"
@@ -256,10 +256,10 @@ export async function reverseGeocodeAndFindLocation(
 
             if (thanhPhoMatch) {
                 provinceName = thanhPhoMatch[1].trim();
-                console.log('✅ Found city:', provinceName);
+                console.log(' Found city:', provinceName);
             } else if (tinhMatch) {
                 provinceName = tinhMatch[1].trim();
-                console.log('✅ Found province:', provinceName);
+                console.log(' Found province:', provinceName);
             }
 
             // PART 2: Tìm ward từ display_name
@@ -270,7 +270,7 @@ export async function reverseGeocodeAndFindLocation(
             const xaMatch = displayStr.match(/Xã\s+([^,]+)/);
             const thiTranMatch = displayStr.match(/Thị trấn\s+([^,]+)/);
 
-            wardNameFromDisplay = 
+            wardNameFromDisplay =
                 phuongMatch?.[1]?.trim() ||
                 quanMatch?.[1]?.trim() ||
                 huyenMatch?.[1]?.trim() ||
@@ -278,39 +278,39 @@ export async function reverseGeocodeAndFindLocation(
                 thiTranMatch?.[1]?.trim();
 
             if (wardNameFromDisplay) {
-                console.log('✅ Found ward:', wardNameFromDisplay);
+                console.log(' Found ward:', wardNameFromDisplay);
             } else {
-                console.warn('⚠️ No ward pattern found in display_name');
+                console.warn(' No ward pattern found in display_name');
             }
         }
 
         let province: ProvinceResponse | null = null;
 
         if (provinceName && provinceName.trim() !== '') {
-            console.log(`🔍 Searching for province: "${provinceName}"`);
+            console.log(` Searching for province: "${provinceName}"`);
             province = await findProvinceByName(provinceName);
-            console.log('✅ Found province:', province?.name, '(ID:', province?.id, ')');
+            console.log(' Found province:', province?.name, '(ID:', province?.id, ')');
         } else {
-            console.warn('⚠️ Could not determine province name from location data');
+            console.warn(' Could not determine province name from location data');
         }
 
         // 3. Tìm ward từ address nếu có province
         // Ưu tiên: wardNameFromDisplay (từ display_name) > address.suburb > address.county > address.village
         let ward: WardResponse | null = null;
-        let wardName = wardNameFromDisplay || 
-                      addressData.address?.suburb || 
-                      addressData.address?.county || 
-                      addressData.address?.village;
+        let wardName = wardNameFromDisplay ||
+            addressData.address?.suburb ||
+            addressData.address?.county ||
+            addressData.address?.village;
 
-        console.log('🔍 Extracted ward name (before cleanup):', wardName);
-        
+        console.log(' Extracted ward name (before cleanup):', wardName);
+
         // Nếu vẫn không có ward name từ address/display_name, thử fallback từ các field khác
         if (!wardName && addressData.address?.city) {
             // Nếu address.city chứa "Phường", "Quận", "Xã" etc, dùng nó làm ward name
             const cityStr = addressData.address.city;
             if (cityStr.match(/^(Phường|Quận|Xã|Huyện|Thị trấn)/)) {
                 wardName = cityStr;
-                console.log('🔍 Extracted ward from address.city (fallback):', wardName);
+                console.log(' Extracted ward from address.city (fallback):', wardName);
             }
         }
 
@@ -318,24 +318,24 @@ export async function reverseGeocodeAndFindLocation(
         // Ví dụ: "Phường Thanh Khê" → giữ nguyên vì backend lưu đầy đủ
         let cleanedWardName = wardName?.trim();
 
-        console.log('🔍 Cleaned ward name:', cleanedWardName);
+        console.log(' Cleaned ward name:', cleanedWardName);
 
         if (cleanedWardName && province?.id) {
-            console.log(`🔍 Searching for ward: "${cleanedWardName}" in province ID: ${province.id}`);
+            console.log(` Searching for ward: "${cleanedWardName}" in province ID: ${province.id}`);
             ward = await findWardByName(cleanedWardName, province.id);
             if (ward) {
-                console.log('✅ Found ward in database:', ward.name, '(ID:', ward.id, ')');
+                console.log(' Found ward in database:', ward.name, '(ID:', ward.id, ')');
             } else {
-                console.warn(`⚠️ Ward "${cleanedWardName}" not found in province database`);
+                console.warn(` Ward "${cleanedWardName}" not found in province database`);
                 console.warn(`   Will still send wardName to backend: "${cleanedWardName}"`);
                 // IMPORTANT: Vẫn gửi wardName ngay cả khi không tìm thấy trong database
                 // Vì backend có thể tìm được
             }
         } else {
             if (!cleanedWardName) {
-                console.warn('⚠️ Could not extract ward name from any source');
+                console.warn(' Could not extract ward name from any source');
             } else if (!province?.id) {
-                console.warn('⚠️ Province ID not found, cannot search for ward');
+                console.warn(' Province ID not found, cannot search for ward');
             }
         }
 

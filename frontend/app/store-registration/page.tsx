@@ -112,7 +112,7 @@ export default function StoreRegistrationPage() {
             } catch (error: any) {
                 // If 404, user doesn't have bank account
                 if (error?.status === 404) {
-                    console.log("ℹ️ No bank account found (404), user can create one")
+                    console.log("No bank account found (404), user can create one")
                     setHasBankAccount(false)
                 } else {
                     console.error('Error checking bank account:', error)
@@ -263,7 +263,7 @@ export default function StoreRegistrationPage() {
 
             // 🔑 QUAN TRỌNG: Refresh token vì backend đã chuyển role USER → CLIENT
             // Token cũ vẫn có role USER, cần token mới với role CLIENT để upload ảnh
-            console.log('🔄 Store created! Refreshing token to get new role (CLIENT)...')
+            console.log('Store created! Refreshing token to get new role (CLIENT)...')
             const oldToken = localStorage.getItem('token')
             if (oldToken) {
                 try {
@@ -271,10 +271,10 @@ export default function StoreRegistrationPage() {
                     const refreshResponse = await refreshToken(oldToken)
                     if (refreshResponse && refreshResponse.token) {
                         localStorage.setItem('token', refreshResponse.token)
-                        console.log('✅ Token refreshed! Now has CLIENT role')
+                        console.log(' Token refreshed! Now has CLIENT role')
                     }
                 } catch (refreshError) {
-                    console.warn('⚠️ Failed to refresh token:', refreshError)
+                    console.warn(' Failed to refresh token:', refreshError)
                     // Tiếp tục anyway - có thể vẫn work
                 }
             }
@@ -297,7 +297,7 @@ export default function StoreRegistrationPage() {
         try {
             // Bước 2: Upload ảnh nếu có (sau khi tạo store thành công)
             if (storeId && !skipImages && (files.avatar || files.coverImage || files.businessLicense)) {
-                console.log('📤 Starting image upload...')
+                console.log(' Starting image upload...')
                 const uploadResult = await updateStoreImages(storeId, {
                     avatar: files.avatar,
                     coverImage: files.coverImage,
@@ -310,9 +310,9 @@ export default function StoreRegistrationPage() {
                     return
                 }
 
-                console.log('✅ Upload request sent successfully!')
-                console.log('⏳ Backend is processing images asynchronously...')
-                console.log('ℹ️ Images will appear in your store shortly (within 1-2 minutes)')
+                console.log(' Upload request sent successfully!')
+                console.log('Backend is processing images asynchronously...')
+                console.log('Images will appear in your store shortly (within 1-2 minutes)')
             }
 
             // Move to step 3
@@ -334,7 +334,7 @@ export default function StoreRegistrationPage() {
             // Bước 3: Đăng ký Main Plan cho Store
             if (storeId && selectedPlanId) {
                 const selectedPlanData = mainPlans.find(p => p.id === selectedPlanId)
-                console.log(`🎯 Registering plan: ${selectedPlanData?.name} for store: ${storeId}`)
+                console.log(` Registering plan: ${selectedPlanData?.name} for store: ${storeId}`)
 
                 const { purchaseMainPlan } = await import('@/services/api-new')
                 const planResult = await purchaseMainPlan(storeId, selectedPlanId)
@@ -345,8 +345,8 @@ export default function StoreRegistrationPage() {
                     return
                 }
 
-                console.log('✅ Main plan registered successfully!')
-                console.log('📋 Plan Details:', planResult.data)
+                console.log(' Main plan registered successfully!')
+                console.log(' Plan Details:', planResult.data)
             }
 
             // Hiển thị thông báo thành công
@@ -481,7 +481,7 @@ export default function StoreRegistrationPage() {
 
                         <div className="space-y-3 text-left max-w-md mx-auto mb-6">
                             <p className="text-gray-700">
-                                ✅ Trung tâm thể thao đã được tạo thành công
+                                Trung tâm thể thao đã được tạo thành công
                             </p>
 
                             {(files.avatar || files.coverImage || files.businessLicense) && (

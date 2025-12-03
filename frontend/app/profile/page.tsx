@@ -70,11 +70,11 @@ export default function ProfilePage() {
           const stores = await getStoresByOwnerId(userData.id)
           setHasStores(stores && stores.length > 0)
         } catch (error) {
-          console.log('⚠️ Could not fetch stores, assuming no stores')
+          console.log(' Could not fetch stores, assuming no stores')
           setHasStores(false)
         }
       } catch (error) {
-        console.error("❌ Error fetching user:", error)
+        console.error(" Error fetching user:", error)
         router.push("/login")
       } finally {
         setLoading(false)

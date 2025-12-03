@@ -37,7 +37,7 @@ export default function StoreBookingGrid({
     const [hoveredSlot, setHoveredSlot] = useState<string | null>(null)
 
     // Debug: Log received props
-    console.log('🔵 StoreBookingGrid rendered with:', {
+    console.log('StoreBookingGrid rendered with:', {
         fieldsCount: fields.length,
         timeSlotsCount: timeSlots.length,
         selectedSlotsCount: selectedSlots.length,
@@ -47,7 +47,7 @@ export default function StoreBookingGrid({
     })
 
     // Debug: Log booking status for each field
-    console.log('📊 Booking data details:')
+    console.log('Booking data details:')
     Object.entries(bookingData).forEach(([fieldId, slots]) => {
         const bookedCount = Object.values(slots).filter(s => s === 'booked').length
         const availableCount = Object.values(slots).filter(s => s === 'available').length
@@ -286,7 +286,7 @@ export default function StoreBookingGrid({
                                             >
                                                 <button
                                                     onClick={() => {
-                                                        console.log('🔵 Button clicked:', { fieldId: field._id, slot, status })
+                                                        console.log('Button clicked:', { fieldId: field._id, slot, status })
                                                         onSlotClick(field._id, slot)
                                                     }}
                                                     disabled={status === "booked" || status === "locked"}

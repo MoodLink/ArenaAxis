@@ -60,7 +60,7 @@ export default function EditRatingModal({
         const existingCount = rating.mediaUrls?.length || 0;
         if (files.length + newImages.length + existingCount > 5) {
             toast({
-                title: '⚠️ Tối đa 5 ảnh',
+                title: ' Tối đa 5 ảnh',
                 description: `Bạn chỉ có thể tải lên tối đa 5 ảnh (${existingCount} ảnh cũ)`,
                 variant: 'destructive',
             });
@@ -86,7 +86,7 @@ export default function EditRatingModal({
     const handleSubmit = async () => {
         if (userRating <= 0) {
             toast({
-                title: '⚠️ Vui lòng chọn số sao',
+                title: ' Vui lòng chọn số sao',
                 description: 'Bạn cần chọn từ 1 đến 5 sao',
                 variant: 'destructive',
             });
@@ -103,7 +103,7 @@ export default function EditRatingModal({
             onClose();
         } catch (error: any) {
             toast({
-                title: '❌ Lỗi',
+                title: ' Lỗi',
                 description: error?.message || 'Không thể cập nhật đánh giá',
                 variant: 'destructive',
             });
@@ -153,8 +153,8 @@ export default function EditRatingModal({
                                     <Star
                                         size={40}
                                         className={`transition-colors ${i < (hoverRating || userRating)
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'text-gray-300'
+                                            ? 'fill-yellow-400 text-yellow-400'
+                                            : 'text-gray-300'
                                             }`}
                                     />
                                 </button>
@@ -230,8 +230,8 @@ export default function EditRatingModal({
                             <label
                                 htmlFor="edit-rating-images"
                                 className={`flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isSubmitting
-                                        ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                                        : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+                                    ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                                    : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
                                     }`}
                             >
                                 <Upload className="w-6 h-6 text-blue-500" />

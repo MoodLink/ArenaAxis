@@ -11,7 +11,7 @@ export function formatVND(amount: number | string): string {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
 
     if (isNaN(num)) {
-        console.warn(`⚠️ formatVND: Invalid amount "${amount}"`);
+        console.warn(` formatVND: Invalid amount "${amount}"`);
         return '0';
     }
 
@@ -56,7 +56,7 @@ export function formatDateVN(dateString: string): string {
         const date = new Date(dateString);
 
         if (isNaN(date.getTime())) {
-            console.warn(`⚠️ formatDateVN: Invalid date "${dateString}"`);
+            console.warn(` formatDateVN: Invalid date "${dateString}"`);
             return dateString;
         }
 
@@ -66,7 +66,7 @@ export function formatDateVN(dateString: string): string {
             day: '2-digit',
         });
     } catch (e) {
-        console.error(`❌ formatDateVN: Error formatting "${dateString}":`, e);
+        console.error(` formatDateVN: Error formatting "${dateString}":`, e);
         return dateString;
     }
 }
@@ -81,7 +81,7 @@ export function formatDateISO(date: Date | string): string {
         const dateObj = typeof date === 'string' ? new Date(date) : date;
 
         if (isNaN(dateObj.getTime())) {
-            console.warn(`⚠️ formatDateISO: Invalid date "${date}"`);
+            console.warn(` formatDateISO: Invalid date "${date}"`);
             return '';
         }
 
@@ -91,7 +91,7 @@ export function formatDateISO(date: Date | string): string {
 
         return `${year}-${month}-${day}`;
     } catch (e) {
-        console.error(`❌ formatDateISO: Error formatting:`, e);
+        console.error(` formatDateISO: Error formatting:`, e);
         return '';
     }
 }
@@ -105,7 +105,7 @@ export function formatTime(timeString: string): string {
     const timeRegex = /^\d{2}:\d{2}$/;
 
     if (!timeRegex.test(timeString)) {
-        console.warn(`⚠️ formatTime: Invalid time format "${timeString}" (expected HH:MM)`);
+        console.warn(` formatTime: Invalid time format "${timeString}" (expected HH:MM)`);
         return timeString;
     }
 
@@ -155,7 +155,7 @@ export function normalizeAmount(amount: any): number {
         }
     }
 
-    console.warn(`⚠️ normalizeAmount: Invalid amount "${amount}", using 0`);
+    console.warn(` normalizeAmount: Invalid amount "${amount}", using 0`);
     return 0;
 }
 
@@ -166,7 +166,7 @@ export function normalizeAmount(amount: any): number {
  */
 export function normalizeTime(timeString: string): string {
     if (!isValidTimeFormat(timeString)) {
-        console.warn(`⚠️ normalizeTime: Invalid time format "${timeString}"`);
+        console.warn(` normalizeTime: Invalid time format "${timeString}"`);
         return '';
     }
     return timeString;
@@ -179,7 +179,7 @@ export function normalizeTime(timeString: string): string {
  */
 export function normalizeDate(dateString: string): string {
     if (!isValidDateFormat(dateString)) {
-        console.warn(`⚠️ normalizeDate: Invalid date format "${dateString}"`);
+        console.warn(` normalizeDate: Invalid date format "${dateString}"`);
         return '';
     }
     return dateString;
@@ -201,7 +201,7 @@ export function addMinutesToTime(startTime: string, durationMinutes: number = 30
 
         return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
     } catch (e) {
-        console.error(`❌ addMinutesToTime: Error calculating end time for "${startTime}":`, e);
+        console.error(` addMinutesToTime: Error calculating end time for "${startTime}":`, e);
         return startTime;
     }
 }
@@ -222,7 +222,7 @@ export function getTimeDifference(startTime: string, endTime: string): number {
 
         return endMinutes - startMinutes;
     } catch (e) {
-        console.error(`❌ getTimeDifference: Error:`, e);
+        console.error(` getTimeDifference: Error:`, e);
         return 0;
     }
 }
@@ -231,7 +231,7 @@ export function getTimeDifference(startTime: string, endTime: string): number {
  * Log tất cả dữ liệu đã format
  */
 export function logFormattedData(data: any): void {
-    console.log('📋 ========== FORMATTED DATA ==========');
+    console.log('========== FORMATTED DATA ==========');
     console.log(JSON.stringify(data, null, 2));
     console.log('=====================================\n');
 }

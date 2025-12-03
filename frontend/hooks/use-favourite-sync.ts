@@ -30,7 +30,7 @@ export function useFavouriteSync(
 
             // Chỉ update nếu store ID match
             if (changedStoreId === storeId) {
-                console.log(`🔄 Yêu thích của store ${storeId} đã thay đổi:`, isFavourite);
+                console.log(`Yêu thích của store ${storeId} đã thay đổi:`, isFavourite);
                 onFavouriteChange?.(isFavourite);
             }
         };
@@ -56,5 +56,5 @@ export function emitFavouriteChange(storeId: string, isFavourite: boolean) {
     });
 
     window.dispatchEvent(event);
-    console.log(`📢 Phát sự kiện yêu thích thay đổi:`, storeId, isFavourite);
+    console.log(`Phát sự kiện yêu thích thay đổi:`, storeId, isFavourite);
 }

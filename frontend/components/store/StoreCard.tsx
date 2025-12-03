@@ -68,12 +68,12 @@ export function StoreCard({ store, selectedSportId }: StoreCardProps) {
       emitFavouriteChange(store.id, newState);
 
       toast({
-        title: newState ? '✅ Đã thêm vào yêu thích' : '✅ Đã xóa khỏi yêu thích',
+        title: newState ? ' Đã thêm vào yêu thích' : ' Đã xóa khỏi yêu thích',
         description: `"${store.name}"`,
       });
     } catch (error: any) {
       toast({
-        title: '❌ Lỗi',
+        title: ' Lỗi',
         description: error?.message || 'Không thể cập nhật yêu thích',
         variant: 'destructive',
       });

@@ -17,43 +17,43 @@ export function validatePaymentOrderRequest(request: any): {
 
     // Check required fields
     if (!request.store_id) {
-        errors.push("❌ Missing required field: store_id");
+        errors.push(" Missing required field: store_id");
     } else if (typeof request.store_id !== "string") {
-        errors.push(`❌ store_id should be string, got ${typeof request.store_id}`);
+        errors.push(` store_id should be string, got ${typeof request.store_id}`);
     }
 
     if (!request.user_id) {
-        errors.push("❌ Missing required field: user_id");
+        errors.push(" Missing required field: user_id");
     } else if (typeof request.user_id !== "string") {
-        errors.push(`❌ user_id should be string, got ${typeof request.user_id}`);
+        errors.push(` user_id should be string, got ${typeof request.user_id}`);
     }
 
     if (!request.amount) {
-        errors.push("❌ Missing required field: amount");
+        errors.push(" Missing required field: amount");
     } else if (typeof request.amount !== "number") {
-        errors.push(`❌ amount should be number, got ${typeof request.amount}`);
+        errors.push(` amount should be number, got ${typeof request.amount}`);
     } else if (request.amount <= 0) {
-        errors.push("❌ amount should be positive number");
+        errors.push(" amount should be positive number");
     }
 
     if (!request.description) {
-        errors.push("❌ Missing required field: description");
+        errors.push(" Missing required field: description");
     } else if (typeof request.description !== "string") {
-        errors.push(`❌ description should be string, got ${typeof request.description}`);
+        errors.push(` description should be string, got ${typeof request.description}`);
     }
 
     if (!request.date) {
-        errors.push("❌ Missing required field: date");
+        errors.push(" Missing required field: date");
     } else if (typeof request.date !== "string") {
-        errors.push(`❌ date should be string, got ${typeof request.date}`);
+        errors.push(` date should be string, got ${typeof request.date}`);
     } else if (!isValidDateFormat(request.date)) {
-        errors.push(`❌ date format should be YYYY-MM-DD, got ${request.date}`);
+        errors.push(` date format should be YYYY-MM-DD, got ${request.date}`);
     }
 
     if (!request.items || !Array.isArray(request.items)) {
-        errors.push("❌ Missing required field: items (should be array)");
+        errors.push(" Missing required field: items (should be array)");
     } else if (request.items.length === 0) {
-        errors.push("❌ items array cannot be empty");
+        errors.push(" items array cannot be empty");
     } else {
         // Validate each item
         request.items.forEach((item: any, index: number) => {
@@ -76,43 +76,43 @@ function validateOrderItem(item: any, index: number): string[] {
     const errors: string[] = [];
 
     if (!item.field_id) {
-        errors.push(`❌ Item[${index}].field_id is required`);
+        errors.push(` Item[${index}].field_id is required`);
     } else if (typeof item.field_id !== "string") {
-        errors.push(`❌ Item[${index}].field_id should be string, got ${typeof item.field_id}`);
+        errors.push(` Item[${index}].field_id should be string, got ${typeof item.field_id}`);
     }
 
     if (!item.start_time) {
-        errors.push(`❌ Item[${index}].start_time is required`);
+        errors.push(` Item[${index}].start_time is required`);
     } else if (typeof item.start_time !== "string") {
-        errors.push(`❌ Item[${index}].start_time should be string, got ${typeof item.start_time}`);
+        errors.push(` Item[${index}].start_time should be string, got ${typeof item.start_time}`);
     } else if (!isValidTimeFormat(item.start_time)) {
-        errors.push(`❌ Item[${index}].start_time format should be HH:MM, got ${item.start_time}`);
+        errors.push(` Item[${index}].start_time format should be HH:MM, got ${item.start_time}`);
     }
 
     if (!item.end_time) {
-        errors.push(`❌ Item[${index}].end_time is required`);
+        errors.push(` Item[${index}].end_time is required`);
     } else if (typeof item.end_time !== "string") {
-        errors.push(`❌ Item[${index}].end_time should be string, got ${typeof item.end_time}`);
+        errors.push(` Item[${index}].end_time should be string, got ${typeof item.end_time}`);
     } else if (!isValidTimeFormat(item.end_time)) {
-        errors.push(`❌ Item[${index}].end_time format should be HH:MM, got ${item.end_time}`);
+        errors.push(` Item[${index}].end_time format should be HH:MM, got ${item.end_time}`);
     }
 
     if (!item.name) {
-        errors.push(`❌ Item[${index}].name is required`);
+        errors.push(` Item[${index}].name is required`);
     } else if (typeof item.name !== "string") {
-        errors.push(`❌ Item[${index}].name should be string, got ${typeof item.name}`);
+        errors.push(` Item[${index}].name should be string, got ${typeof item.name}`);
     }
 
     if (typeof item.quantity !== "number") {
-        errors.push(`❌ Item[${index}].quantity should be number, got ${typeof item.quantity}`);
+        errors.push(` Item[${index}].quantity should be number, got ${typeof item.quantity}`);
     } else if (item.quantity <= 0) {
-        errors.push(`❌ Item[${index}].quantity should be positive number`);
+        errors.push(` Item[${index}].quantity should be positive number`);
     }
 
     if (typeof item.price !== "number") {
-        errors.push(`❌ Item[${index}].price should be number, got ${typeof item.price}`);
+        errors.push(` Item[${index}].price should be number, got ${typeof item.price}`);
     } else if (item.price <= 0) {
-        errors.push(`❌ Item[${index}].price should be positive number`);
+        errors.push(` Item[${index}].price should be positive number`);
     }
 
     return errors;
@@ -145,21 +145,21 @@ function isValidTimeFormat(time: string): boolean {
  * Log validation result
  */
 export function logValidationResult(validation: ReturnType<typeof validatePaymentOrderRequest>): void {
-    console.log("📋 ========== VALIDATION RESULT ==========");
-    console.log(`✓ Is Valid: ${validation.isValid}`);
+    console.log("========== VALIDATION RESULT ==========");
+    console.log(`Is Valid: ${validation.isValid}`);
 
     if (validation.errors.length > 0) {
-        console.log("\n❌ ERRORS:");
+        console.log("\nERRORS:");
         validation.errors.forEach((error) => console.log(`   ${error}`));
     }
 
     if (validation.warnings.length > 0) {
-        console.log("\n⚠️ WARNINGS:");
+        console.log("\nWARNINGS:");
         validation.warnings.forEach((warning) => console.log(`   ${warning}`));
     }
 
     if (validation.isValid) {
-        console.log("\n✅ All validations passed!");
+        console.log("\nAll validations passed!");
     }
 
     console.log("========================================\n");

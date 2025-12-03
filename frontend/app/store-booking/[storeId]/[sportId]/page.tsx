@@ -54,7 +54,7 @@
 //                 setStoreId(sid)
 //                 setSportId(spid)
 
-//                 console.log('🔍 Fetching store booking data:', { storeId: sid, sportId: spid })
+//                 console.log(' Fetching store booking data:', { storeId: sid, sportId: spid })
 
 //                 // Fetch store, sport, and fields data in parallel
 //                 const [storeData, sportData, fieldsResponse] = await Promise.all([
@@ -83,7 +83,7 @@
 //                             pricingMap[field._id] = pricingResponse.data || []
 //                             console.log(`💰 Pricing for field ${field._id}:`, pricingMap[field._id])
 //                         } catch (error) {
-//                             console.warn(`⚠️ Failed to fetch pricing for field ${field._id}:`, error)
+//                             console.warn(` Failed to fetch pricing for field ${field._id}:`, error)
 //                             pricingMap[field._id] = []
 //                         }
 //                     })
@@ -112,7 +112,7 @@
 //                             bookingMap[field._id] = fieldBookingData || {}
 //                             console.log(`📅 Booking data for field ${field._id}:`, fieldBookingData)
 //                         } catch (error) {
-//                             console.warn(`⚠️ Failed to fetch booking for field ${field._id}:`, error)
+//                             console.warn(` Failed to fetch booking for field ${field._id}:`, error)
 //                             // Default all slots as available
 //                             bookingMap[field._id] = {}
 //                             slots.forEach((slot: string) => {
@@ -146,7 +146,7 @@
 //                             const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
 //                             bookingMap[field._id] = fieldBookingData || {}
 //                         } catch (error) {
-//                             console.warn(`⚠️ Failed to fetch booking for field ${field._id}:`, error)
+//                             console.warn(` Failed to fetch booking for field ${field._id}:`, error)
 //                             bookingMap[field._id] = {}
 //                         }
 //                     })

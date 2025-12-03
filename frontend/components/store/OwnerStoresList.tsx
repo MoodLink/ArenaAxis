@@ -26,46 +26,46 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
             try {
                 setLoading(true)
 
-                // ✅ Lấy owner-id: Ưu tiên prop, fallback sang getMyProfile()
+                //  Lấy owner-id: Ưu tiên prop, fallback sang getMyProfile()
                 let currentOwnerId = ownerId
 
                 if (!currentOwnerId) {
-                    console.log('📍 Owner ID not provided, fetching current user profile...')
-                    // ✅ ĐÚNG: Gọi GET /users/myself để lấy thông tin user hiện tại
+                    console.log(' Owner ID not provided, fetching current user profile...')
+                    //  ĐÚNG: Gọi GET /users/myself để lấy thông tin user hiện tại
                     const currentUser = getMyProfile()
 
                     if (!currentUser?.id) {
-                        console.error('❌ Cannot get user ID from getMyProfile()')
+                        console.error(' Cannot get user ID from getMyProfile()')
                         setError('Không thể lấy thông tin người dùng. Vui lòng đăng nhập lại.')
                         return
                     }
 
                     currentOwnerId = currentUser.id
-                    console.log('✅ Got owner ID from getMyProfile():', currentOwnerId)
+                    console.log(' Got owner ID from getMyProfile():', currentOwnerId)
                 }
 
-                // ✅ ĐÚNG: Gọi GET /stores/owner/{owner-id} với owner-id vừa lấy được
-                console.log('🔍 Fetching stores for owner ID:', currentOwnerId)
+                //  ĐÚNG: Gọi GET /stores/owner/{owner-id} với owner-id vừa lấy được
+                console.log(' Fetching stores for owner ID:', currentOwnerId)
                 const data = await getStoresByOwnerId(currentOwnerId)
-                console.log('📦 Stores data received:', data, '| Total:', data.length)
+                console.log('Stores data received:', data, '| Total:', data.length)
 
                 setStores(data)
                 setError(null)
 
-                // ✅ TẤT CẢ ĐỀU LỮU STORE ID VÀO LOCALSTORAGE
+                //  TẤT CẢ ĐỀU LỮU STORE ID VÀO LOCALSTORAGE
                 // Nếu chỉ có 1 Trung tâm thể thao → lưu ngay
                 // Nếu có nhiều Trung tâm thể thao → lưu cái đầu tiên (user sẽ sửa thành cái khác khi navigate)
                 if (data.length > 0) {
                     const primaryStore = data[0]
                     localStorage.setItem('storeId', primaryStore.id)
                     localStorage.setItem('storeName', primaryStore.name)
-                    console.log('✅ Saved primary store to localStorage:', {
+                    console.log(' Saved primary store to localStorage:', {
                         storeId: primaryStore.id,
                         storeName: primaryStore.name
                     })
                 }
             } catch (err) {
-                console.error('❌ Error fetching stores:', err)
+                console.error(' Error fetching stores:', err)
                 const errorMsg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách Trung tâm thể thao'
                 setError(errorMsg)
                 setStores([])
@@ -82,11 +82,11 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         return time.substring(0, 5); // HH:mm
     };
 
-    // ✅ Hàm xử lý khi user click vào store
+    //  Hàm xử lý khi user click vào store
     const handleStoreSelect = (store: StoreAdminDetailResponse) => {
         localStorage.setItem('storeId', store.id)
         localStorage.setItem('storeName', store.name)
-        console.log('✅ Updated current store to:', {
+        console.log(' Updated current store to:', {
             storeId: store.id,
             storeName: store.name
         })
@@ -106,7 +106,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
     if (error) {
         return (
             <div className="bg-red-50 text-red-800 p-6 rounded-xl border border-red-200">
-                <p className="font-semibold">⚠️ Lỗi: {error}</p>
+                <p className="font-semibold"> Lỗi: {error}</p>
                 <p className="text-sm mt-2">Vui lòng thử lại hoặc liên hệ hỗ trợ</p>
             </div>
         )

@@ -188,9 +188,9 @@ export default function FieldsManagement() {
       const response = await FieldService.createField(newFieldData)
       setFields([...fields, response.data])
       setIsCreateDialogOpen(false)
-      alert("✅ Tạo sân thành công!")
+      alert(" Tạo sân thành công!")
     } catch (err) {
-      alert("❌ Lỗi khi tạo sân: " + (err instanceof Error ? err.message : "Unknown error"))
+      alert(" Lỗi khi tạo sân: " + (err instanceof Error ? err.message : "Unknown error"))
     }
   }
 
@@ -211,9 +211,9 @@ export default function FieldsManagement() {
       setFields(fields.map(f => (f._id === selectedField._id ? response.data : f)))
       setIsEditDialogOpen(false)
       setSelectedField(null)
-      alert("✅ Cập nhật sân thành công!")
+      alert(" Cập nhật sân thành công!")
     } catch (err) {
-      alert("❌ Lỗi khi cập nhật sân: " + (err instanceof Error ? err.message : "Unknown error"))
+      alert(" Lỗi khi cập nhật sân: " + (err instanceof Error ? err.message : "Unknown error"))
     }
   }
 

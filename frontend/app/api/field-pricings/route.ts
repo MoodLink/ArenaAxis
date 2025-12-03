@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // 🎯 Call backend endpoint that returns pricings by day
+    //  Call backend endpoint that returns pricings by day
     console.log(`[PROXY] Fetching pricings for field ${fieldId}...`);
     const response = await fetch(`${API_BASE_URL}/field-pricings/${fieldId}`, {
       method: 'GET',
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     const backendData = await response.json();
     console.log(`[PROXY] Got backend response:`, JSON.stringify(backendData).substring(0, 200));
 
-    // 🎯 NORMALIZE: Convert backend format to flat array
+    //  NORMALIZE: Convert backend format to flat array
     // Backend may return TWO formats:
     // Format 1: { data: { pricings: { monday: [...], thursday: [...] } } }
     // Format 2: { data: { monday: [...], thursday: [...] } }

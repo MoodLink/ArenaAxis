@@ -79,13 +79,13 @@ export default function DashboardStats() {
           const usersData = await getUsers(0, 1000)
           if (Array.isArray(usersData)) {
             setTotalUsers(usersData.length)
-            console.log('✅ Users loaded:', usersData.length)
+            console.log(' Users loaded:', usersData.length)
           } else {
             console.warn('Users data is not an array:', usersData)
             setTotalUsers('0')
           }
         } catch (err: any) {
-          console.error('❌ Error fetching users:', err.message)
+          console.error(' Error fetching users:', err.message)
           // Don't set error here - let the component handle gracefully
           setTotalUsers('0')
         }
@@ -95,13 +95,13 @@ export default function DashboardStats() {
           const storesData = await getUserStores(1, 1000)
           if (Array.isArray(storesData)) {
             setTotalStores(storesData.length)
-            console.log('✅ Stores loaded:', storesData.length)
+            console.log(' Stores loaded:', storesData.length)
           } else {
             console.warn('Stores data is not an array:', storesData)
             setTotalStores('0')
           }
         } catch (err: any) {
-          console.error('❌ Error fetching stores:', err.message)
+          console.error(' Error fetching stores:', err.message)
           // Don't set error here - let the component handle gracefully
           setTotalStores('0')
         }
@@ -111,13 +111,13 @@ export default function DashboardStats() {
           const fieldsResponse = await FieldService.getFields()
           if (fieldsResponse?.data && Array.isArray(fieldsResponse.data)) {
             setTotalFields(fieldsResponse.data.length)
-            console.log('✅ Fields loaded:', fieldsResponse.data.length)
+            console.log(' Fields loaded:', fieldsResponse.data.length)
           } else {
             console.warn('Fields response invalid:', fieldsResponse)
             setTotalFields('0')
           }
         } catch (err: any) {
-          console.error('❌ Error fetching fields:', err.message)
+          console.error(' Error fetching fields:', err.message)
           // Don't set error here - let the component handle gracefully
           setTotalFields('0')
         }
@@ -184,7 +184,7 @@ export default function DashboardStats() {
     <div className="space-y-4">
       {error && (
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-          ⚠️ {error}
+          {error}
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
