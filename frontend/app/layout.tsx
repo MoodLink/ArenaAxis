@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { Inter } from "next/font/google"
 import { usePathname } from "next/navigation"
