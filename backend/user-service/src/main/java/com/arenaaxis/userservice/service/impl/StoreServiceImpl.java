@@ -56,14 +56,14 @@ public class StoreServiceImpl implements StoreService {
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse create(StoreCreateRequest request, User owner)
-    throws ParseException, JOSEException {
+      throws ParseException, JOSEException {
     Ward ward = getWard(request.getWardId());
 
     Store store = storeMapper.fromCreateRequest(request);
     String newToken = authenticationService.buildTokenWhenUpgradeUser(owner);
 
     store.setOwner(userRepository.findById(owner.getId())
-      .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
+        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     store.setWard(ward);
     store.setProvince(ward.getProvince());
     store = storeRepository.save(store);
@@ -76,10 +76,11 @@ public class StoreServiceImpl implements StoreService {
   @PostAuthorize("returnObject.owner.email == authentication.name")
   public StoreAdminDetailResponse updateImage(String storeId, Map<StoreImageType, List<MultipartFile>> images) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     images.forEach((type, files) -> {
-      if (files == null) return;
+      if (files == null)
+        return;
 
       if (type == StoreImageType.MEDIAS) {
         mediaService.uploadMultipleMedias(store, files);
@@ -100,7 +101,7 @@ public class StoreServiceImpl implements StoreService {
   @Override
   public StoreClientDetailResponse detail(String storeId, User currentUser) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     if (shouldIncreaseView(currentUser)) {
       store.increaseViewCount();
@@ -130,8 +131,8 @@ public class StoreServiceImpl implements StoreService {
     Page<Store> storePage = storeRepository.findAll(pageable);
 
     return storePage.getContent().stream()
-      .map(storeMapper::toStoreSearchItemResponse)
-      .toList();
+        .map(storeMapper::toStoreSearchItemResponse)
+        .toList();
   }
 
   @Override
@@ -149,26 +150,26 @@ public class StoreServiceImpl implements StoreService {
   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser) {
     if (!currentUser.getId().equals(ownerId) && !currentUser.getRole().isAdmin()) {
-      throw  new AppException(ErrorCode.UNAUTHENTICATED);
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
     }
 
     return storeRepository.findByOwner_Id(ownerId)
-      .stream()
-      .map(storeMapper::toAdminDetailResponse)
-      .toList();
+        .stream()
+        .map(storeMapper::toAdminDetailResponse)
+        .toList();
   }
 
   @Override
   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse fullInfo(String storeId) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
     return storeMapper.toAdminDetailResponse(store);
   }
 
   private Ward getWard(String wardId) {
     return wardRepository.findById(wardId)
-                         .orElseThrow(() -> new AppException(ErrorCode.WARD_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.WARD_NOT_FOUND));
   }
 
   private boolean shouldIncreaseView(User currentUser) {
@@ -176,17 +177,19 @@ public class StoreServiceImpl implements StoreService {
   }
 
   private boolean shouldSaveHistory(User currentUser, String storeId) {
+
     if (currentUser == null) return false;
     if (currentUser.getRole() != Role.USER) return false;
+
 
     return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
   }
 
   private void saveStoreViewHistory(Store store, User currentUser) {
     StoreViewHistory storeViewHistory = StoreViewHistory.builder()
-      .user(currentUser)
-      .store(store)
-      .build();
+        .user(currentUser)
+        .store(store)
+        .build();
     storeViewHistoryRepository.save(storeViewHistory);
   }
 }

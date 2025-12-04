@@ -13,12 +13,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@Table(
-  indexes = {
+@Table(indexes = {
     @Index(name = "index_number", columnList = "number"),
     @Index(name = "index_bank_account_user", columnList = "user_id")
-  }
-)
+})
 public class BankAccount {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)

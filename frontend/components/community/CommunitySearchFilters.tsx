@@ -36,11 +36,11 @@ export default function CommunitySearchFilters({
 
     // Danh sách các khoảng cách có sẵn
     const distances = [
-        { value: "Tất cả", label: "📍 Mọi khoảng cách" },
-        { value: "< 1km", label: "📍 Dưới 1km" },
-        { value: "1-5km", label: "📍 1-5km" },
-        { value: "5-10km", label: "📍 5-10km" },
-        { value: "> 10km", label: "📍 Trên 10km" }
+        { value: "Tất cả", label: " Mọi khoảng cách" },
+        { value: "< 1km", label: " Dưới 1km" },
+        { value: "1-5km", label: " 1-5km" },
+        { value: "5-10km", label: " 5-10km" },
+        { value: "> 10km", label: " Trên 10km" }
     ]
 
     const activeFiltersCount = [
@@ -112,8 +112,8 @@ export default function CommunitySearchFilters({
                                         key={sport.value}
                                         onClick={() => onSportChange(sport.value)}
                                         className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${selectedSport === sport.value
-                                                ? "bg-green-100 text-green-700 border-green-300 font-medium"
-                                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                            ? "bg-green-100 text-green-700 border-green-300 font-medium"
+                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                                             }`}
                                     >
                                         {sport.label}
@@ -134,8 +134,8 @@ export default function CommunitySearchFilters({
                                         key={distance.value}
                                         onClick={() => onDistanceChange(distance.value)}
                                         className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${selectedDistance === distance.value
-                                                ? "bg-blue-100 text-blue-700 border-blue-300 font-medium"
-                                                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                            ? "bg-blue-100 text-blue-700 border-blue-300 font-medium"
+                                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                                             }`}
                                     >
                                         {distance.label}

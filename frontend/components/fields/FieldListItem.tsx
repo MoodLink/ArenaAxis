@@ -18,18 +18,19 @@ export default function FieldListItem({
     onFavoriteClick
 }: FieldListItemProps) {
     // Derive additional properties from Field data
-    const fieldColor = field.sport === "Bóng đá" ? "bg-green-500" :
-        field.sport === "Tennis" ? "bg-purple-500" :
-            field.sport === "Bóng rổ" ? "bg-orange-500" :
-                field.sport === "Cầu lông" ? "bg-blue-500" :
-                    field.sport === "Golf" ? "bg-emerald-600" :
-                        field.sport === "Bóng chuyền" ? "bg-pink-500" :
-                            field.sport === "Bơi lội" ? "bg-cyan-500" : "bg-gray-500"
+    const fieldColor = field.sport_name === "Bóng đá" ? "bg-green-500" :
+        field.sport_name === "Tennis" ? "bg-purple-500" :
+            field.sport_name === "Bóng rổ" ? "bg-orange-500" :
+                field.sport_name === "Cầu lông" ? "bg-blue-500" :
+                    field.sport_name === "Golf" ? "bg-emerald-600" :
+                        field.sport_name === "Bóng chuyền" ? "bg-pink-500" :
+                            field.sport_name === "Bơi lội" ? "bg-cyan-500" : "bg-gray-500"
 
     // Use dynamic data from Field interface instead of hard-coded values
-    const fieldStatus = field.status || "available"
-    const fieldTime = `${field.openingHours} - ${field.closingHours}`
-    const formattedPrice = field.price.toLocaleString('vi-VN') + "đ/h"
+    const fieldStatus = field.activeStatus || "available"
+    const fieldTime = `${field.openingHours || '---'} - ${field.closingHours || '---'}`
+    const formattedPrice = ((field.defaultPrice || 0) as number).toLocaleString('vi-VN') + "đ/h"
+    const imageUrl = field.avatar || field.cover_image || "/placeholder-field.png"
 
     return (
         <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
@@ -41,8 +42,8 @@ export default function FieldListItem({
                     {/* Ảnh sân */}
                     <div className="relative w-40 flex-shrink-0">
                         <Image
-                            src={field.image}
-                            alt={field.name}
+                            src={imageUrl}
+                            alt={field.name || 'Field'}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             sizes="160px"
@@ -58,7 +59,7 @@ export default function FieldListItem({
                             <div className="flex-1 min-w-0">
                                 {/* Header với tên và status */}
                                 <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-lg font-bold truncate">{field.name}</h3>
+                                    <h3 className="text-lg font-bold truncate">{field.name || 'Unnamed Field'}</h3>
 
                                     {/* Status tags */}
                                     <div className="flex gap-1 flex-shrink-0">
@@ -69,7 +70,7 @@ export default function FieldListItem({
                                             {fieldStatus === "available" ? "Đang mở" : "Đã đóng"}
                                         </span>
                                         <span className={`px-2 py-1 rounded-full text-xs text-white font-medium whitespace-nowrap ${fieldColor}`}>
-                                            {field.sport}
+                                            {field.sport_name || 'N/A'}
                                         </span>
                                     </div>
                                 </div>
@@ -79,7 +80,7 @@ export default function FieldListItem({
                                     {/* Địa chỉ */}
                                     <div className="flex items-center min-w-0">
                                         <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
-                                        <span className="truncate">{field.location}</span>
+                                        <span className="truncate">{field.address || 'N/A'}</span>
                                     </div>
 
                                     {/* Giờ mở cửa */}
@@ -91,21 +92,23 @@ export default function FieldListItem({
                                     {/* Rating */}
                                     <div className="flex items-center">
                                         <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                                        <span className="whitespace-nowrap">{field.rating} điểm</span>
+                                        <span className="whitespace-nowrap">{field.rating || 4.5} điểm</span>
                                     </div>
 
                                     {/* Tiện ích */}
                                     <div className="flex items-center min-w-0">
                                         <span className="text-xs text-emerald-600 truncate">
-                                            {field.amenities.slice(0, 2).join(", ")}
-                                            {field.amenities.length > 2 && ` +${field.amenities.length - 2}`}
+                                            {field.amenities && field.amenities.length > 0
+                                                ? field.amenities.slice(0, 2).join(", ") + (field.amenities.length > 2 ? ` +${field.amenities.length - 2}` : "")
+                                                : "Không có tiện ích"
+                                            }
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Mô tả ngắn */}
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500 line-clamp-1">{field.description}</p>
+                                    <p className="text-sm text-gray-500 line-clamp-1">{field.description || 'No description'}</p>
                                 </div>
                             </div>
 
@@ -121,7 +124,7 @@ export default function FieldListItem({
                                     {/* Nút yêu thích */}
                                     <button
                                         className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-                                        onClick={() => onFavoriteClick?.(field.id)}
+                                        onClick={() => onFavoriteClick?.(field._id || field.id || '')}
                                         title="Thêm vào yêu thích"
                                     >
                                         <Heart className="w-4 h-4" />
@@ -129,7 +132,7 @@ export default function FieldListItem({
 
                                     {/* Nút đặt lịch */}
                                     {fieldStatus === "available" ? (
-                                        <Link href={`/fields/${field.id}`}>
+                                        <Link href={`/fields/${field._id || field.id}`}>
                                             <Button className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 text-sm whitespace-nowrap">
                                                 ĐẶT LỊCH
                                             </Button>

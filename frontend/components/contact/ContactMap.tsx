@@ -36,7 +36,7 @@ export default function ContactMap({
                     ) : (
                         // Placeholder khi chưa có map
                         <div className="text-center text-gray-500">
-                            <div className="text-6xl mb-4">📍</div>
+                            <div className="text-6xl mb-4"></div>
                             <span className="text-lg font-medium">Bản đồ Google Maps</span>
                             <p className="text-sm mt-2 max-w-xs">
                                 Bản đồ sẽ hiển thị vị trí chính xác của chúng tôi
@@ -55,7 +55,7 @@ export default function ContactMap({
                 {/* Instructions để tích hợp map thực */}
                 {!mapUrl && (
                     <div className="mt-4 text-xs text-gray-500 text-center">
-                        💡 Để tích hợp Google Maps: thêm Google Maps API key và embed URL
+                        Để tích hợp Google Maps: thêm Google Maps API key và embed URL
                     </div>
                 )}
             </CardContent>

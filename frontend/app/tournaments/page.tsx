@@ -1,150 +1,104 @@
 "use client"
 
-// Import các components đã tách riêng cho trang tournaments
+// Import các components cho trang tin tức thể thao
 import { useState, useMemo, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import TournamentsHeader from "@/components/tournaments/TournamentsHeader"
-import TournamentsFilters from "@/components/tournaments/TournamentsFilters"
-import TournamentCard from "@/components/tournaments/TournamentCard"
-import { getTournaments } from "@/services/api"
-import { Tournament } from "@/types"
+import SportsNewsHeader from "@/components/tournaments/SportsNewsHeader"
+import SportsNewsFilters from "@/components/tournaments/SportsNewsFilters"
+import SportsNewsCard from "@/components/tournaments/SportsNewsCard"
+import { getSportsNews, SportsNewsResponse } from "@/services/sports-news"
+import { SportsNews } from "@/types"
 
 // Interface cho filters
-interface TournamentFilters {
+interface SportsNewsFiltersType {
   search: string
   sport: string
-  status: string
-  prizeRange: string
+  timeRange: string
+  source: string
 }
 
-export default function TournamentsPage() {
-  const router = useRouter()
+const ITEMS_PER_PAGE = 12
 
+export default function TournamentsPage() {
   // State quản lý filters
-  const [filters, setFilters] = useState<TournamentFilters>({
+  const [filters, setFilters] = useState<SportsNewsFiltersType>({
     search: "",
     sport: "all",
-    status: "all",
-    prizeRange: "all"
+    timeRange: "all",
+    source: "all"
   })
 
   // State quản lý dữ liệu từ API
-  const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [newsResponse, setNewsResponse] = useState<SportsNewsResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
 
-  // Lấy dữ liệu từ API
+  // Lấy dữ liệu từ API (chỉ phụ thuộc vào currentPage)
   useEffect(() => {
-    async function fetchTournaments() {
+    async function fetchSportsNews() {
       try {
-        const apiTournaments = await getTournaments()
-        setTournaments(apiTournaments)
+        setLoading(true)
+        // Luôn lấy 'all' từ API để có tất cả bài viết, rồi filter client-side
+        const response = await getSportsNews('all', 'vi', ITEMS_PER_PAGE, currentPage)
+        setNewsResponse(response)
       } catch (error) {
-        console.error("Error fetching tournaments:", error)
+        console.error("Error fetching sports news:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTournaments()
-  }, [])
+    fetchSportsNews()
+  }, [currentPage])
 
-  // Filter tournaments dựa trên filters
-  const filteredTournaments = useMemo(() => {
-    return tournaments.filter(tournament => {
+  // Filter news articles - chỉ theo search
+  const filteredNews = useMemo(() => {
+    if (!newsResponse?.articles) return []
+
+    return newsResponse.articles.filter((news: SportsNews) => {
       // Filter theo search
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
         const matchesSearch =
-          tournament.name.toLowerCase().includes(searchLower) ||
-          tournament.location.toLowerCase().includes(searchLower) ||
-          tournament.description?.toLowerCase().includes(searchLower)
+          news.title.toLowerCase().includes(searchLower) ||
+          news.description.toLowerCase().includes(searchLower) ||
+          news.content?.toLowerCase().includes(searchLower)
 
-        if (!matchesSearch) return false
-      }
-
-      // Filter theo sport
-      if (filters.sport !== "all" && tournament.sport !== filters.sport) {
-        return false
-      }
-
-      // Filter theo status - derive from current date and tournament dates
-      if (filters.status !== "all") {
-        const currentDate = new Date()
-        const startDate = new Date(tournament.startDate)
-        const endDate = new Date(tournament.endDate)
-
-        let tournamentStatus = "Open Registration" // Default
-        if (currentDate > endDate) {
-          tournamentStatus = "Completed"
-        } else if (currentDate >= startDate && currentDate <= endDate) {
-          tournamentStatus = "Ongoing"
-        } else if (tournament.currentTeams >= tournament.maxTeams) {
-          tournamentStatus = "Registration Closed"
-        }
-
-        const statusMap = {
-          "open": "Open Registration",
-          "closed": "Registration Closed",
-          "ongoing": "Ongoing",
-          "completed": "Completed"
-        }
-        if (tournamentStatus !== statusMap[filters.status as keyof typeof statusMap]) {
-          return false
-        }
-      }
-
-      // Filter theo prize range
-      if (filters.prizeRange !== "all") {
-        const prizeAmount = tournament.prizePool
-        switch (filters.prizeRange) {
-          case "under-20m":
-            if (prizeAmount >= 20000000) return false
-            break
-          case "20m-50m":
-            if (prizeAmount < 20000000 || prizeAmount > 50000000) return false
-            break
-          case "50m-100m":
-            if (prizeAmount < 50000000 || prizeAmount > 100000000) return false
-            break
-          case "over-100m":
-            if (prizeAmount <= 100000000) return false
-            break
-        }
+        return matchesSearch
       }
 
       return true
     })
-  }, [tournaments, filters])
+  }, [newsResponse?.articles, filters.search])
 
-  // Tính toán stats
+  // Tính toán stats từ tất cả tin tức (không chỉ trang hiện tại)
   const stats = useMemo(() => {
-    const total = tournaments.length
-    const currentDate = new Date()
+    if (!newsResponse?.articles) return { total: 0, today: 0, trending: 0 }
 
-    const ongoing = tournaments.filter(t => {
-      const startDate = new Date(t.startDate)
-      const endDate = new Date(t.endDate)
-      return currentDate >= startDate && currentDate <= endDate
+    const total = newsResponse.totalResults || newsResponse.articles.length
+    const now = new Date()
+
+    const today = newsResponse.articles.filter((news: SportsNews) => {
+      const newsDate = new Date(news.publishedAt)
+      const diffTime = Math.abs(now.getTime() - newsDate.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      return diffDays <= 1
     }).length
 
-    const upcoming = tournaments.filter(t => {
-      const startDate = new Date(t.startDate)
-      return currentDate < startDate && t.currentTeams < t.maxTeams
+    // Tin nổi bật: tin trong 3 ngày gần nhất
+    const trending = newsResponse.articles.filter((news: SportsNews) => {
+      const newsDate = new Date(news.publishedAt)
+      const diffTime = Math.abs(now.getTime() - newsDate.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      return diffDays <= 3
     }).length
 
-    return { total, ongoing, upcoming }
-  }, [tournaments])
+    return { total, today, trending }
+  }, [newsResponse?.articles, newsResponse?.totalResults])
 
-  // Xử lý đăng ký giải đấu
-  const handleRegisterTournament = (tournamentId: string) => {
-    // Điều hướng đến trang đăng ký giải đấu
-    router.push(`/tournaments/register/${tournamentId}`)
-  }
-
-  // Xử lý xem chi tiết giải đấu
-  const handleViewTournamentDetails = (tournamentId: string) => {
-    // Điều hướng đến trang chi tiết giải đấu (có thể tạo sau)
-    router.push(`/tournaments/${tournamentId}`)
+  // Xử lý đọc thêm tin tức
+  const handleReadMore = (url: string) => {
+    // Mở link tin tức trong tab mới
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   // Xử lý xóa filters
@@ -152,23 +106,31 @@ export default function TournamentsPage() {
     setFilters({
       search: "",
       sport: "all",
-      status: "all",
-      prizeRange: "all"
+      timeRange: "all",
+      source: "all"
     })
+    setCurrentPage(1)
+  }
+
+  // Xử lý thay đổi trang
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+    // Scroll lên top
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header với stats */}
-        <TournamentsHeader
-          totalTournaments={stats.total}
-          ongoingTournaments={stats.ongoing}
-          upcomingTournaments={stats.upcoming}
+        <SportsNewsHeader
+          totalNews={stats.total}
+          todayNews={stats.today}
+          trendingNews={stats.trending}
         />
 
         {/* Filters */}
-        <TournamentsFilters
+        <SportsNewsFilters
           filters={filters}
           onFiltersChange={setFilters}
           onClearFilters={handleClearFilters}
@@ -176,40 +138,100 @@ export default function TournamentsPage() {
 
         {/* Kết quả tìm kiếm */}
         {filters.search && (
-          <div className="mb-6 text-gray-600">
-            Tìm thấy {filteredTournaments.length} giải đấu cho "{filters.search}"
+          <div className="mb-6 text-gray-600 font-medium">
+            Tìm thấy {filteredNews.length} tin tức cho "{filters.search}"
           </div>
         )}
 
-        {/* Grid tournaments */}
-        {filteredTournaments.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredTournaments.map((tournament) => (
-              <TournamentCard
-                key={tournament.id}
-                tournament={tournament}
-                onRegisterClick={handleRegisterTournament}
-                onViewDetails={handleViewTournamentDetails}
-              />
-            ))}
+        {/* Loading state */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">📰</div>
+            <p className="text-gray-600">Đang tải tin tức...</p>
           </div>
         ) : (
-          /* Empty state */
-          <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">🏆</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              Không tìm thấy giải đấu nào
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Thử thay đổi tiêu chí tìm kiếm hoặc bộ lọc
-            </p>
-            <button
-              onClick={handleClearFilters}
-              className="text-green-600 hover:text-green-700 underline"
-            >
-              Xóa bộ lọc và xem tất cả
-            </button>
-          </div>
+          <>
+            {/* Grid news articles */}
+            {filteredNews.length > 0 ? (
+              <>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                  {filteredNews.map((news: SportsNews) => (
+                    <SportsNewsCard
+                      key={news.id}
+                      news={news}
+                      onReadMore={handleReadMore}
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {newsResponse?.pagination && newsResponse.pagination.totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mb-8">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={!newsResponse.pagination.hasPreviousPage}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 disabled:hover:bg-white transition-colors"
+                    >
+                      ← Trước
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex gap-1">
+                      {Array.from(
+                        { length: newsResponse.pagination.totalPages },
+                        (_, i) => i + 1
+                      ).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-2 rounded-lg border transition-colors ${page === currentPage
+                            ? 'bg-green-500 text-white border-green-500'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={!newsResponse.pagination.hasNextPage}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 disabled:hover:bg-white transition-colors"
+                    >
+                      Sau →
+                    </button>
+                  </div>
+                )}
+
+                {/* Pagination Info */}
+                {newsResponse?.pagination && (
+                  <div className="text-center text-gray-600 text-sm">
+                    Trang {currentPage} / {newsResponse.pagination.totalPages} ({newsResponse.totalResults} tin tức)
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Empty state */
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-6xl mb-4">📰</div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  Không tìm thấy tin tức nào
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  Thử thay đổi tiêu chí tìm kiếm hoặc bộ lọc
+                </p>
+                <button
+                  onClick={handleClearFilters}
+                  className="text-green-600 hover:text-green-700 underline"
+                >
+                  Xóa bộ lọc và xem tất cả
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

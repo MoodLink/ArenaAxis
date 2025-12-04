@@ -37,6 +37,7 @@ public class StoreClientDetailResponse {
   List<SportResponse> sports;
   List<SportRatingResponse> sportRatings;
 
+
   Float latitude;
   Float longitude;
 }

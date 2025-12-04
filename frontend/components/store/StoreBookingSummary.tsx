@@ -1,0 +1,643 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Star, LogIn, UserX, Calendar } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { FieldPricingService } from "@/services/field-pricing.service"
+import type { Field as FieldServiceType } from "@/services/field.service"
+import { OrderService } from "@/services/order.service"
+import { useState, useEffect } from "react"
+import { toast } from "@/hooks/use-toast"
+import { validatePaymentOrderRequest, logValidationResult } from "@/utils/request-validator"
+import { useUserId } from "@/hooks/use-user-id"
+import { formatVNDWithSymbol, formatDateVN } from "@/utils/data-formatter"
+
+interface StoreBookingSummaryProps {
+    selectedSlots: { [date: string]: string[] }  //  Changed to object with dates as keys
+    setSelectedSlots: React.Dispatch<React.SetStateAction<{ [date: string]: string[] }>>
+    selectedDate: string
+    fields: FieldServiceType[]
+    onClearSlots: () => void
+    storeName: string
+    sportName: string
+    storeId?: string
+    fieldPricings?: {
+        [fieldId: string]: any[]
+    }
+}
+
+export default function StoreBookingSummary({
+    selectedSlots,
+    setSelectedSlots,
+    selectedDate,
+    fields,
+    onClearSlots,
+    storeName,
+    sportName,
+    storeId = '0',
+    fieldPricings = {},
+}: StoreBookingSummaryProps) {
+    const router = useRouter()
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [showLoginDialog, setShowLoginDialog] = useState(false)
+    const userId = useUserId()  //  Sử dụng hook để lấy user ID
+
+    //  Kiểm tra trạng thái đăng nhập khi component mount và khi userId thay đổi
+    useEffect(() => {
+        const checkAuth = () => {
+            if (typeof window === 'undefined') return
+
+            const token = localStorage.getItem('token')
+            const user = localStorage.getItem('user')
+
+            // Kiểm tra có token và user data
+            const authenticated = !!(token && user && userId && userId !== '0')
+            setIsAuthenticated(authenticated)
+
+            console.log(' Auth status:', {
+                hasToken: !!token,
+                hasUser: !!user,
+                userId,
+                authenticated
+            })
+        }
+
+        checkAuth()
+
+        // Lắng nghe sự kiện storage để cập nhật khi đăng nhập/đăng xuất ở tab khác
+        window.addEventListener('storage', checkAuth)
+        return () => window.removeEventListener('storage', checkAuth)
+    }, [userId])
+
+    if (Object.values(selectedSlots).every(slots => slots.length === 0)) {
+        return null
+    }
+
+    // Calculate total price and group slots by date and field
+    const groupedSlotsByDate: { [date: string]: { [fieldId: string]: string[] } } = {}
+    let totalPrice = 0
+
+    console.log(' StoreBookingSummary - Processing selectedSlots:', selectedSlots)
+
+    // Group slots by date and field
+    Object.entries(selectedSlots).forEach(([date, slotsForDate]) => {
+        if (!groupedSlotsByDate[date]) {
+            groupedSlotsByDate[date] = {}
+        }
+
+        slotsForDate.forEach((slotKey) => {
+            // slotKey format: "fieldId:HH:MM"
+            const colonIndex = slotKey.indexOf(':')
+            const fieldId = slotKey.substring(0, colonIndex)
+            const timeSlot = slotKey.substring(colonIndex + 1) // "HH:MM"
+
+            console.log(`  Parsing slot: "${slotKey}" -> date="${date}", fieldId="${fieldId}", timeSlot="${timeSlot}"`)
+
+            if (!groupedSlotsByDate[date][fieldId]) {
+                groupedSlotsByDate[date][fieldId] = []
+            }
+            groupedSlotsByDate[date][fieldId].push(timeSlot)
+
+            const field = fields.find((f) => f._id === fieldId)
+            if (field) {
+                // Get special price for this slot if available
+                const pricings = fieldPricings[fieldId] || []
+                const defaultPrice = parseFloat(field.defaultPrice || "0")
+
+                let slotPrice = defaultPrice
+                if (pricings.length > 0) {
+                    const selectedDateObj = new Date(date)
+                    const dayOfWeek = FieldPricingService.getDayOfWeek(selectedDateObj)
+                    const specialPrice = FieldPricingService.getSpecialPriceForSlot(
+                        pricings,
+                        timeSlot,
+                        dayOfWeek
+                    )
+                    slotPrice = specialPrice || defaultPrice
+                }
+                totalPrice += slotPrice
+                console.log(`    Field: ${field.name}, Date: ${date}, TimeSlot: ${timeSlot}, Price: ${slotPrice}, Running Total: ${totalPrice}`)
+            } else {
+                console.warn(`     Field not found for fieldId: ${fieldId}`)
+            }
+        })
+    })
+
+    console.log(' Final groupedSlotsByDate:', groupedSlotsByDate)
+    console.log(' Final totalPrice:', totalPrice)
+
+    const handleCheckout = async () => {
+        if (isProcessing) return
+
+        //  Kiểm tra đăng nhập trước khi thanh toán
+        if (!isAuthenticated) {
+            console.log(' User not authenticated - showing login dialog')
+
+            // Lưu thông tin đặt sân để quay lại sau khi đăng nhập
+            const bookingData = {
+                storeId,
+                sportName,
+                selectedDate,
+                selectedSlots,
+                returnUrl: window.location.pathname + window.location.search
+            }
+            sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData))
+
+            // Hiển thị dialog yêu cầu đăng nhập
+            setShowLoginDialog(true)
+            return
+        }
+
+        try {
+            setIsProcessing(true)
+
+            console.log(' DEBUG - selectedSlots:', selectedSlots)
+            console.log(' DEBUG - groupedSlotsByDate:', groupedSlotsByDate)
+            console.log(' DEBUG - totalPrice:', totalPrice)
+            console.log('Using user_id:', userId)
+
+            // Build items array with new format - each time slot is 30 minutes
+            // Now we need to handle multiple dates
+            const allItems: any[] = []
+            const allDates = new Set<string>()  // Track all unique dates
+
+            Object.entries(groupedSlotsByDate).forEach(([date, groupedSlots]) => {
+                allDates.add(date)  // Add date to set
+                Object.entries(groupedSlots).forEach(([fieldId, timeSlots]) => {
+                    const field = fields.find((f) => f._id === fieldId)
+                    const fieldIndex = fields.findIndex((f) => f._id === fieldId)
+                    const fieldLetter = String.fromCharCode(65 + fieldIndex)
+
+                    timeSlots.forEach((timeSlot) => {
+                        const price = getPriceForSlot(fieldId, timeSlot, date)
+                        // Calculate end time (30 minutes after start)
+                        const [hours, minutes] = timeSlot.split(':').map(Number)
+                        const endMinutes = hours * 60 + minutes + 30
+                        const endHours = Math.floor(endMinutes / 60)
+                        const endMins = endMinutes % 60
+                        const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`
+
+                        //  Keep both format - include date for backend processing
+                        allItems.push({
+                            field_id: fieldId,
+                            start_time: timeSlot,
+                            end_time: endTime,
+                            date: date,  //  Include the booking date for each item
+                            name: field?.name || `Sân ${fieldLetter}`,
+                            quantity: 1,
+                            price: price,
+                        })
+                    })
+                })
+            })
+
+            console.log(' DEBUG - allItems:', allItems)
+
+            if (allItems.length === 0) {
+                throw new Error('Vui lòng chọn ít nhất một khung giờ')
+            }
+
+            if (totalPrice <= 0) {
+                throw new Error('Tổng tiền không hợp lệ')
+            }
+
+            // Format date as YYYY-MM-DD (for backend)
+            const formattedDate = selectedDate
+
+            // Get all unique dates from allItems and format description
+            const uniqueDates = Array.from(allDates).sort()
+            const dateDescriptions = uniqueDates.map(date => {
+                // Format: "30/11/2025" (DD/MM/YYYY)
+                const [year, month, day] = date.split('-')
+                return `${day}/${month}/${year}`
+            })
+
+            // Description format with max 25 characters limit
+            // Options: "Ngày: 30/11" (12 chars) or "Ngày: 01/12, 02/12" (18 chars)
+            let descriptionText: string
+            if (uniqueDates.length === 1) {
+                // Single date: "Ngày: DD/MM" (max 11 chars)
+                const dateStr = dateDescriptions[0]
+                const shortDate = dateStr.substring(0, 5)  // "DD/MM"
+                descriptionText = `Ngày: ${shortDate}`
+            } else {
+                // Multiple dates: "Ngày: DD/MM" only (ignore other dates, max 25 chars)
+                const dateStr = dateDescriptions[0]
+                const shortDate = dateStr.substring(0, 5)  // "DD/MM"
+                descriptionText = `Ngày: ${shortDate}`
+            }
+
+            // Ensure description is exactly under 25 characters
+            if (descriptionText.length > 25) {
+                descriptionText = descriptionText.substring(0, 25)
+            }
+
+            console.log(`Description length: ${descriptionText.length} chars (max 25): "${descriptionText}"`)
+
+            // Create payment order request with new format
+            const orderRequest = {
+                store_id: storeId,
+                user_id: userId,
+                amount: totalPrice,
+                description: descriptionText,  //  Now max 25 chars
+                date: uniqueDates[0] || selectedDate,  // Use first date as main order date
+                items: allItems,
+            }
+
+            console.log(' Creating payment order:', JSON.stringify(orderRequest, null, 2))
+
+            //  Detailed validation logging
+            console.log('Request summary:')
+            console.log(`   Store ID: ${orderRequest.store_id}`)
+            console.log(`   User ID: ${orderRequest.user_id}`)
+            console.log(`   Amount: ${orderRequest.amount} VND`)
+            console.log(`   Description: ${orderRequest.description}`)
+            console.log(`   Main Date: ${orderRequest.date}`)
+            console.log(`   Total Items: ${orderRequest.items.length}`)
+
+            // Log each item for verification
+            orderRequest.items.forEach((item, idx) => {
+                console.log(`   Item ${idx + 1}: ${item.name} (${item.date} ${item.start_time}-${item.end_time}) - ${item.price} VND`)
+            })
+
+            // Verify total price calculation
+            const itemsTotal = orderRequest.items.reduce((sum, item) => sum + item.price, 0)
+            console.log(`    Items total: ${itemsTotal} VND`)
+            console.log(`    Request amount: ${orderRequest.amount} VND`)
+            console.log(`    Match: ${itemsTotal === orderRequest.amount ? 'YES' : 'NO'}`)
+
+            //  Validate request format before sending
+            const validation = validatePaymentOrderRequest(orderRequest)
+            logValidationResult(validation)
+
+            if (!validation.isValid) {
+                const errorMessage = validation.errors.join('\n')
+                console.warn(' Validation warnings (continuing anyway):', errorMessage)
+                // Don't throw - let's see if backend accepts it
+            }
+
+            console.log(' Proceeding with order creation...')
+
+            // Call API to create payment order
+            const response = await OrderService.createPaymentOrder(orderRequest)
+
+            console.log(' Payment order response:', response)
+
+            // Save order data to sessionStorage for success page
+            sessionStorage.setItem('pendingOrderData', JSON.stringify({
+                orderCode: response.data?.orderCode,
+                amount: totalPrice,
+                description: `Ngày: ${selectedDate}`,
+                date: selectedDate,
+                items: allItems,
+            }))
+
+            // Redirect to checkout URL
+            if (response.data?.checkoutUrl) {
+                // Save order code to sessionStorage for later reference
+                sessionStorage.setItem('pendingOrderCode', String(response.data.orderCode))
+
+                // Redirect to payment gateway
+                window.location.href = response.data.checkoutUrl
+            } else {
+                throw new Error('Không nhận được URL thanh toán')
+            }
+        } catch (error: any) {
+            console.error(' Error creating payment order:', error)
+            toast({
+                title: "Lỗi thanh toán",
+                description: error.message || "Không thể tạo đơn hàng. Vui lòng thử lại.",
+                variant: "destructive",
+            })
+            setIsProcessing(false)
+        }
+    }
+
+    const getPriceForSlot = (fieldId: string, timeSlot: string, date: string): number => {
+        const pricings = fieldPricings[fieldId] || []
+        const field = fields.find(f => f._id === fieldId)
+        const defaultPrice = field ? parseFloat(field.defaultPrice || "0") : 0
+
+        if (pricings.length === 0) {
+            return defaultPrice
+        }
+
+        const selectedDateObj = new Date(date)
+        const dayOfWeek = FieldPricingService.getDayOfWeek(selectedDateObj)
+
+        const specialPrice = FieldPricingService.getSpecialPriceForSlot(
+            pricings,
+            timeSlot,
+            dayOfWeek
+        )
+
+        return specialPrice || defaultPrice
+    }
+
+    /**
+     * Convert time string "HH:MM" to minutes for comparison
+     */
+    const timeToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number)
+        return hours * 60 + minutes
+    }
+
+    /**
+     * Convert minutes back to "HH:MM" format
+     */
+    const minutesToTime = (minutes: number): string => {
+        const hours = Math.floor(minutes / 60)
+        const mins = minutes % 60
+        return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+    }
+
+    /**
+     * Group consecutive time slots into ranges
+     * Example: ["07:30", "08:00", "08:30"] -> [{ start: "07:30", end: "09:00" }]
+     * Assuming each slot is 30 minutes
+     */
+    const groupTimeSlotsByRange = (timeSlots: string[]): Array<{ start: string; end: string; count: number }> => {
+        if (timeSlots.length === 0) return []
+
+        // Sort time slots
+        const sortedSlots = [...timeSlots].sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
+
+        const ranges: Array<{ start: string; end: string; count: number }> = []
+        let currentStart = sortedSlots[0]
+        let currentEnd = timeToMinutes(sortedSlots[0]) + 30 // Assume 30-min slots
+        let slotCount = 1
+
+        for (let i = 1; i < sortedSlots.length; i++) {
+            const slotMinutes = timeToMinutes(sortedSlots[i])
+
+            // If this slot is consecutive (30 mins after current end), extend the range
+            if (slotMinutes === currentEnd) {
+                currentEnd += 30
+                slotCount++
+            } else {
+                // Not consecutive, save current range and start a new one
+                ranges.push({
+                    start: currentStart,
+                    end: minutesToTime(currentEnd),
+                    count: slotCount
+                })
+                currentStart = sortedSlots[i]
+                currentEnd = slotMinutes + 30
+                slotCount = 1
+            }
+        }
+
+        // Add the last range
+        ranges.push({
+            start: currentStart,
+            end: minutesToTime(currentEnd),
+            count: slotCount
+        })
+
+        return ranges
+    }
+
+    return (
+        <Card className="mb-6 shadow-2xl border-0 overflow-hidden bg-gradient-to-br from-white to-emerald-50">
+            <CardHeader className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white relative overflow-hidden">
+                {/* Decorative background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-blue-400/20"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+
+                <CardTitle className="relative z-10 flex items-center gap-4 text-2xl">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3">
+                            <span className="bg-white text-emerald-600 w-8 h-8 rounded-full flex items-center justify-center text-lg font-black">
+                                {Object.values(selectedSlots).reduce((sum, slots) => sum + slots.length, 0)}
+                            </span>
+                        </div>
+                        <div>
+                            <div className="font-black">Khung giờ đã chọn</div>
+                            <div className="text-emerald-100 text-sm font-normal">
+                                Xem lại lịch đặt của bạn
+                            </div>
+                        </div>
+                    </div>
+                </CardTitle>
+            </CardHeader>
+
+            <CardContent className="p-8">
+                {/* Selected slots list - grouped by date */}
+                <div className="space-y-6 mb-8">
+                    {Object.entries(groupedSlotsByDate).map(([date, groupedSlots]) => (
+                        <div key={date} className="border-2 border-emerald-100 rounded-2xl p-4 bg-gradient-to-r from-emerald-50/30 to-blue-50/30">
+                            {/* Date header */}
+                            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-emerald-200">
+                                <Calendar className="w-5 h-5 text-emerald-600" />
+                                <h3 className="font-bold text-emerald-800 text-lg">
+                                    {new Date(date).toLocaleDateString('vi-VN', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </h3>
+                            </div>
+                            {/* Fields for this date */}
+                            <div className="space-y-4">
+                                {Object.entries(groupedSlots).map(([fieldId, timeSlots], index) => {
+                                    const field = fields.find((f) => f._id === fieldId)
+                                    const fieldIndex = fields.findIndex((f) => f._id === fieldId)
+                                    const fieldColors = ["bg-emerald-500", "bg-blue-500", "bg-orange-500", "bg-purple-500", "bg-rose-500", "bg-indigo-500"]
+                                    const fieldColor = fieldColors[fieldIndex % fieldColors.length]
+                                    const fieldLetter = String.fromCharCode(65 + fieldIndex)
+
+                                    return (
+                                        <div
+                                            key={fieldId}
+                                            className="group relative bg-white rounded-2xl border-2 border-emerald-100 hover:border-emerald-300 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                            style={{ animationDelay: `${index * 100}ms` }}
+                                        >
+                                            {/* Gradient background on hover */}
+                                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                                            <div className="relative z-10 p-6">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-6 flex-1">
+                                                        {/* Enhanced Field Icon */}
+                                                        <div className="relative">
+                                                            <div
+                                                                className={`w-16 h-16 ${fieldColor} rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-xl transform group-hover:scale-110 transition-transform duration-300`}
+                                                            >
+                                                                {fieldLetter}
+                                                            </div>
+                                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
+                                                                <span className="text-white text-xs font-bold">✓</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Field Details */}
+                                                        <div className="flex flex-col gap-2 flex-1">
+                                                            <div className="text-xl font-bold text-gray-800">
+                                                                {field?.name || `Sân ${fieldLetter}`}
+                                                            </div>
+                                                            <div className="flex items-center gap-4 flex-wrap">
+                                                                {groupTimeSlotsByRange(timeSlots).map((range) => {
+                                                                    // Calculate total price for this range
+                                                                    const rangePrice = timeSlots
+                                                                        .filter(t => {
+                                                                            const tMin = timeToMinutes(t)
+                                                                            const startMin = timeToMinutes(range.start)
+                                                                            return tMin >= startMin && tMin < timeToMinutes(range.end)
+                                                                        })
+                                                                        .reduce((sum, time) => sum + getPriceForSlot(fieldId, time, date), 0)
+
+                                                                    return (
+                                                                        <Badge
+                                                                            key={`${fieldId}:${range.start}-${range.end}`}
+                                                                            variant="outline"
+                                                                            className="bg-gradient-to-r from-emerald-100 to-blue-100 border-emerald-300 text-emerald-700 px-4 py-1.5 text-sm font-semibold"
+                                                                            title={`${formatVNDWithSymbol(rangePrice)}`}
+                                                                        >
+                                                                            🕐 {range.start} - {range.end}
+                                                                        </Badge>
+                                                                    )
+                                                                })}
+                                                                <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-full">
+                                                                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                                                    <span className="text-sm font-bold text-yellow-700">{field?.rating || 4.5}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Delete button for this field */}
+                                                    <div className="flex items-center gap-4">
+                                                        {/* Price Display */}
+                                                        <div className="text-right">
+                                                            <div className="text-2xl font-black text-emerald-600">
+                                                                {formatVNDWithSymbol(timeSlots.reduce((sum, time) => sum + getPriceForSlot(fieldId, time, date), 0))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Delete button */}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setSelectedSlots((prev) => {
+                                                                    const newSlots = { ...prev }
+                                                                    const dateSlots = newSlots[date] || []
+
+                                                                    // Remove all slots for this field on this date
+                                                                    newSlots[date] = dateSlots.filter(slot => {
+                                                                        const slotFieldId = slot.substring(0, slot.indexOf(':'))
+                                                                        return slotFieldId !== fieldId
+                                                                    })
+
+                                                                    // If no slots left for this date, remove the date entry
+                                                                    if (newSlots[date].length === 0) {
+                                                                        delete newSlots[date]
+                                                                    }
+
+                                                                    return newSlots
+                                                                })
+                                                            }}
+                                                            className="h-10 w-10 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-all duration-200 flex-shrink-0"
+                                                            title={`Xóa ${field?.name || `Sân ${fieldLetter}`}`}
+                                                        >
+                                                            <span className="text-2xl font-bold">×</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Total và Actions */}
+                <div className="border-t-2 border-emerald-100 pt-8">
+                    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl p-6 mb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="text-lg font-semibold text-gray-700 mb-1">Tổng thanh toán</div>
+                                <div className="text-sm text-gray-500">
+                                    {Object.values(selectedSlots).reduce((sum, slots) => sum + slots.length, 0)} khung giờ • {Object.keys(groupedSlotsByDate).length} ngày
+                                </div>
+                            </div>
+                            <div className="text-3xl font-black text-emerald-600">
+                                {formatVNDWithSymbol(totalPrice)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-4">
+                        <Button
+                            variant="outline"
+                            onClick={onClearSlots}
+                            className="flex-1 border-2 border-gray-300 hover:border-red-400 hover:bg-red-50 hover:text-red-600 transition-all duration-300 font-medium py-3"
+                        >
+                            🗑️ Xóa tất cả
+                        </Button>
+                        <Button
+                            onClick={handleCheckout}
+                            disabled={isProcessing}
+                            className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-bold py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        >
+                            {isProcessing ? '⏳ Đang xử lý...' : '💳 Thanh toán ngay →'}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+
+            {/*  Login Required Dialog */}
+            <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+                <AlertDialogContent className="bg-white">
+                    <AlertDialogHeader>
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                            <UserX className="h-8 w-8 text-amber-600" />
+                        </div>
+                        <AlertDialogTitle className="text-center text-2xl">
+                            Yêu cầu đăng nhập
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-base">
+                            Bạn cần đăng nhập để tiếp tục đặt sân. Thông tin đặt sân của bạn sẽ được lưu lại.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-center gap-3">
+                        <AlertDialogCancel
+                            onClick={() => setShowLoginDialog(false)}
+                            className="border-2"
+                        >
+                            Để sau
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                const redirectUrl = window.location.pathname + window.location.search
+                                router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`)
+                            }}
+                            className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700"
+                        >
+                            <LogIn className="w-4 h-4 mr-2" />
+                            Đăng nhập ngay
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </Card>
+    )
+}

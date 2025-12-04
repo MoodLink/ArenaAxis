@@ -29,7 +29,7 @@ export default function BookingTabsNav({ tabs, activeTab, setActiveTab }: Bookin
                                 }
               `}
                         >
-                            <Icon className="w-4 h-4" />
+                            {Icon && <Icon className="w-4 h-4" />}
                             <span>{tab.label}</span>
                             <Badge
                                 variant={isActive ? "secondary" : "outline"}

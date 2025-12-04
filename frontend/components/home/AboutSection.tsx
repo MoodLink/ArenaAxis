@@ -6,9 +6,9 @@ import { Check } from "lucide-react"
 export default function AboutSection() {
     // Danh sách các điểm nổi bật của dịch vụ
     const features = [
-        "No cash, No confusion. Just open, book and play. It's that simple.",
-        "We're a technology hub that connects local, friendly, and enthusiastic sports adventures.",
-        "Such booking records are verified through which users accomplished through."
+        "Không tiền mặt, không rắc rối. Chỉ cần mở, đặt chỗ và chơi. Đơn giản vậy thôi.",
+        "Chúng tôi là một trung tâm công nghệ kết nối những người đam mê thể thao địa phương, thân thiện và nhiệt tình.",
+        "Những hồ sơ đặt chỗ này được xác minh thông qua việc người dùng thực hiện."
     ]
 
     return (
@@ -27,13 +27,12 @@ export default function AboutSection() {
                     {/* Nội dung văn bản */}
                     <div>
                         {/* Tiêu đề */}
-                        <h2 className="text-3xl font-bold mb-6">About ArenaAxis</h2>
+                        <h2 className="text-3xl font-bold mb-6">Giới thiệu về ArenaAxis
+                        </h2>
 
                         {/* Mô tả chính */}
                         <p className="text-gray-600 mb-6 leading-relaxed">
-                            ArenaAxis aims to share the game. Whether it's a 5 a side football match under the lights, a social
-                            cricket match with your mates or hosting your own tournament, we are passionate about bringing people
-                            together through sport.
+                            ArenaAxis hướng đến mục tiêu chia sẻ trò chơi. Dù là một trận bóng đá 5 người dưới ánh đèn sân khấu, một trận đấu cricket giao lưu với bạn bè hay tự tổ chức giải đấu, chúng tôi luôn tâm huyết mang mọi người đến gần nhau hơn thông qua thể thao.
                         </p>
 
                         {/* Danh sách các tính năng */}

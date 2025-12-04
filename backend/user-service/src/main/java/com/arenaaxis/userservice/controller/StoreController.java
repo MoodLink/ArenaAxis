@@ -37,39 +37,42 @@ public class StoreController {
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
-    @RequestParam(value = "page", defaultValue = "1") int page,
-    @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
-      return ResponseEntity.ok(storeService.getInPagination(page, perPage));
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+    return ResponseEntity.ok(storeService.getInPagination(page, perPage));
   }
 
   @PostMapping("/search")
   public ResponseEntity<List<StoreSearchItemResponse>> searchPageStores(
-    @RequestBody SearchStoreRequest request,
-    @RequestParam(value = "page", defaultValue = "1") int page,
-    @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+      @RequestBody SearchStoreRequest request,
+      @RequestParam(value = "page", defaultValue = "1") int page,
+      @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
     return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
   }
 
   @PostMapping
   public ResponseEntity<StoreAdminDetailResponse> addStore(@RequestBody StoreCreateRequest request)
-    throws ParseException, JOSEException {
+      throws ParseException, JOSEException {
     User user = currentUserService.getCurrentUser();
     return ResponseEntity.ok(storeService.create(request, user));
   }
 
   @PutMapping("/{id}/images")
   public ResponseEntity<StoreAdminDetailResponse> updateImages(
-    @PathVariable("id") String id,
-    @RequestParam(value = "avatar", required = false) MultipartFile  avatar,
-    @RequestParam(value = "coverImage", required = false) MultipartFile  coverImage,
-    @RequestParam(value = "businessLicenceImage", required = false) MultipartFile  businessLicenceImage,
-    @RequestParam(value = "medias", required = false) List<MultipartFile>  medias
-  ) {
+      @PathVariable("id") String id,
+      @RequestParam(value = "avatar", required = false) MultipartFile avatar,
+      @RequestParam(value = "coverImage", required = false) MultipartFile coverImage,
+      @RequestParam(value = "businessLicenceImage", required = false) MultipartFile businessLicenceImage,
+      @RequestParam(value = "medias", required = false) List<MultipartFile> medias) {
     Map<StoreImageType, List<MultipartFile>> images = new HashMap<>();
-    if (avatar != null) images.put(StoreImageType.AVATAR, List.of(avatar));
-    if (coverImage != null) images.put(StoreImageType.COVER, List.of(coverImage));
-    if (businessLicenceImage != null) images.put(StoreImageType.LICENSE, List.of(businessLicenceImage));
-    if (medias != null) images.put(StoreImageType.MEDIAS, medias);
+    if (avatar != null)
+      images.put(StoreImageType.AVATAR, List.of(avatar));
+    if (coverImage != null)
+      images.put(StoreImageType.COVER, List.of(coverImage));
+    if (businessLicenceImage != null)
+      images.put(StoreImageType.LICENSE, List.of(businessLicenceImage));
+    if (medias != null)
+      images.put(StoreImageType.MEDIAS, medias);
 
     return ResponseEntity.ok(storeService.updateImage(id, images));
   }
@@ -93,7 +96,7 @@ public class StoreController {
 
   @PostMapping("/update-sport/{id}")
   public ResponseEntity<Void> updateSport(@RequestBody UpdateSportForStoreRequest request,
-                                          @PathVariable("id") String storeId) {
+      @PathVariable("id") String storeId) {
     request.setStoreId(storeId);
     storeHasSportService.updateSportForStore(request);
     return ResponseEntity.noContent().build();

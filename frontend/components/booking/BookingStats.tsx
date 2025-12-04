@@ -19,22 +19,12 @@ export default function BookingStats({ bookings }: BookingStatsProps) {
                         <Calendar className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                        <p className="text-sm text-gray-600">Tổng đặt sân</p>
+                        <p className="text-sm text-gray-600">Tổng đơn đặt</p>
                         <p className="text-xl font-semibold text-gray-900">{bookings.length}</p>
                     </div>
                 </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-600">Hoàn thành</p>
-                        <p className="text-xl font-semibold text-gray-900">{completedBookings}</p>
-                    </div>
-                </div>
-            </div>
+
         </div>
     )
 }

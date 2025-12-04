@@ -37,8 +37,9 @@ export default function PostSidebar({
     return (
         <div className="space-y-6">
             {/* Activity Info Card */}
+            {/*
             <Card className="shadow-lg border-0">
-                <CardContent className="p-6">
+               <CardContent className="p-6">
                     <h4 className="font-bold text-xl mb-4 text-gray-900">Chi tiết hoạt động</h4>
 
                     <div className="space-y-4">
@@ -90,7 +91,7 @@ export default function PostSidebar({
                 </CardContent>
             </Card>
 
-            {/* Weather Info */}
+           
             <Card className="shadow-lg border-0">
                 <CardContent className="p-6">
                     <h4 className="font-bold text-xl mb-4 text-gray-900 flex items-center gap-2">
@@ -124,7 +125,7 @@ export default function PostSidebar({
                         </div>
                     </div>
                 </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Facilities */}
             <Card className="shadow-lg border-0">
@@ -168,7 +169,7 @@ export default function PostSidebar({
             {relatedPosts.length > 0 && (
                 <Card className="shadow-lg border-0">
                     <CardContent className="p-6">
-                        <h4 className="font-bold text-xl mb-4 text-gray-900">Hoạt động liên quan</h4>
+                        <h4 className="font-bold text-xl mb-4 text-gray-900">Bài viết liên quan</h4>
 
                         <div className="space-y-3">
                             {relatedPosts.slice(0, 3).map((post) => (
@@ -176,11 +177,11 @@ export default function PostSidebar({
                                     <CardContent className="p-4">
                                         <div className="flex justify-between items-start mb-2">
                                             <h6 className="font-bold text-sm text-gray-900 line-clamp-2">{post.title}</h6>
-                                            {post.urgent && (
+                                            {/* {post.urgent && (
                                                 <Badge variant="destructive" className="text-xs ml-2">
                                                     Gấp
                                                 </Badge>
-                                            )}
+                                            )} */}
                                         </div>
 
                                         <div className="space-y-1 text-xs text-gray-600">
@@ -206,10 +207,10 @@ export default function PostSidebar({
                                 </Card>
                             ))}
 
-                            <Button variant="outline" className="w-full mt-3">
+                            {/* <Button variant="outline" className="w-full mt-3">
                                 Xem tất cả
                                 <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
+                            </Button> */}
                         </div>
                     </CardContent>
                 </Card>
@@ -244,7 +245,7 @@ export default function PostSidebar({
 
                                         <Button variant="ghost" size="sm" className="w-full mt-2 text-xs">
                                             <ExternalLink className="w-3 h-3 mr-1" />
-                                            Tham gia ngay
+                                            Liên hệ với chủ sân
                                         </Button>
                                     </CardContent>
                                 </Card>

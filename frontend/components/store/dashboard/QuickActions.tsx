@@ -8,9 +8,9 @@ import { Plus, Calendar, DollarSign, Star } from 'lucide-react'
 export default function QuickActions() {
     const actions = [
         {
-            title: 'Thêm sân mới',
+            title: 'Thêm Store Mới',
             icon: Plus,
-            href: '/store/my-fields?action=create'
+            href: '/store-registration'
         },
         {
             title: 'Xem lịch đặt',

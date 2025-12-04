@@ -76,7 +76,7 @@ export default function PaymentForm({
             onSubmit(formData, selectedMethod)
         } else {
             // Xử lý mặc định (có thể thay bằng API call)
-            console.log("Thông tin thanh toán:", {
+            console.log("Thong tin thanh toan:", {
                 method: selectedMethod,
                 data: formData
             })
@@ -97,8 +97,8 @@ export default function PaymentForm({
                             key={method.id}
                             onClick={() => setSelectedMethod(method.id)}
                             className={`p-4 border rounded-lg flex items-center justify-center gap-2 transition-colors ${selectedMethod === method.id
-                                    ? "border-green-500 bg-green-50 text-green-700"
-                                    : "border-gray-200 hover:border-gray-300"
+                                ? "border-green-500 bg-green-50 text-green-700"
+                                : "border-gray-200 hover:border-gray-300"
                                 }`}
                         >
                             <method.icon className="w-5 h-5" />

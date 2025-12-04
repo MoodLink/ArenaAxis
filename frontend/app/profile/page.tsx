@@ -6,39 +6,83 @@ import ProfileHeader from "@/components/profile/ProfileHeader"
 import ProfileTabs from "@/components/profile/ProfileTabs"
 import ProfileOverview from "@/components/profile/ProfileOverview"
 import ProfileActivities from "@/components/profile/ProfileActivities"
+import ProfileStores from "@/components/profile/ProfileStores"
 import ProfileAchievements from "@/components/profile/ProfileAchievements"
 import ProfileSettings from "@/components/profile/ProfileSettings"
-import { getCurrentUser } from "@/services/api"
+import { getMyProfile, getStoresByOwnerId } from "@/services/api-new"
 import { User as UserType } from "@/types"
-import { currentUser } from "@/data/mockData"
+import { useRouter } from "next/navigation"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<UserType | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>("overview")
+  const [hasStores, setHasStores] = useState<boolean>(false)
+  const router = useRouter()
 
-  // Lấy dữ liệu user từ API hoặc mockData
   useEffect(() => {
     async function fetchUser() {
       try {
-        // Thử lấy từ API trước, nếu lỗi thì dùng mockData
+        // Kiểm tra token trước
+        const token = localStorage.getItem('token');
+        if (!token) {
+          router.push("/login")
+          return
+        }
+
+        // Lấy user từ localStorage (đã lưu từ login)
+        const userData = getMyProfile()
+
+        if (!userData) {
+          router.push("/login")
+          return
+        }
+
+        const mappedUser: UserType = {
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          avatarUrl: localStorage.getItem('userAvatar') || userData.avatarUrl,
+          bankAccount: userData.bankAccount,
+          avatar: localStorage.getItem('userAvatar') || userData.avatarUrl,
+          bio: undefined,
+          location: undefined,
+          favoriteSports: [],
+          notifications: {
+            booking: true,
+            tournament: true,
+            community: true,
+            email: true,
+            push: false
+          },
+          stats: {
+            totalBookings: 0,
+            totalTournaments: 0,
+            totalPosts: 0
+          }
+        }
+
+        setUser(mappedUser)
+
+        // Check if user has stores
         try {
-          const userData = await getCurrentUser()
-          setUser(userData)
-        } catch {
-          // Fallback to mockData if API fails
-          setUser(currentUser)
+          const stores = await getStoresByOwnerId(userData.id)
+          setHasStores(stores && stores.length > 0)
+        } catch (error) {
+          console.log(' Could not fetch stores, assuming no stores')
+          setHasStores(false)
         }
       } catch (error) {
-        console.error("Error fetching user:", error)
-        setUser(currentUser) // Fallback to mockData
+        console.error(" Error fetching user:", error)
+        router.push("/login")
       } finally {
         setLoading(false)
       }
     }
 
     fetchUser()
-  }, [])
+  }, [router])
 
   if (loading) {
     return (
@@ -60,7 +104,7 @@ export default function ProfilePage() {
 
         {/* Profile Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} hasStores={hasStores} />
 
           <TabsContent value="overview" className="space-y-6">
             <ProfileOverview user={user} />
@@ -69,6 +113,12 @@ export default function ProfilePage() {
           <TabsContent value="activities" className="space-y-6">
             <ProfileActivities />
           </TabsContent>
+
+          {hasStores && (
+            <TabsContent value="stores" className="space-y-6">
+              <ProfileStores userId={user?.id} />
+            </TabsContent>
+          )}
 
           <TabsContent value="achievements" className="space-y-6">
             <ProfileAchievements />
