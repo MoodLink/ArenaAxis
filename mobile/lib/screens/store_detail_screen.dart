@@ -354,7 +354,6 @@ class StoreDetailScreen extends StatelessWidget {
       }
 
       return GestureDetector(
-   
         onTap: () =>
             !isBooked ? controller.toggleSlot(fieldId, time, fieldName) : null,
         child: Container(
@@ -413,7 +412,7 @@ class StoreDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         GestureDetector(
-                          onTap: () => showCartBottomSheet(Get.context!)  ,
+                          onTap: () => showCartBottomSheet(Get.context!),
                           child: const Text(
                             "Khung giờ đã chọn",
                             style: TextStyle(
@@ -467,7 +466,7 @@ class StoreDetailScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => controller.selectedSlotIds.clear(),
+                        onPressed: () => controller.clearAllSlots(),
                         icon: const Icon(Icons.delete_outline),
                         label: const Text("Xóa tất cả"),
                       ),
@@ -478,14 +477,36 @@ class StoreDetailScreen extends StatelessWidget {
                       flex: 2,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (controller.selectedSlotIds.isEmpty) {
+                          if (controller.selectedSlotKeys.isEmpty) {
                             Get.snackbar(
                               "Thông báo",
                               "Vui lòng chọn khung giờ",
                             );
                             return;
                           }
-                          await controller.createPaymentOrder();
+
+                          final result = await controller.createPaymentOrder();
+
+                          if (result == 'success') {
+                            Get.snackbar(
+                              "Thành công",
+                              "Đặt sân thành công! Giỏ hàng đã được làm mới.",
+                              backgroundColor: Colors.green,
+                              colorText: Colors.white,
+                              duration: const Duration(seconds: 3),
+                            );
+
+                            controller.clearAllSlots(); // xóa giỏ
+
+                            // Reload lại lịch để hiển thị slot vừa đặt là "Đã đặt"
+                            if (controller.currentStoreId != null &&
+                                controller.currentSportId != null) {
+                              await controller.loadData(
+                                controller.currentStoreId!,
+                                controller.currentSportId!,
+                              );
+                            }
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0085FF),

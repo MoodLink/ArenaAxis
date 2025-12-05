@@ -1,26 +1,35 @@
-// Thêm model mới để lưu trữ thông tin slot đã chọn
 class SelectedSlot {
   final String fieldId;
-  final String date; // Format: yyyy-MM-dd
+  final String date;
   final String startTime;
-  final String key; // Dùng làm ID duy nhất: date_fieldId_startTime
   final String fieldName;
+  final double price;
 
   SelectedSlot({
     required this.fieldId,
     required this.date,
     required this.startTime,
     required this.fieldName,
-  }) : key = "${date}_${fieldId}_$startTime";
+    required this.price,
+  });
+}
 
-  // Thêm một factory constructor để tạo từ key (ví dụ: "2025-11-30_f1_13:00")
-  factory SelectedSlot.fromKey(String key, String fieldName) {
-    final parts = key.split('_');
-    return SelectedSlot(
-      date: parts[0],
-      fieldId: parts[1],
-      startTime: parts[2],
-      fieldName: fieldName,
+class BookedSlot {
+  final String startTime;
+  final String endTime;
+  final String statusPayment;
+
+  BookedSlot({
+    required this.startTime,
+    required this.endTime,
+    required this.statusPayment,
+  });
+
+  factory BookedSlot.fromJson(Map<String, dynamic> json) {
+    return BookedSlot(
+      startTime: json['startTime'] ?? '',
+      endTime: json['endTime'] ?? '',
+      statusPayment: json['statusPayment'] ?? '',
     );
   }
 }

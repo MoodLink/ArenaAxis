@@ -5,252 +5,178 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/home_controller.dart';
+import 'package:mobile/models/user.dart';
 import 'package:mobile/screens/home_screen.dart';
 import 'package:mobile/screens/login_screen.dart';
 import 'package:mobile/screens/register_screen.dart';
-import 'package:mobile/utilities/token_storage.dart';
 import 'package:mobile/services/auth_service.dart';
-import 'package:mobile/models/user.dart';
+import 'package:mobile/utilities/token_storage.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();  
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  late TokenStorage tokenStorage;
-  late FlutterSecureStorage secureStorage;
-  late AuthService authService;
+  late final TokenStorage tokenStorage;
+  late final FlutterSecureStorage secureStorage;
+  late final AuthService authService;
+
   bool? isLoggedIn;
   User? currentUser;
-  bool isLoadingUser = false; // Theo dõi trạng thái load từ API
 
   @override
   void initState() {
     super.initState();
     secureStorage = const FlutterSecureStorage();
     tokenStorage = TokenStorage(storage: secureStorage);
-    // Giả định AuthService đã được khởi tạo đúng cách
-    authService = AuthService(); 
+    authService = AuthService();
     _checkLoginStatus();
   }
 
+  // Kiểm tra trạng thái đăng nhập
   Future<void> _checkLoginStatus() async {
     try {
       final token = await tokenStorage.getAccessToken();
-      // 1. Ưu tiên lấy user từ bộ nhớ cục bộ
-      final localUser = await tokenStorage.getUserData(); 
-      log('Local user data: ${localUser?.toJson()}');
-      log('access token: $token');
-      final isCurrentlyLoggedIn = token != null && token.isNotEmpty;
+      final localUser = await tokenStorage.getUserData();
+
+      log('Access token exists: ${token != null && token.isNotEmpty}');
+      log('Local user: ${localUser?.name}');
+
+      final bool loggedIn = token != null && token.isNotEmpty;
+
+      if (!mounted) return;
 
       setState(() {
-        isLoggedIn = isCurrentlyLoggedIn;
-        // 2. Gán user từ local ngay lập tức nếu đã đăng nhập
-        if (isLoggedIn == true) {
-          currentUser = localUser as User?; 
-        }
+        isLoggedIn = loggedIn;
+        currentUser = localUser;
       });
 
-      // 3. Nếu đã login nhưng CHƯA CÓ dữ liệu local, thì gọi API để lấy và lưu cache
-      if (isLoggedIn == true && token != null && currentUser == null) {
-        log('User data not found locally. Fetching from API...');
-        await _loadUserData(token); 
-      } 
-      
-      // 4. Nếu đã có local user, chạy API ngầm để refresh data
-      else if (isLoggedIn == true && token != null && currentUser != null) {
-        // Không chờ kết quả, chạy ở chế độ background để tránh blocking UI
-        _loadUserData(token, background: true);
+      // Nếu đã đăng nhập → refresh dữ liệu user từ server
+      if (loggedIn && token != null) {
+        _loadUserData(token, background: currentUser != null);
       }
-
     } catch (e) {
       log('Error checking login status: $e');
-      setState(() {
-        isLoggedIn = false;
-        currentUser = null;
-      });
+      if (mounted) {
+        setState(() {
+          isLoggedIn = false;
+          currentUser = null;
+        });
+      }
     }
   }
 
+  // Load thông tin user từ API
   Future<void> _loadUserData(String token, {bool background = false}) async {
-    if (!background) {
-      setState(() {
-        isLoadingUser = true;
-      });
-    }
-
     try {
-      // Thay vì lấy từ local, gọi API để fetch user data (giả định AuthService có method getUser)
-      final user = await authService.getCurrentUser(token); 
-      if (user != null) {
-        // Lưu vào secure storage để cache
-        await secureStorage.write(key: TokenStorage.USER_KEY, value: jsonEncode(user.toJson()));
-      }
-      setState(() {
-        currentUser = user;
-        // Tắt loading nếu không phải background
-        if (!background) {
-          isLoadingUser = false;
-        }
-      });
-    } catch (e) {
-      log('Error loading user data: $e');
-      
-      if (!background) {
+      final user = await authService.getCurrentUser(token);
+      if (user == null) return;
+
+      // Lưu vào secure storage
+      await secureStorage.write(
+        key: TokenStorage.USER_KEY,
+        value: jsonEncode(user.toJson()),
+      );
+
+      // Chỉ cập nhật UI nếu widget còn tồn tại
+      if (mounted) {
         setState(() {
-          isLoadingUser = false;
+          currentUser = user;
         });
       }
-
+    } catch (e) {
+      log('Error loading user data: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
 
-    // 1. Loading ban đầu (kiểm tra trạng thái đăng nhập)
+    // Đang kiểm tra trạng thái
     if (isLoggedIn == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // 2. Chưa đăng nhập
+    // Chưa đăng nhập
     if (!isLoggedIn!) {
-      return _buildNotLoggedInScreen(screenSize);
+      return _buildNotLoggedInScreen(size);
     }
 
-    // 3. Đã đăng nhập nhưng đang chờ dữ liệu user (chỉ xảy ra khi không có cache)
-    if (currentUser == null && isLoadingUser) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+    // Đang load user lần đầu
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // 4. Đã đăng nhập và có dữ liệu user (hoặc load từ cache)
-    return _buildProfileScreen(screenSize);
+    // Đã đăng nhập + có dữ liệu → hiển thị profile
+    return _buildLoggedInScreen(size);
   }
 
-  // --- Widget chưa đăng nhập ---
-  Widget _buildNotLoggedInScreen(Size screenSize) {
+  // ===================================================================
+  // MÀN HÌNH CHƯA ĐĂNG NHẬP
+  // ===================================================================
+  Widget _buildNotLoggedInScreen(Size size) {
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(screenSize.width * 0.08),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: screenSize.width * 0.25,
-                    height: screenSize.width * 0.25,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.lock_outline,
-                      size: screenSize.width * 0.12,
-                      color: Colors.blue,
-                    ),
+            padding: EdgeInsets.all(size.width * 0.08),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: size.width * 0.25,
+                  height: size.width * 0.25,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  SizedBox(height: screenSize.height * 0.04),
-                  Text(
-                    'Bạn chưa đăng nhập',
-                    style: TextStyle(
-                      fontSize: screenSize.width * 0.08,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  child: Icon(Icons.lock_outline, size: size.width * 0.12, color: Colors.blue),
+                ),
+                SizedBox(height: size.height * 0.04),
+                Text(
+                  'Bạn chưa đăng nhập',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: size.height * 0.02),
+                Text(
+                  'Vui lòng đăng nhập để xem thông tin cá nhân, lịch sử đặt sân và nhiều tính năng khác',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: size.height * 0.08),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Get.to(() => const LoginScreen())?.then((_) => _checkLoginStatus());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Text('Đăng nhập', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
-                  SizedBox(height: screenSize.height * 0.02),
-                  Text(
-                    'Vui lòng đăng nhập để xem thông tin cá nhân, lịch sử đặt sân và nhiều tính năng khác',
-                    style: TextStyle(
-                      fontSize: screenSize.width * 0.04,
-                      color: Colors.grey[600],
-                      height: 1.5,
+                ),
+                SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Get.to(() => const RegisterScreen()),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.blue, width: 2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Text('Đăng ký', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
                   ),
-                  SizedBox(height: screenSize.height * 0.08),
-                  SizedBox(
-                    width: double.infinity,
-                    height: screenSize.height * 0.07,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Refresh state sau khi quay lại từ LoginScreen
-                        Get.to(() => const LoginScreen())?.then((_) => _checkLoginStatus()); 
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Đăng nhập',
-                        style: TextStyle(
-                          fontSize: screenSize.width * 0.045,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: screenSize.height * 0.02),
-                  SizedBox(
-                    width: double.infinity,
-                    height: screenSize.height * 0.07,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Get.to(() => const RegisterScreen());
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.blue, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Đăng ký',
-                        style: TextStyle(
-                          fontSize: screenSize.width * 0.045,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: screenSize.height * 0.04),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: screenSize.width * 0.04,
-                        color: Colors.grey[500],
-                      ),
-                      SizedBox(width: screenSize.width * 0.02),
-                      Expanded(
-                        child: Text(
-                          'Cần giúp đỡ? Liên hệ với chúng tôi',
-                          style: TextStyle(
-                            fontSize: screenSize.width * 0.035,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -258,146 +184,109 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // --- Widget đã đăng nhập ---
-  Widget _buildProfileScreen(Size screenSize) {
-    // Đảm bảo currentUser không null trước khi truy cập
-    final user = currentUser!; 
-    
+  // ===================================================================
+  // MÀN HÌNH ĐÃ ĐĂNG NHẬP
+  // ===================================================================
+  Widget _buildLoggedInScreen(Size size) {
+    final user = currentUser!;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: screenSize.height * 0.3,
+            expandedHeight: size.height * 0.3,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    'assets/images/background.webp', 
+                    'assets/images/background.webp',
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(color: Colors.blueGrey.shade700),
+                    errorBuilder: (_, __, ___) => Container(color: Colors.blueGrey.shade700),
                   ),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.7),
-                        ],
+                        colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                       ),
                     ),
                   ),
                   Positioned(
-                    bottom: screenSize.height * 0.02,
-                    left: screenSize.width * 0.04,
-                    right: screenSize.width * 0.04,
-                    child: isLoadingUser 
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Column(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: size.width * 0.08,
+                          backgroundColor: Colors.blue,
+                          child: Text(
+                            user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                            style: TextStyle(fontSize: size.width * 0.08, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: screenSize.width * 0.08,
-                                    backgroundColor: Colors.blue,
-                                    child: Text(
-                                      user.name.isNotEmpty
-                                          ? user.name.substring(0, 1).toUpperCase()
-                                          : 'U',
-                                      style: TextStyle(
-                                        fontSize: screenSize.width * 0.08,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: screenSize.width * 0.04),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user.name,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: screenSize.width * 0.05,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        SizedBox(height: screenSize.height * 0.005),
-                                        Text(
-                                          user.email,
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.8),
-                                            fontSize: screenSize.width * 0.035,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                user.name,
+                                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                user.email,
+                                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.all(screenSize.width * 0.04),
+              padding: EdgeInsets.all(size.width * 0.04),
               child: Column(
                 children: [
-                  _buildProfileSection('Thông tin cá nhân', [
-                    _buildMenuItem(
-                      Icons.person_outline,
-                      'Chỉnh sửa thông tin',
-                      screenSize,
-                    ),
-                    // Hiển thị số điện thoại
-                    _buildMenuItem(
+                  _buildSection('Thông tin cá nhân', [
+                    _menuItem(Icons.person_outline, 'Chỉnh sửa thông tin'),
+                    _menuItem(
                       Icons.phone_outlined,
                       'Số điện thoại',
-                      screenSize,
-                      showChevron: user.phone == null,
-                      value: user.phone ?? 'Chưa có số điện thoại',
+                      value: user.phone?.isNotEmpty == true ? user.phone : 'Chưa có số điện thoại',
+                      showChevron: user.phone?.isNotEmpty != true,
                     ),
-                    _buildMenuItem(
-                      Icons.location_on_outlined,
-                      'Địa chỉ',
-                      screenSize,
-                    ),
-                  ], screenSize),
-                  SizedBox(height: screenSize.height * 0.02),
-                  _buildProfileSection('Hoạt động', [
-                    _buildMenuItem(Icons.history, 'Lịch sử đặt sân', screenSize),
-                    _buildMenuItem(Icons.group_outlined, 'Đội của tôi', screenSize),
-                    _buildMenuItem(Icons.favorite_outline, 'Sân yêu thích', screenSize),
-                  ], screenSize),
-                  SizedBox(height: screenSize.height * 0.02),
-                  _buildProfileSection('Cài đặt', [
-                    _buildMenuItem(Icons.notifications_outlined, 'Thông báo', screenSize),
-                    _buildMenuItem(Icons.lock_outline, 'Bảo mật', screenSize),
-                    _buildMenuItem(Icons.help_outline, 'Trợ giúp', screenSize),
-                    _buildMenuItem(
-                      Icons.logout,
-                      'Đăng xuất',
-                      screenSize,
-                      color: Colors.red,
-                    ),
-                  ], screenSize),
+                    _menuItem(Icons.location_on_outlined, 'Địa chỉ'),
+                  ]),
+
+                  SizedBox(height: 16),
+
+                  _buildSection('Hoạt động', [
+                    _menuItem(Icons.history, 'Lịch sử đặt sân'),
+                    _menuItem(Icons.group_outlined, 'Đội của tôi'),
+                    _menuItem(Icons.favorite_outline, 'Sân yêu thích'),
+                  ]),
+
+                  SizedBox(height: 16),
+
+                  _buildSection('Cài đặt', [
+                    _menuItem(Icons.notifications_outlined, 'Thông báo'),
+                    _menuItem(Icons.lock_outline, 'Bảo mật'),
+                    _menuItem(Icons.help_outline, 'Trợ giúp'),
+                    _menuItem(Icons.logout, 'Đăng xuất', color: Colors.red),
+                  ]),
                 ],
               ),
             ),
@@ -407,213 +296,96 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileSection(
-    String title,
-    List<Widget> items,
-    Size screenSize,
-  ) {
+  Widget _buildSection(String title, List<Widget> items) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.all(screenSize.width * 0.04),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: screenSize.width * 0.045,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-            ),
+            padding: const EdgeInsets.all(16),
+            child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
+          const Divider(height: 1),
           ...items,
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(
-    IconData icon,
-    String title,
-    Size screenSize, {
-    Color? color,
-    bool showChevron = true,
-    String? value,
-  }) {
-    final textColor = color ?? Theme.of(context).textTheme.bodyMedium?.color;
-    
-    // Nếu có value, không hiển thị chevron (trừ khi showChevron được set riêng)
-    final displayChevron = showChevron && value == null;
-
+  Widget _menuItem(IconData icon, String title, {String? value, bool showChevron = true, Color? color}) {
     return InkWell(
       onTap: () {
         if (title == 'Đăng xuất') {
-          _showLogoutDialog(context);
+          _showLogoutDialog();
         }
-        // Thêm logic navigation cho các mục khác
       },
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: screenSize.width * 0.04,
-          vertical: screenSize.height * 0.015,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: screenSize.width * 0.06, color: color ?? Colors.blue),
-            SizedBox(width: screenSize.width * 0.03),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: screenSize.width * 0.04, 
-                  color: textColor,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-            ),
-            // Hiển thị giá trị thông tin ở phía phải nếu có
-            if (value != null)
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: screenSize.width * 0.04,
-                  color: Colors.grey[600],
-                ),
-              ),
-            if (value != null) SizedBox(width: screenSize.width * 0.02),
-            // Hiển thị mũi tên nếu cần
-            if (showChevron && (value == null || value.startsWith('Chưa có')))
-              Icon(
-                Icons.chevron_right,
-                size: screenSize.width * 0.05,
-                color: Colors.grey,
-              ),
+            Icon(icon, size: 24, color: color ?? Colors.blue),
+            const SizedBox(width: 16),
+            Expanded(child: Text(title, style: TextStyle(fontSize: 16))),
+            if (value != null) ...[
+              Text(value, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
+              const SizedBox(width: 8),
+            ],
+            if (showChevron)
+              Icon(Icons.chevron_right, color: Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _showLogoutDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.blueGrey.shade800 : Colors.blue.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: const Icon(
-                    Icons.logout_rounded,
-                    color: Colors.redAccent,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Đăng xuất?',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isDark ? Colors.grey[300] : Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade400),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Hủy'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await _logout();
-                        },
-                        child: const Text('Đăng xuất'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+  // ===================================================================
+  // DIALOG & LOGOUT
+  // ===================================================================
+  void _showLogoutDialog() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?'),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Hủy')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Get.back();
+              _logout();
+            },
+            child: const Text('Đăng xuất'),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
+  // ĐÃ SỬA LỖI setState() after dispose() TẠI ĐÂY
   Future<void> _logout() async {
     await tokenStorage.clear();
 
-    // Reset GetX controller state
-    HomeController controller;
+    // Reset tab về Home
     if (Get.isRegistered<HomeController>()) {
-      controller = Get.find<HomeController>();
-    } else {
-      // Khởi tạo nếu chưa có
-      controller = Get.put(HomeController());
+      Get.find<HomeController>().selectedIndex.value = 0;
     }
-    controller.selectedIndex.value = 0; 
 
-    // Chuyển về màn hình chính và xóa lịch sử navigation
-    Get.offAll(() =>  HomeScreen()); 
-    
-    setState(() {
-      isLoggedIn = false;
-      currentUser = null;
-    });
+    // Chuyển về trang chủ và xóa toàn bộ stack
+    Get.offAll(() =>  HomeScreen());
+
+    // Không gọi setState() ở đây nữa → widget đã bị dispose
+    // Lần sau vào lại tab Profile → initState() sẽ tự kiểm tra và hiện "Chưa đăng nhập"
+  }
+
+  @override
+  void dispose() {
+    // Không cần gì ở đây vì không có stream/timer
+    super.dispose();
   }
 }

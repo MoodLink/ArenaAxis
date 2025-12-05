@@ -17,7 +17,6 @@ class PricingDetail {
     );
   }
 }
-
 class FieldPricingResponse {
   // Bỏ defaultPrice khỏi Model này nếu API không trả về nó ở đây
   // Hoặc dùng nullable nếu cần: final double? defaultPrice;

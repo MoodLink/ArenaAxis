@@ -1,19 +1,5 @@
-// Model cho Slot đã bị đặt (nằm trong statusField của API)
-class BookedSlot {
-  final String startTime;
-  final String endTime;
-
-  BookedSlot({required this.startTime, required this.endTime});
-
-  factory BookedSlot.fromJson(Map<String, dynamic> json) {
-    // Giả sử API trả về start_time/end_time hoặc startAt/endAt
-    // Bạn hãy điều chỉnh key này theo đúng API thực tế trả về trong statusField
-    return BookedSlot(
-      startTime: json['start_time'] ?? json['startAt'] ?? '', 
-      endTime: json['end_time'] ?? json['endAt'] ?? '',
-    );
-  }
-}
+import 'package:mobile/models/FieldPrincing.dart';
+import 'package:mobile/models/cart_item.dart';
 
 class FieldModel {
   final String id;
@@ -22,7 +8,8 @@ class FieldModel {
   final String storeId;
   final double defaultPrice;
   final String status;
-  final List<BookedSlot> bookedSlots; // Quan trọng: Danh sách giờ đã có người đặt
+  final List<BookedSlot> bookedSlots;
+  final List<PricingDetail> pricings;
 
   FieldModel({
     required this.id,
@@ -32,14 +19,21 @@ class FieldModel {
     required this.defaultPrice,
     required this.status,
     required this.bookedSlots,
+    required this.pricings,
   });
 
   factory FieldModel.fromJson(Map<String, dynamic> json) {
-    // Parse statusField thành List<BookedSlot>
     List<BookedSlot> bookings = [];
     if (json['statusField'] != null && json['statusField'] is List) {
       bookings = (json['statusField'] as List)
           .map((e) => BookedSlot.fromJson(e))
+          .toList();
+    }
+
+    List<PricingDetail> prices = [];
+    if (json['pricings'] != null && json['pricings'] is List) {
+      prices = (json['pricings'] as List)
+          .map((e) => PricingDetail .fromJson(e))
           .toList();
     }
 
@@ -51,6 +45,7 @@ class FieldModel {
       defaultPrice: double.tryParse(json['defaultPrice'].toString()) ?? 0.0,
       status: json['activeStatus'] == true ? 'active' : 'inactive',
       bookedSlots: bookings,
+      pricings: prices,
     );
   }
 }

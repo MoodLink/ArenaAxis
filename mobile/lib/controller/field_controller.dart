@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
-import 'package:mobile/models/FieldPrincing.dart';
+import 'package:mobile/models/user.dart';
 import 'package:mobile/models/cart_item.dart';
 import 'package:mobile/models/field.dart';
-
 import 'package:mobile/services/field_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:mobile/widgets/payement_web.dart';
+import 'package:mobile/utilities/token_storage.dart';
+import 'package:mobile/widgets/payment_web.dart';
 
 class FieldController extends GetxController {
   final FieldService _service = FieldService();
@@ -23,15 +23,11 @@ class FieldController extends GetxController {
   String? currentStoreId;
   String? currentSportId;
 
-  var fieldPricingConfig = <String, FieldPricingResponse>{}.obs;
-  var selectedSlotIds = <String>{}.obs;
-
   @override
   void onInit() {
     super.onInit();
     ever(selectedDate, (_) {
       if (currentStoreId != null && currentSportId != null) {
-        // KHÔNG selectedSlotIds.clear() nữa
         loadData(currentStoreId!, currentSportId!);
       }
     });
@@ -48,15 +44,6 @@ class FieldController extends GetxController {
         selectedDate.value,
       );
       fields.value = fetchedFields;
-
-      for (var field in fetchedFields) {
-        if (!fieldPricingConfig.containsKey(field.id)) {
-          var pricing = await _service.getFieldPricing(field.id);
-          if (pricing != null) {
-            fieldPricingConfig[field.id] = pricing;
-          }
-        }
-      }
     } catch (e) {
       log("Error loading data: $e");
     } finally {
@@ -74,12 +61,17 @@ class FieldController extends GetxController {
     var field = fields.firstWhereOrNull((f) => f.id == fieldId);
     if (field == null || field.bookedSlots.isEmpty) return false;
 
-    double slotVal = _timeToDouble(timeSlot);
+    DateTime slotDate = selectedDate.value;
+    String slotStartStr =
+        "${DateFormat('yyyy-MM-dd').format(slotDate)}T${timeSlot}:00.000Z";
+    DateTime slotStart = DateTime.parse(slotStartStr).toUtc();
+    DateTime slotEnd = slotStart.add(const Duration(minutes: 30));
 
     for (var booking in field.bookedSlots) {
-      double start = _timeToDouble(booking.startTime);
-      double end = _timeToDouble(booking.endTime);
-      if (slotVal >= start && slotVal < end) {
+      if (booking.statusPayment == "FAILED") continue;
+      DateTime bookStart = DateTime.parse(booking.startTime);
+      DateTime bookEnd = DateTime.parse(booking.endTime);
+      if (slotStart.isBefore(bookEnd) && slotEnd.isAfter(bookStart)) {
         return true;
       }
     }
@@ -87,54 +79,26 @@ class FieldController extends GetxController {
   }
 
   bool isSpecialPrice(String fieldId, String timeSlot) {
-    var config = fieldPricingConfig[fieldId];
-    if (config == null) return false;
-
-    String dayKey = _getDayKey(selectedDate.value);
-    if (config.pricings.containsKey(dayKey)) {
-      List<PricingDetail> specialPricings = config.pricings[dayKey]!;
-      for (var p in specialPricings) {
-        if (_isTimeInSlot(timeSlot, p.startAt, p.endAt)) {
-          return true;
-        }
-      }
+    var field = fields.firstWhereOrNull((f) => f.id == fieldId);
+    if (field == null || field.pricings.isEmpty) return false;
+    for (var p in field.pricings) {
+      if (_isTimeInSlot(timeSlot, p.startAt, p.endAt)) return true;
     }
     return false;
   }
 
   double getPriceForTimeSlot(String fieldId, String timeSlot) {
     var field = fields.firstWhereOrNull((f) => f.id == fieldId);
-    double finalPrice = field?.defaultPrice ?? 0.0;
+    double price = field?.defaultPrice ?? 0.0;
+    if (field == null || field.pricings.isEmpty) return price;
 
-    var config = fieldPricingConfig[fieldId];
-    if (config == null) {
-      return finalPrice;
-    }
-
-    String dayKey = _getDayKey(selectedDate.value);
-    if (config.pricings.containsKey(dayKey)) {
-      List<PricingDetail> specialPricings = config.pricings[dayKey]!;
-      for (var p in specialPricings) {
-        if (_isTimeInSlot(timeSlot, p.startAt, p.endAt)) {
-          finalPrice = p.specialPrice;
-          break;
-        }
+    for (var p in field.pricings) {
+      if (_isTimeInSlot(timeSlot, p.startAt, p.endAt)) {
+        price = p.specialPrice;
+        break;
       }
     }
-    return finalPrice;
-  }
-
-  String _getDayKey(DateTime date) {
-    List<String> days = [
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-    ];
-    return days[date.weekday - 1];
+    return price;
   }
 
   bool _isTimeInSlot(String timeToCheck, String start, String end) {
@@ -148,12 +112,10 @@ class FieldController extends GetxController {
     try {
       if (time.isEmpty) return 0;
       var parts = time.split(":");
-      if (parts.length < 2) return 0;
       double h = double.parse(parts[0]);
       double m = double.parse(parts[1]);
       return h + m / 60.0;
     } catch (e) {
-      log("Error parsing time: $time -> $e");
       return 0;
     }
   }
@@ -166,23 +128,20 @@ class FieldController extends GetxController {
       selectedSlotKeys.remove(key);
       selectedSlotsDetail.remove(key);
     } else {
+      double price = getPriceForTimeSlot(fieldId, time);
       selectedSlotKeys.add(key);
       selectedSlotsDetail[key] = SelectedSlot(
         fieldId: fieldId,
         date: date,
         startTime: time,
         fieldName: fieldName,
+        price: price,
       );
     }
   }
 
   double get totalPrice {
-    double total = 0;
-    for (var slotDetail in selectedSlotsDetail.values) {
-      // Giá vẫn phụ thuộc vào fieldId và startTime
-      total += getPriceForTimeSlot(slotDetail.fieldId, slotDetail.startTime);
-    }
-    return total;
+    return selectedSlotsDetail.values.fold(0, (sum, e) => sum + e.price);
   }
 
   void clearAllSlots() {
@@ -207,87 +166,73 @@ class FieldController extends GetxController {
     return slots;
   }
 
-  Future<void> createPaymentOrder() async {
-    final url = "https://arena-axis.vercel.app/api/v1/orders/create-payment";
-    List<Map<String, dynamic>> items = [];
-
-    // Duyệt qua tất cả các slot đã chọn (kể cả các ngày khác)
-    for (var slot in selectedSlotsDetail.values) {
-      DateTime t = DateFormat("HH:mm").parse(slot.startTime);
-      String endTime = DateFormat(
-        "HH:mm",
-      ).format(t.add(const Duration(minutes: 30)));
-      // PHẢI sử dụng getPriceForTimeSlot vì giá có thể thay đổi theo ngày/giờ
-      double price = getPriceForTimeSlot(slot.fieldId, slot.startTime);
-
-      items.add({
-        "field_id": slot.fieldId,
-        "start_time": slot.startTime,
-        "end_time": endTime,
-        "date": slot.date, // THÊM TRƯỜNG DATE
-        "name": slot.fieldName,
-        "quantity": 1,
-        "price": price.round(),
-      });
-    }
-
-    if (items.isEmpty) {
-      Get.snackbar(
-        "Cảnh báo",
-        "Vui lòng chọn ít nhất một khung giờ để thanh toán.",
-      );
-      return;
-    }
-
-    // Lấy ngày sớm nhất và muộn nhất đã chọn để làm description (tùy chọn)
-    // Hoặc chỉ cần thông báo số lượng slot đã chọn.
-    String description = "Đặt ${items.length} slot cho sân ${currentSportId!}";
-
-    Map<String, dynamic> body = {
-      "store_id": currentStoreId,
-      "user_id": "", // Cần điền userId thực tế
-      "amount": totalPrice.round(),
-      "description": description,
-      "date": DateFormat(
-        "yyyy-MM-dd",
-      ).format(DateTime.now()), // Có thể giữ nguyên ngày hiện tại hoặc bỏ
-      "items": items,
-    };
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(body),
-      );
-
-      var data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (data["data"] != null && data["data"]["checkoutUrl"] != null) {
-          String checkoutUrl = data["data"]["checkoutUrl"];
-          Get.to(() => PaymentWebView(url: checkoutUrl));
-        } else {
-          Get.snackbar(
-            "Lỗi",
-            "Không lấy được link thanh toán",
-            snackPosition: SnackPosition.BOTTOM,
-          );
-        }
-      } else {
-        String errorMessage = data['message'] ?? "Lỗi không xác định.";
-        Get.snackbar(
-          "Tạo đơn thất bại",
-          "$errorMessage (Code: ${response.statusCode})",
-          snackPosition: SnackPosition.BOTTOM,
-        );
+  /// TRẢ VỀ 'success' | 'failed' | 'cancel' | null
+  Future<String?> createPaymentOrder() async {
+    {
+      if (selectedSlotsDetail.isEmpty) {
+        Get.snackbar("Cảnh báo", "Vui lòng chọn ít nhất một khung giờ");
+        return null;
       }
-    } catch (e) {
-      log("Payment exception: $e");
-      Get.snackbar(
-        "Lỗi kết nối",
-        "Không thể kết nối đến máy chủ thanh toán.",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+
+      final url = "https://arena-axis.vercel.app/api/v1/orders/create-payment";
+      final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
+      User user = await tokenStorage.getUserData() as User;
+
+      List<Map<String, dynamic>> items = [];
+      for (var slot in selectedSlotsDetail.values) {
+        DateTime t = DateFormat("HH:mm").parse(slot.startTime);
+        String endTime = DateFormat(
+          "HH:mm",
+        ).format(t.add(const Duration(minutes: 30)));
+
+        items.add({
+          "field_id": slot.fieldId,
+          "start_time": slot.startTime,
+          "end_time": endTime,
+          "date": slot.date,
+          "name": slot.fieldName,
+          "quantity": 1,
+          "price": slot.price.round(),
+        });
+      }
+
+      Map<String, dynamic> body = {
+        "store_id": currentStoreId,
+        "user_id": user.id,
+        "amount": totalPrice.round(),
+        "description": "Đặt ${items.length} slot sân $currentSportId",
+        "items": items,
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse(url),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(body),
+        );
+
+        var data = jsonDecode(response.body);
+
+        if (response.statusCode == 200 &&
+            data["data"]?["checkoutUrl"] != null) {
+          String checkoutUrl = data["data"]["checkoutUrl"];
+
+          // Đợi kết quả từ WebView
+          final result = await Get.to<String>(
+            () => PaymentWebView(url: checkoutUrl),
+          );
+
+          return result; // 'success', 'failed', 'cancel'
+        } else {
+          String msg = data['message'] ?? "Lỗi tạo đơn hàng";
+          Get.snackbar("Thất bại", msg);
+          return null;
+        }
+      } catch (e) {
+        log("Payment error: $e");
+        Get.snackbar("Lỗi", "Không kết nối được máy chủ");
+        return null;
+      }
     }
   }
 
@@ -311,15 +256,7 @@ class FieldController extends GetxController {
     groupedSlots.forEach((key, slots) {
       slots.sort((a, b) => a.startTime.compareTo(b.startTime));
 
-      double totalGroupPrice = 0.0;
-      for (var slot in slots) {
-        DateTime slotDateTime = DateFormat("yyyy-MM-dd").parse(slot.date);
-        totalGroupPrice += getPriceForSlot(
-          slot.fieldId,
-          slot.startTime,
-          slotDateTime,
-        );
-      }
+      double totalGroupPrice = slots.fold(0.0, (sum, slot) => sum + slot.price);
 
       List<String> timeRanges = [];
       String? currentRangeStart;
@@ -332,7 +269,7 @@ class FieldController extends GetxController {
         if (currentRangeStart == null) {
           currentRangeStart = slots[i].startTime;
           currentRangeEnd = endTime;
-        } else if (startTime.isAtSameMomentAs(currentRangeEnd!)) {
+        } else if (startTime == currentRangeEnd) {
           currentRangeEnd = endTime;
         } else {
           timeRanges.add(
@@ -368,54 +305,18 @@ class FieldController extends GetxController {
 
     return finalCartDetails;
   }
-  // Đặt hàm này trong class FieldController của bạn
 
-double getPriceForSlot(String fieldId, String timeSlot, DateTime date) {
-    var field = fields.firstWhereOrNull((f) => f.id == fieldId);
-    double finalPrice = field?.defaultPrice ?? 0.0;
+  void removeGroupedSlots(String groupKey) {
+    List<String> keysToRemove = selectedSlotKeys.where((key) {
+      List<String> parts = key.split('_');
+      if (parts.length < 3) return false;
+      String slotGroupKey = "${parts[1]}_${parts[0]}";
+      return slotGroupKey == groupKey;
+    }).toList();
 
-    var config = fieldPricingConfig[fieldId];
-    if (config == null) {
-      return finalPrice;
+    for (String key in keysToRemove) {
+      selectedSlotKeys.remove(key);
+      selectedSlotsDetail.remove(key);
     }
-
-    String dayKey = _getDayKey(date); // SỬ DỤNG NGÀY ĐƯỢC TRUYỀN VÀO (slot date)
-    if (config.pricings.containsKey(dayKey)) {
-      List<PricingDetail> specialPricings = config.pricings[dayKey]!;
-      for (var p in specialPricings) {
-        if (_isTimeInSlot(timeSlot, p.startAt, p.endAt)) {
-          finalPrice = p.specialPrice;
-          break;
-        }
-      }
-    }
-    return finalPrice;
-}
-// Đặt hàm này trong class FieldController của bạn
-
-void removeGroupedSlots(String groupKey) {
-  // Tìm tất cả các key slot (yyyy-MM-dd_fieldId_time) thuộc nhóm này
-  // groupKey: fieldId_date (ví dụ: 'F001_2025-12-05')
-  
-  // 1. Lọc các keys slot cần xóa
-  List<String> keysToRemove = selectedSlotKeys.where((key) {
-    // Key slot có dạng: '2025-12-05_F001_08:00'
-    // Ta cần kiểm tra xem phần fieldId_date có khớp với groupKey không.
-    
-    // Tách key slot: [date, fieldId, time]
-    List<String> parts = key.split('_');
-    if (parts.length < 3) return false;
-    
-    // Ghép lại thành 'fieldId_date' để so sánh với groupKey
-    String slotGroupKey = "${parts[1]}_${parts[0]}"; 
-    
-    return slotGroupKey == groupKey;
-  }).toList();
-  
-  // 2. Xóa các keys và details
-  for (String key in keysToRemove) {
-    selectedSlotKeys.remove(key);
-    selectedSlotsDetail.remove(key);
   }
-}
 }
