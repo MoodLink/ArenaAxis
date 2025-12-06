@@ -86,6 +86,20 @@ public class MediaServiceImpl implements MediaService {
     storeMediaRepository.delete(storeMedia);
   }
 
+  @Async
+  @Override
+  public void deleteMedia(Media media) {
+    mediaRepository.delete(media);
+    mediaRepository.delete(media);
+  }
+
+  @Async
+  @Override
+  public void deleteMedias(List<Media> medias) {
+    medias.forEach(mediaUtility::delete);
+    mediaRepository.deleteAll(medias);
+  }
+
   private void createStoreMedia(Store store, Media media) {
     StoreMedia storeMedia = StoreMedia.builder()
       .media(media)

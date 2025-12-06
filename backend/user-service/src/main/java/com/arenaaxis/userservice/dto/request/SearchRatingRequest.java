@@ -12,6 +12,5 @@ import lombok.experimental.FieldDefaults;
 public class SearchRatingRequest {
   String storeId;
   String sportId;
-  String userId;
   Integer star;
 }

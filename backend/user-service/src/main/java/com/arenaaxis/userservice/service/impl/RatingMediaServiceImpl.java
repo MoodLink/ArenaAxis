@@ -2,6 +2,7 @@ package com.arenaaxis.userservice.service.impl;
 
 import java.util.List;
 
+import com.arenaaxis.userservice.repository.MediaRepository;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,7 @@ import lombok.experimental.FieldDefaults;
 public class RatingMediaServiceImpl implements RatingMediaService {
   MediaService mediaService;
   RatingMediaRepository ratingMediaRepository;
+  MediaRepository mediaRepository;
 
   @Async
   @Override
@@ -40,14 +42,22 @@ public class RatingMediaServiceImpl implements RatingMediaService {
 
   @Override
   public List<Media> getMediaFromRatingId(String ratingId) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'getMediaFromRatingId'");
+    return ratingMediaRepository.getMediasFromRatingId(ratingId);
   }
 
+  @Async
   @Override
   public void delete(String id) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'delete'");
+    mediaRepository.findById(id).ifPresent(media -> {
+      mediaService.deleteMedia(media);
+      ratingMediaRepository.deleteById(id);
+    });
   }
 
+  @Async
+  @Override
+  public void delete(List<String> mediaIds) {
+    List<Media> medias = mediaRepository.findAllById(mediaIds);
+    mediaService.deleteMedias(medias);
+  }
 }

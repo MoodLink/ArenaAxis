@@ -1,9 +1,11 @@
 package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.AuthenticationRequest;
+import com.arenaaxis.userservice.dto.request.IntrospectRequest;
 import com.arenaaxis.userservice.dto.request.LogoutRequest;
 import com.arenaaxis.userservice.dto.request.RefreshRequest;
 import com.arenaaxis.userservice.dto.response.AuthenticationResponse;
+import com.arenaaxis.userservice.dto.response.IntrospectResponse;
 import com.arenaaxis.userservice.dto.response.RefreshResponse;
 import com.arenaaxis.userservice.entity.enums.Role;
 import com.arenaaxis.userservice.service.AuthenticationService;
@@ -12,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +28,12 @@ import java.text.ParseException;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
   AuthenticationService authenticationService;
+
+  @PostMapping("/validate")
+  public ResponseEntity<IntrospectResponse> validate(@RequestBody @Validated IntrospectRequest request)
+    throws JOSEException, ParseException {
+    return ResponseEntity.ok(authenticationService.introspect(request));
+  }
 
   @PostMapping("/user")
   public ResponseEntity<AuthenticationResponse> loginUser(@RequestBody AuthenticationRequest request) {
@@ -42,7 +51,7 @@ public class AuthenticationController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
+  public ResponseEntity<AuthenticationResponse> login(@RequestBody @Validated AuthenticationRequest request) {
     return ResponseEntity.ok(authenticationService.authenticate(request, null));
   }
 

@@ -14,4 +14,5 @@ public class SearchStoreRequest {
   String wardId;
   String provinceId;
   String sportId;
+  boolean approvable;
 }

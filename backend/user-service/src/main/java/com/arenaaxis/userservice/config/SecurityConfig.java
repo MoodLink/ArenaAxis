@@ -25,34 +25,36 @@ import java.util.Map;
 public class SecurityConfig {
 
   private static final Map<HttpMethod, List<String>> PUBLIC_ENDPOINTS = Map.of(
-      HttpMethod.GET, List.of(
-          "/sports",
-          "/sports/**",
-          "/provinces",
-          "/provinces/**",
-          "/wards",
-          "/wards/**",
-          "/stores",
-          "/stores/detail/**",
-          "/banks",
-          "/banks/**",
-          "/main-plans",
-          "/main-plans/**",
-          "/ratings",
-          "/ratings/**",
-          "/users/myself",
-          "/users/**",
-          "/favourites",
-          "/favourites/**"),
-      HttpMethod.POST, List.of(
-          "/users",
-          "/auth",
-          "/auth/**",
-          "/stores/search",
-          "/favourites"),
-      HttpMethod.DELETE, List.of(
-          "/favourites",
-          "/favourites/**"));
+    HttpMethod.GET, List.of(
+      "/sports",
+      "/sports/**",
+      "/provinces",
+      "/provinces/**",
+      "/wards",
+      "/wards/**",
+      "/stores",
+      "/stores/detail/**",
+      "/banks",
+      "/banks/**",
+      "/main-plans",
+      "/main-plans/**",
+      "/ratings",
+      "/ratings/**",
+      "/users/myself",
+      "/users/**",
+      "/favourites",
+      "/favourites/**",
+      "/revenues/**"),
+    HttpMethod.POST, List.of(
+      "/users",
+      "/auth",
+      "/auth/**",
+      "/stores/search",
+      "/favourites",
+      "/recommends/**"),
+    HttpMethod.DELETE, List.of(
+      "/favourites",
+      "/favourites/**"));
 
   CustomJwtDecoder customJwtDecoder;
 
@@ -63,17 +65,17 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .authorizeHttpRequests(auth -> {
-          PUBLIC_ENDPOINTS
-              .forEach((method, paths) -> paths.forEach(path -> auth.requestMatchers(method, path).permitAll()));
-          auth.anyRequest().authenticated();
-        })
-        .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-            .decoder(customJwtDecoder)
-            .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-            .authenticationEntryPoint(new JwtAuthenticationEntry()));
+      .csrf(AbstractHttpConfigurer::disable)
+      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+      .authorizeHttpRequests(auth -> {
+        PUBLIC_ENDPOINTS
+          .forEach((method, paths) -> paths.forEach(path -> auth.requestMatchers(method, path).permitAll()));
+        auth.anyRequest().authenticated();
+      })
+      .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
+        .decoder(customJwtDecoder)
+        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        .authenticationEntryPoint(new JwtAuthenticationEntry()));
 
     return http.build();
   }

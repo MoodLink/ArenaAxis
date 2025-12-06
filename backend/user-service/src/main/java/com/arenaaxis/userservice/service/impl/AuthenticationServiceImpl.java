@@ -82,6 +82,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
       throw new AppException(ErrorCode.USER_NOT_FOUND);
     }
 
+    if (!user.isActive()) {
+      throw new AppException(ErrorCode.ACCOUNT_NOT_ACTIVATED);
+    }
+
     String token = generateToken(user);
     return AuthenticationResponse.builder()
       .token(token)

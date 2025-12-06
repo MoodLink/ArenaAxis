@@ -3,8 +3,10 @@ package com.arenaaxis.userservice.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -37,7 +39,11 @@ public class StoreClientDetailResponse {
   List<SportResponse> sports;
   List<SportRatingResponse> sportRatings;
 
+  Set<StoreUtilityResponse> utilities;
 
-  Float latitude;
-  Float longitude;
+  WardResponse ward;
+  ProvinceResponse province;
+
+  BigDecimal latitude;
+  BigDecimal longitude;
 }

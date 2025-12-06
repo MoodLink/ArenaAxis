@@ -1,13 +1,16 @@
 package com.arenaaxis.userservice.service.impl;
 
+import com.arenaaxis.userservice.client.service.OrderClientService;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
+import com.arenaaxis.userservice.dto.request.StoreUpdateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.*;
 import com.arenaaxis.userservice.entity.enums.Role;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
+import com.arenaaxis.userservice.entity.enums.UtilityType;
 import com.arenaaxis.userservice.exception.AppException;
 import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.mapper.SportMapper;
@@ -15,13 +18,15 @@ import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
-import com.arenaaxis.userservice.repository.UserRepository;
 import com.arenaaxis.userservice.service.*;
+import com.arenaaxis.userservice.service.event.StoreApprovedEvent;
 import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,43 +35,55 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class StoreServiceImpl implements StoreService {
+  ApplicationEventPublisher eventPublisher;
+
   StoreRepository storeRepository;
-  UserRepository userRepository;
   WardRepository wardRepository;
   StoreViewHistoryRepository storeViewHistoryRepository;
 
   StoreHasSportService storeHasSportService;
   RatingStoreSportService ratingStoreSportService;
+  StoreUtilityService storeUtilityService;
 
   StoreMapper storeMapper;
   MediaService mediaService;
   AuthenticationService authenticationService;
-  private final SportMapper sportMapper;
+  SportMapper sportMapper;
+
+  OrderClientService orderClientService;
 
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse create(StoreCreateRequest request, User owner)
       throws ParseException, JOSEException {
     Ward ward = getWard(request.getWardId());
-
     Store store = storeMapper.fromCreateRequest(request);
     String newToken = authenticationService.buildTokenWhenUpgradeUser(owner);
 
-    store.setOwner(userRepository.findById(owner.getId())
-        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
+    store.setOwner(owner);
     store.setWard(ward);
     store.setProvince(ward.getProvince());
+    setCoordinateIfPresent(store, request.getLinkGoogleMap());
+
     store = storeRepository.save(store);
+    addUtilities(store, request.getUtilities());
 
     return storeMapper.toAdminDetailResponse(store, newToken);
   }
@@ -94,11 +111,19 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
-  public StoreAdminDetailResponse update(StoreCreateRequest request, User owner) {
+  @PreAuthorize("hasRole('ROLE_CLIENT') or hasRole('ROLE_ADMIN')")
+  public StoreAdminDetailResponse update(String id, StoreUpdateRequest request, User owner) {
+    Store store = storeRepository.findById(id)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+
+    if (owner.getRole() != Role.ADMIN || !owner.getId().equals(store.getOwner().getId())) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
     return null;
   }
 
   @Override
+  @Transactional
   public StoreClientDetailResponse detail(String storeId, User currentUser) {
     Store store = storeRepository.findById(storeId)
         .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
@@ -160,11 +185,64 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
+  @PreAuthorize("hasRole('ROLE_CLIENT') or hasRole('ROLE_ADMIN')")
+  public StoreAdminDetailResponse suspendStore(String storeId, User currentUser) {
+    Store store = getStore(storeId, currentUser);
+
+    return null;
+  }
+
+  @Override
+  @Transactional
   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse fullInfo(String storeId) {
     Store store = storeRepository.findById(storeId)
         .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
     return storeMapper.toAdminDetailResponse(store);
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  public StoreAdminDetailResponse approveStore(String storeId, User currentUser) {
+    Store store = getStore(storeId, currentUser);
+    if (!store.isApprovable()) {
+      throw new AppException(ErrorCode.STORE_CANNOT_BE_APPROVED);
+    }
+
+    store.setApproved(true);
+    store.setApprovedAt(LocalDateTime.now());
+    store = storeRepository.save(store);
+
+    eventPublisher.publishEvent(new StoreApprovedEvent(this, store));
+    return storeMapper.toAdminDetailResponse(store, null);
+  }
+
+  private Store getStore(String storeId, User user) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+
+    if (user.getRole() != Role.ADMIN && !user.getId().equals(store.getOwner().getId())) {
+      throw new AppException(ErrorCode.UNAUTHENTICATED);
+    }
+
+    return store;
+  }
+
+  private void setCoordinateIfPresent(Store store, String link) {
+    if (link == null || link.isBlank()) return;
+
+    List<BigDecimal> coors = extractLocationFromLink(link);
+    if (coors.size() != 2) return;
+
+    store.setLatitude(coors.get(0));
+    store.setLongitude(coors.get(1));
+  }
+
+  private void addUtilities(Store store, List<UtilityType> types) {
+    if (types == null) return;
+
+    List<StoreUtility> storeUtilities = storeUtilityService.createUtilitiesForStore(store, types);
+    store.setUtilities(Set.of(storeUtilities.toArray(new StoreUtility[0])));
   }
 
   private Ward getWard(String wardId) {
@@ -191,5 +269,25 @@ public class StoreServiceImpl implements StoreService {
         .store(store)
         .build();
     storeViewHistoryRepository.save(storeViewHistory);
+  }
+
+  private List<BigDecimal> extractLocationFromLink(String linkGoogleMap) {
+    List<BigDecimal> coordinates = new ArrayList<>();
+    try {
+      int atIndex = linkGoogleMap.indexOf('@');
+      if (atIndex != -1) {
+        String substring = linkGoogleMap.substring(atIndex + 1);
+        String[] parts = substring.split(",");
+        if (parts.length >= 2) {
+          BigDecimal lat = BigDecimal.valueOf(Float.parseFloat(parts[0]));
+          BigDecimal lng = BigDecimal.valueOf(Float.parseFloat(parts[1]));
+          coordinates.add(lat);
+          coordinates.add(lng);
+        }
+      }
+    } catch (Exception e) {
+      log.info("Invalid Google Maps link: {}", e.getMessage());
+    }
+    return coordinates;
   }
 }

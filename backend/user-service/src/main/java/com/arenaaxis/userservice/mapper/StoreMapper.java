@@ -1,6 +1,7 @@
 package com.arenaaxis.userservice.mapper;
 
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
+import com.arenaaxis.userservice.dto.request.StoreUpdateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
@@ -9,6 +10,7 @@ import com.arenaaxis.userservice.entity.StoreMedia;
 import java.util.Collections;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValueCheckStrategy;
 
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.Set;
     ProvinceMapper.class,
     UserMapper.class,
     SportMapper.class,
+    StoreUtilityMapper.class
   }
 )
 public interface StoreMapper {
@@ -44,6 +47,27 @@ public interface StoreMapper {
   @Mapping(target = "sports", ignore = true)
   @Mapping(target = "ward", ignore = true)
   Store fromCreateRequest(StoreCreateRequest request);
+
+  @Mapping(target = "active", ignore = true)
+  @Mapping(target = "createdAt", ignore = true)
+  @Mapping(target = "updatedAt", ignore = true)
+  @Mapping(target = "deletedAt", ignore = true)
+  @Mapping(target = "viewCount", ignore = true)
+  @Mapping(target = "orderCount", ignore = true)
+  @Mapping(target = "avatar", ignore = true)
+  @Mapping(target = "coverImage", ignore = true)
+  @Mapping(target = "businessLicenseImage", ignore = true)
+  @Mapping(target = "medias", ignore = true)
+  @Mapping(target = "plan", ignore = true)
+  @Mapping(target = "optionalPlans", ignore = true)
+  @Mapping(target = "approved", ignore = true)
+  @Mapping(target = "owner", ignore = true)
+  @Mapping(target = "id", ignore = true)
+  @Mapping(target = "averageRating", ignore = true)
+  @Mapping(target = "province", ignore = true)
+  @Mapping(target = "sports", ignore = true)
+  @Mapping(target = "ward", ignore = true)
+  Store fromUpdateRequest(@MappingTarget Store store, StoreUpdateRequest request);
 
   @Mapping(
     target = "avatarUrl",
@@ -87,6 +111,7 @@ public interface StoreMapper {
     expression = "java(mapMediaUrls(store.getMedias()))"
   )
   @Mapping(target = "newToken", expression = "java(newToken)")
+  @Mapping(target = "approvable", expression = "java(store.isApprovable())")
   StoreAdminDetailResponse toAdminDetailResponse(Store store, String newToken);
 
   @Mapping(
