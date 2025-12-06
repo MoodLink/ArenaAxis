@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 @Mapper(componentModel = "spring", uses = {
-  StoreMapper.class, SportMapper.class, UserMapper.class
+    StoreMapper.class, SportMapper.class, UserMapper.class
 })
 public interface RatingMapper {
   @Mapping(target = "mediaUrls", expression = "java(mapMediaUrls(rating.getRatingMedias()))")
@@ -28,7 +28,8 @@ public interface RatingMapper {
   Rating fromRequest(RatingRequest request);
 
   default List<String> mapMediaUrls(Set<RatingMedia> medias) {
-    if (medias == null) return Collections.emptyList();
+    if (medias == null)
+      return Collections.emptyList();
 
     return medias.stream().map(media -> media.getMedia().getUrl()).toList();
   }

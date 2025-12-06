@@ -45,12 +45,24 @@ const getAmenityIcon = (amenityName: string) => {
 }
 
 export default function FieldAmenities({ field }: FieldAmenitiesProps) {
+    // Default amenities if not provided
+    const amenities = field.amenities || [
+        'Wifi miễn phí',
+        'Bãi đỗ xe rộng rãi',
+        'Phòng thay đồ',
+        'Nhà vệ sinh',
+        'Đèn chiếu sáng',
+        'Căng tin',
+        'Camera an ninh',
+        'Nước uống miễn phí'
+    ]
+
     return (
         <Card className="mb-8 shadow-lg border-0">
             <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6 text-gray-800">Tiện ích & Cơ sở vật chất</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {field.amenities.map((amenityName, index) => {
+                    {amenities.map((amenityName, index) => {
                         const IconComponent = getAmenityIcon(amenityName)
                         return (
                             <div key={index} className="flex items-center gap-3 p-4 rounded-lg border-2 transition-all hover:shadow-md bg-gradient-to-r from-emerald-50 to-blue-50 border-emerald-200 hover:border-emerald-300">

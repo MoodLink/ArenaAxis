@@ -17,17 +17,17 @@ export default function AdminDashboard() {
         <DashboardStats />
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RevenueChart />
           <SportsChart />
-        </div>
+        </div> */}
 
         {/* Widgets Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <RecentBookings />
           <TopFields />
           <RecentActivities />
-        </div>
+        </div> */}
       </div>
     </AdminLayout>
   )

@@ -72,7 +72,7 @@ public class StoreServiceImpl implements StoreService {
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse create(StoreCreateRequest request, User owner)
-    throws ParseException, JOSEException {
+      throws ParseException, JOSEException {
     Ward ward = getWard(request.getWardId());
     Store store = storeMapper.fromCreateRequest(request);
     String newToken = authenticationService.buildTokenWhenUpgradeUser(owner);
@@ -93,10 +93,11 @@ public class StoreServiceImpl implements StoreService {
   @PostAuthorize("returnObject.owner.email == authentication.name")
   public StoreAdminDetailResponse updateImage(String storeId, Map<StoreImageType, List<MultipartFile>> images) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     images.forEach((type, files) -> {
-      if (files == null) return;
+      if (files == null)
+        return;
 
       if (type == StoreImageType.MEDIAS) {
         mediaService.uploadMultipleMedias(store, files);
@@ -125,7 +126,7 @@ public class StoreServiceImpl implements StoreService {
   @Transactional
   public StoreClientDetailResponse detail(String storeId, User currentUser) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
 
     if (shouldIncreaseView(currentUser)) {
       store.increaseViewCount();
@@ -155,8 +156,8 @@ public class StoreServiceImpl implements StoreService {
     Page<Store> storePage = storeRepository.findAll(pageable);
 
     return storePage.getContent().stream()
-      .map(storeMapper::toStoreSearchItemResponse)
-      .toList();
+        .map(storeMapper::toStoreSearchItemResponse)
+        .toList();
   }
 
   @Override
@@ -178,9 +179,9 @@ public class StoreServiceImpl implements StoreService {
     }
 
     return storeRepository.findByOwner_Id(ownerId)
-      .stream()
-      .map(storeMapper::toAdminDetailResponse)
-      .toList();
+        .stream()
+        .map(storeMapper::toAdminDetailResponse)
+        .toList();
   }
 
   @Override
@@ -196,7 +197,7 @@ public class StoreServiceImpl implements StoreService {
   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse fullInfo(String storeId) {
     Store store = storeRepository.findById(storeId)
-      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
     return storeMapper.toAdminDetailResponse(store);
   }
 
@@ -246,7 +247,7 @@ public class StoreServiceImpl implements StoreService {
 
   private Ward getWard(String wardId) {
     return wardRepository.findById(wardId)
-                         .orElseThrow(() -> new AppException(ErrorCode.WARD_NOT_FOUND));
+        .orElseThrow(() -> new AppException(ErrorCode.WARD_NOT_FOUND));
   }
 
   private boolean shouldIncreaseView(User currentUser) {
@@ -254,17 +255,19 @@ public class StoreServiceImpl implements StoreService {
   }
 
   private boolean shouldSaveHistory(User currentUser, String storeId) {
+
     if (currentUser == null) return false;
     if (currentUser.getRole() != Role.USER) return false;
+
 
     return !storeViewHistoryRepository.existsByStoreIdAndUserId(storeId, currentUser.getId());
   }
 
   private void saveStoreViewHistory(Store store, User currentUser) {
     StoreViewHistory storeViewHistory = StoreViewHistory.builder()
-      .user(currentUser)
-      .store(store)
-      .build();
+        .user(currentUser)
+        .store(store)
+        .build();
     storeViewHistoryRepository.save(storeViewHistory);
   }
 

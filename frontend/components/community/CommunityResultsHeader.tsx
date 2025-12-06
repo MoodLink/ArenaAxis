@@ -35,7 +35,7 @@ export default function CommunityResultsHeader({
 
     return (
         <div className="flex items-center justify-between">
-            <div>
+            {/* <div>
                 <h2 className="text-lg font-semibold text-gray-900">
                     {filteredPosts.length} hoạt động
                 </h2>
@@ -50,7 +50,7 @@ export default function CommunityResultsHeader({
                     <Users className="w-4 h-4" />
                     <span>{totalLikes} lượt quan tâm</span>
                 </div>
-            )}
+            )} */}
         </div>
     )
 }

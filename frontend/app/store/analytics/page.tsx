@@ -315,7 +315,7 @@ function BookingAnalytics() {
                 <StatCard
                     title="Tỷ lệ lấp đầy"
                     value="78.4%"
-                    change="+5.2%"
+                    // change="+5.2%"
                     changeType="increase"
                     icon={Activity}
                     subtext="Tỷ lệ sử dụng sân"

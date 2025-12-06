@@ -17,7 +17,7 @@ export default function ProfileStats({ user }: ProfileStatsProps) {
     const stats = [
         {
             label: "Lượt đặt sân",
-            value: user.stats.totalBookings,
+            value: user.stats?.totalBookings || 0,
             icon: Calendar,
             color: "blue",
             bgColor: "bg-blue-50",
@@ -26,7 +26,7 @@ export default function ProfileStats({ user }: ProfileStatsProps) {
         },
         {
             label: "Giải đấu",
-            value: user.stats.totalTournaments,
+            value: user.stats?.totalTournaments || 0,
             icon: Trophy,
             color: "purple",
             bgColor: "bg-purple-50",
@@ -35,7 +35,7 @@ export default function ProfileStats({ user }: ProfileStatsProps) {
         },
         {
             label: "Bài viết",
-            value: user.stats.totalPosts,
+            value: user.stats?.totalPosts || 0,
             icon: MessageSquare,
             color: "orange",
             bgColor: "bg-orange-50",

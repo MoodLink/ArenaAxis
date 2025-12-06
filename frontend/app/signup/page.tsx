@@ -1,65 +1,196 @@
-﻿import Link from "next/link"
+﻿// Kích hoạt chế độ client-side rendering cho component này
+"use client"
+// Import các hook và component cần thiết
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { signupUser } from "@/services/api-new"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function SignUpPage() {
+  const router = useRouter()
+  // State lưu tên người dùng nhập
+  const [name, setName] = useState("")
+  // State lưu email người dùng nhập
+  const [email, setEmail] = useState("")
+  // State lưu password người dùng nhập
+  const [password, setPassword] = useState("")
+  // State lưu số điện thoại người dùng nhập
+  const [phone, setPhone] = useState("")
+  // State lưu thông báo lỗi
+  const [error, setError] = useState("")
+  // State lưu thông báo thành công
+  const [success, setSuccess] = useState("")
+  // State kiểm soát trạng thái loading khi gửi request
+  const [loading, setLoading] = useState(false)
+  // State kiểm soát hiển thị password
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Hàm xử lý đăng ký khi submit form
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    // Kiểm tra định dạng password: ít nhất 8 ký tự, có chữ hoa, chữ thường và số
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("Password phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số");
+      setLoading(false);
+      return;
+    }
+
+    // Kiểm tra định dạng số điện thoại: đúng 10 chữ số
+    if (phone && !/^\d{10}$/.test(phone)) {
+      setError("Số điện thoại phải có đúng 10 chữ số");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await signupUser({ name, email, password, phone });
+      setSuccess("Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...");
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen relative flex items-center justify-center">
-      {/* Background Image */}
+      {/* Ảnh nền */}
       <div className="absolute inset-0 z-0">
         <img src="/modern-football-turf-field.png" alt="Modern football turf" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/80 via-teal-500/70 to-green-400/60"></div>
       </div>
 
-      {/* Sign Up Form */}
+      {/* Form đăng ký */}
       <Card className="w-full max-w-md mx-4 z-10 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">Sign Up</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">Đăng ký</CardTitle>
           <p className="text-white/80 text-sm">
-            Already have an account?{" "}
+            {/* Link chuyển sang trang đăng nhập nếu đã có tài khoản */}
+            Bạn đã có tài khoản?{" "}
             <Link href="/login" className="text-white underline hover:text-white/80">
-              Sign In
+              Đăng nhập
             </Link>
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-white">
-              Name
-            </Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Enter your name"
-              className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-white">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-white">
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
-            />
-          </div>
-          <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold">Create Account</Button>
+          <form onSubmit={handleSignup} className="space-y-4">
+            {/* Trường nhập tên */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white">
+                Name
+              </Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Nhập tên của bạn"
+                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            {/* Trường nhập email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Nhập email của bạn"
+                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            {/* Trường nhập password */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Nhập mật khẩu của bạn"
+                  className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+            {/* Trường nhập số điện thoại */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-white">
+                Phone
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="Nhập số điện thoại 10 chữ số"
+                className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:border-white/50"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+                maxLength={10}
+              />
+            </div>
 
+            {/* Hiển thị thông báo lỗi nếu có */}
+            {error && (
+              <div className="text-red-300 text-sm bg-red-500/20 p-3 rounded-md border border-red-400/30">
+                {error}
+              </div>
+            )}
+
+            {/* Hiển thị thông báo thành công nếu có */}
+            {success && (
+              <div className="text-green-300 text-sm bg-green-500/20 p-3 rounded-md border border-green-400/30">
+                {success}
+              </div>
+            )}
+
+            {/* Nút submit đăng ký */}
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+              disabled={loading}
+            >
+              {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
+            </Button>
+          </form>
+
+          {/* Phân cách hoặc đăng ký bằng mạng xã hội */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-white/30" />
@@ -69,6 +200,7 @@ export default function SignUpPage() {
             </div>
           </div>
 
+          {/* Nút đăng ký bằng Google, Facebook (chưa có logic) */}
           <div className="flex gap-4 justify-center">
             <Button variant="outline" size="icon" className="bg-white/20 border-white/30 hover:bg-white/30">
               <svg className="w-5 h-5" viewBox="0 0 24 24">

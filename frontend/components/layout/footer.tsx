@@ -19,29 +19,27 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold mb-4">Quick Links</h3>
+            <h3 className="font-semibold mb-4">Liên kết nhanh</h3>
             <div className="space-y-2">
               <Link href="/" className="block text-green-100 hover:text-white transition-colors">
-                Home
+                Trang chủ
               </Link>
               <Link href="/fields" className="block text-green-100 hover:text-white transition-colors">
-                Book
+                Tìm kiếm
               </Link>
               <Link href="/tournaments" className="block text-green-100 hover:text-white transition-colors">
-                Tournaments
+                Tin tức
               </Link>
               <Link href="/contact" className="block text-green-100 hover:text-white transition-colors">
-                Contact
+                Liên hệ
               </Link>
-              <Link href="/about" className="block text-green-100 hover:text-white transition-colors">
-                About
-              </Link>
+
             </div>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h3 className="font-semibold mb-4">Contact</h3>
+            <h3 className="font-semibold mb-4">Liên hệ</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-green-100">
                 <Mail className="w-4 h-4" />

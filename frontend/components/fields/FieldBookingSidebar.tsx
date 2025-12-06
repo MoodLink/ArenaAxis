@@ -134,7 +134,7 @@ export default function FieldBookingSidebar({ fieldId }: FieldBookingSidebarProp
                                 variant="outline"
                                 className="w-full border-2 border-purple-500 text-purple-600 hover:bg-purple-50 bg-transparent font-medium"
                             >
-                                📝 Xem đánh giá sân
+                                Xem đánh giá sân
                             </Button>
                         </Link>
                         <Link href={`/booking/${fieldId}`}>

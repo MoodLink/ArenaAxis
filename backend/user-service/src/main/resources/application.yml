@@ -15,6 +15,12 @@ logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
 
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
 springdoc:
   packageToScan: com.arenaaxis
   cache:
@@ -79,6 +85,8 @@ jwt:
 
 cloudinary:
   url: ${CLOUDINARY_URL:cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix}
+
+
 
 management:
   tracing:

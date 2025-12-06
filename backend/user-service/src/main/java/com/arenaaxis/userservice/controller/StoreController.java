@@ -111,7 +111,7 @@ public class StoreController {
 
   @PostMapping("/update-sport/{id}")
   public ResponseEntity<Void> updateSport(@RequestBody UpdateSportForStoreRequest request,
-                                          @PathVariable("id") String storeId) {
+      @PathVariable("id") String storeId) {
     request.setStoreId(storeId);
     storeHasSportService.updateSportForStore(request);
     return ResponseEntity.noContent().build();

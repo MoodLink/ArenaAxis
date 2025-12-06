@@ -1,48 +1,148 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-
-// Import components đã tách
+import { Plus, Loader2 } from "lucide-react"
 import AdminHeader from "./shared/AdminHeader"
 import AdminFilters from "./shared/AdminFilters"
-import FieldStats from "./fields/FieldStats"
 import FieldTable from "./fields/FieldTable"
+import FieldStats from "./fields/FieldStats"
 import FieldForm from "./fields/FieldForm"
 import FieldDetail from "./fields/FieldDetail"
+import { FieldService, Field } from "@/services/field.service"
+import { AdminField } from "@/data/mockDataAdmin"
 
-// Import mock data
-import { mockFields, AdminField } from "@/data/mockDataAdmin"
+// Helper function để fetch store name từ storeId
+const fetchStoreName = async (storeId: string): Promise<string> => {
+  try {
+    // Thử API: /api/stores/{storeId} hoặc /api/v1/stores/{storeId}
+    const response = await fetch(`/api/v1/stores/${storeId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data?.data?.name || data?.name || storeId
+    }
+
+    // Fallback: thử API route khác
+    return storeId
+  } catch (error) {
+    console.error('Error fetching store name:', error)
+    return storeId
+  }
+}
 
 export default function FieldsManagement() {
-  const [fields, setFields] = useState<AdminField[]>(mockFields)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [sportFilter, setSportFilter] = useState<string>('all')
+  const [fields, setFields] = useState<Field[]>([])
+  const [stores, setStores] = useState<Map<string, string>>(new Map())
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [selectedField, setSelectedField] = useState<AdminField | null>(null)
+  const [selectedField, setSelectedField] = useState<Field | null>(null)
+  const [isActionLoading, setIsActionLoading] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  // Filter fields based on search and filters
+  useEffect(() => {
+    fetchFields()
+  }, [])
+
+  const fetchFields = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await FieldService.getFields()
+      setFields(response.data || [])
+
+      // Fetch store names từ storeId
+      const storeMap = new Map<string, string>()
+      if (response.data) {
+        // Collect unique storeIds
+        const uniqueStoreIds = [...new Set(response.data.map(f => f.storeId))]
+
+        // Fetch store names in parallel
+        const storePromises = uniqueStoreIds.map(async (storeId) => {
+          const storeName = await fetchStoreName(storeId)
+          return { storeId, storeName }
+        })
+
+        const storeResults = await Promise.all(storePromises)
+
+        // Build map
+        storeResults.forEach(({ storeId, storeName }) => {
+          storeMap.set(storeId, storeName)
+        })
+      }
+      setStores(storeMap)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Lỗi khi tải dữ liệu sân"
+      setError(errorMessage)
+      console.error("Error fetching fields:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const filteredFields = fields.filter(field => {
-    const matchesSearch = field.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      field.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      field.ownerName.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch =
+      (field.name?.toLowerCase().includes(searchLower) ?? false) ||
+      (field.address?.toLowerCase().includes(searchLower) ?? false) ||
+      (field.sport_name?.toLowerCase().includes(searchLower) ?? false)
 
-    const matchesStatus = statusFilter === 'all' || field.status === statusFilter
+    const isActive = field.activeStatus ?? false
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "available" && isActive) ||
+      (statusFilter === "unavailable" && !isActive)
 
-    const matchesSport = sportFilter === 'all' ||
-      field.sport.toLowerCase().includes(sportFilter.toLowerCase())
-
-    return matchesSearch && matchesStatus && matchesSport
+    return matchesSearch && matchesStatus
   })
 
-  const handleFieldAction = (fieldId: string, action: 'view' | 'edit' | 'activate' | 'deactivate' | 'verify' | 'delete') => {
-    const field = fields.find(f => f.id === fieldId)
+  const handleEdit = (fieldId: string) => {
+    const field = fields.find(f => f._id === fieldId)
+    if (field) {
+      setSelectedField(field)
+      setIsEditDialogOpen(true)
+    }
+  }
+
+  const handleDelete = async (fieldId: string) => {
+    if (window.confirm("Bạn chắc chắn muốn xóa sân này?")) {
+      try {
+        await FieldService.deleteField(fieldId)
+        setFields(fields.filter(f => f._id !== fieldId))
+        setActionSuccess("Đã xóa sân thành công")
+        setTimeout(() => setActionSuccess(null), 3000)
+      } catch (err) {
+        setActionError("Lỗi khi xóa sân: " + (err instanceof Error ? err.message : "Unknown error"))
+      }
+    }
+  }
+
+  const handleToggleStatus = async (fieldId: string, currentStatus: boolean) => {
+    try {
+      const updatedField = await FieldService.toggleFieldStatus(fieldId, currentStatus)
+      setFields(fields.map(f => (f._id === fieldId ? updatedField.data : f)))
+      setActionSuccess("Đã cập nhật trạng thái sân thành công")
+      setTimeout(() => setActionSuccess(null), 3000)
+    } catch (err) {
+      setActionError("Lỗi khi cập nhật trạng thái: " + (err instanceof Error ? err.message : "Unknown error"))
+    }
+  }
+
+  const handleFieldAction = (fieldId: string, action: 'view' | 'edit' | 'activate' | 'deactivate' | 'delete') => {
+    const field = fields.find(f => f._id === fieldId)
 
     switch (action) {
       case 'view':
@@ -58,116 +158,105 @@ export default function FieldsManagement() {
         }
         break
       case 'activate':
-        setFields(fields.map(field =>
-          field.id === fieldId ? { ...field, status: 'available' as const } : field
-        ))
+        handleToggleStatus(fieldId, false)
         break
       case 'deactivate':
-        setFields(fields.map(field =>
-          field.id === fieldId ? { ...field, status: 'unavailable' as const } : field
-        ))
-        break
-      case 'verify':
-        setFields(fields.map(field =>
-          field.id === fieldId ? { ...field, isVerified: true } : field
-        ))
+        handleToggleStatus(fieldId, true)
         break
       case 'delete':
-        setFields(fields.filter(field => field.id !== fieldId))
+        handleDelete(fieldId)
         break
       default:
         console.log(`${action} field ${fieldId}`)
     }
   }
 
-  const handleCreateField = (formData: any) => {
-    const newField: AdminField = {
-      id: (Math.max(...fields.map(f => parseInt(f.id))) + 1).toString(),
-      name: formData.name,
-      location: formData.location,
-      price: formData.price,
-      rating: 0,
-      image: "/placeholder.svg",
-      sport: formData.sport,
-      amenities: formData.amenities,
-      description: formData.description,
-      status: formData.status,
-      openingHours: formData.openingHours,
-      closingHours: formData.closingHours,
-      surfaceType: formData.surfaceType,
-      capacity: formData.capacity,
-      phone: formData.phone,
-      email: formData.email,
-      reviewCount: 0,
-      isVerified: false,
-      bookingsThisMonth: 0,
-      revenueThisMonth: 0,
-      lastBooking: new Date().toISOString().split('T')[0],
-      ownerName: formData.ownerName,
-      ownerPhone: formData.ownerPhone
+  const handleCreateField = async (formData: any) => {
+    try {
+      const newFieldData = {
+        sport_id: formData.sport || "badminton",
+        store_id: formData.storeId || "default-store",
+        default_price: String(formData.price || "0"),
+        name: formData.name || "Tên sân",
+        sport_name: formData.sport || "Badminton",
+        address: formData.location || "Địa chỉ sân",
+        avatar: formData.image || "/placeholder.svg",
+        cover_image: "/placeholder.svg",
+        rating: 0
+      }
+
+      const response = await FieldService.createField(newFieldData)
+      setFields([...fields, response.data])
+      setIsCreateDialogOpen(false)
+      alert(" Tạo sân thành công!")
+    } catch (err) {
+      alert(" Lỗi khi tạo sân: " + (err instanceof Error ? err.message : "Unknown error"))
     }
-    setFields([...fields, newField])
-    setIsCreateDialogOpen(false)
   }
 
-  const handleUpdateField = (formData: any) => {
+  const handleUpdateField = async (formData: any) => {
     if (!selectedField) return
 
-    setFields(fields.map(f => f.id === selectedField.id ? {
-      ...f,
-      name: formData.name,
-      location: formData.location,
-      price: formData.price,
-      sport: formData.sport,
-      description: formData.description,
-      status: formData.status,
-      openingHours: formData.openingHours,
-      closingHours: formData.closingHours,
-      surfaceType: formData.surfaceType,
-      capacity: formData.capacity,
-      phone: formData.phone,
-      email: formData.email,
-      ownerName: formData.ownerName,
-      ownerPhone: formData.ownerPhone,
-      amenities: formData.amenities
-    } : f))
-    setIsEditDialogOpen(false)
-    setSelectedField(null)
+    try {
+      const updateData = {
+        sport_id: formData.sport || selectedField.sportId,
+        store_id: selectedField.storeId,
+        default_price: String(formData.price || selectedField.defaultPrice),
+        name: formData.name || selectedField.name,
+        sport_name: formData.sport || selectedField.sport_name,
+        address: formData.location || selectedField.address
+      }
+
+      const response = await FieldService.updateField(selectedField._id, updateData)
+      setFields(fields.map(f => (f._id === selectedField._id ? response.data : f)))
+      setIsEditDialogOpen(false)
+      setSelectedField(null)
+      alert(" Cập nhật sân thành công!")
+    } catch (err) {
+      alert(" Lỗi khi cập nhật sân: " + (err instanceof Error ? err.message : "Unknown error"))
+    }
   }
 
-  // Filter options
   const filterOptions = [
     {
-      key: 'status',
-      placeholder: 'Trạng thái',
+      key: "status",
+      placeholder: "Trạng thái",
       value: statusFilter,
       onValueChange: setStatusFilter,
       options: [
-        { value: 'all', label: 'Tất cả trạng thái' },
-        { value: 'available', label: 'Hoạt động' },
-        { value: 'unavailable', label: 'Không khả dụng' },
-        { value: 'maintenance', label: 'Bảo trì' }
-      ]
-    },
-    {
-      key: 'sport',
-      placeholder: 'Môn thể thao',
-      value: sportFilter,
-      onValueChange: setSportFilter,
-      options: [
-        { value: 'all', label: 'Tất cả môn thể thao' },
-        { value: 'bóng đá', label: 'Bóng đá' },
-        { value: 'tennis', label: 'Tennis' },
-        { value: 'cầu lông', label: 'Cầu lông' },
-        { value: 'bóng rổ', label: 'Bóng rổ' },
-        { value: 'bơi lội', label: 'Bơi lội' }
+        { value: "all", label: "Tất cả trạng thái" },
+        { value: "available", label: "Hoạt động" },
+        { value: "unavailable", label: "Tạm ngưng" }
       ]
     }
   ]
 
+  // Map fields to AdminField format - chỉ lấy dữ liệu thực từ server
+  const mapFieldToAdminField = (field: Field): AdminField => {
+    return {
+      ...field,
+      id: field._id,
+      name: field.name || "",
+      sport_name: field.sport_name || "",
+      price: Number(field.defaultPrice) || 0,
+      rating: field.rating || 0,
+      status: field.activeStatus ? 'available' : 'unavailable',
+      createdAt: field.createdAt,
+      // Lấy tên chủ sân từ stores map (store name, không phải ID)
+      ownerName: stores.get(field.storeId) || field.storeId || "Chưa cập nhật",
+      // Bỏ các dữ liệu không cần thiết từ server
+      bookingsThisMonth: 0,
+      revenueThisMonth: 0,
+      lastBooking: "",
+      ownerPhone: ""
+    } as unknown as AdminField
+  }
+
+  const fieldsForTable = fields.map(mapFieldToAdminField)
+  const filteredFieldsForTable = filteredFields.map(mapFieldToAdminField)
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <AdminHeader
         title="Quản lý sân thể thao"
         description="Quản lý thông tin và hoạt động của các sân thể thao"
@@ -182,9 +271,7 @@ export default function FieldsManagement() {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Thêm sân thể thao mới</DialogTitle>
-                <DialogDescription>
-                  Tạo thông tin sân thể thao mới trong hệ thống
-                </DialogDescription>
+                <DialogDescription>Tạo thông tin sân thể thao mới trong hệ thống</DialogDescription>
               </DialogHeader>
               <FieldForm
                 onSubmit={handleCreateField}
@@ -196,63 +283,109 @@ export default function FieldsManagement() {
       />
 
       {/* Stats Cards */}
-      <FieldStats fields={fields} />
+      {!isLoading && <FieldStats fields={fieldsForTable} />}
 
-      {/* Filters and Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách sân thể thao</CardTitle>
-          <CardDescription>
-            Quản lý {filteredFields.length} sân thể thao trong hệ thống
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AdminFilters
-            searchValue={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filterOptions}
-          />
-
-          <FieldTable
-            fields={filteredFields}
-            onFieldAction={handleFieldAction}
-          />
-
-          {filteredFields.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Không tìm thấy sân thể thao nào phù hợp
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Error State */}
+      {actionError && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <p className="text-red-600">{actionError}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActionError(null)}
+            >
+              ✕
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Action Success State */}
+      {actionSuccess && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <p className="text-green-600">✓ {actionSuccess}</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActionSuccess(null)}
+            >
+              ✕
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filters and Table */}
+      {!isLoading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Danh sách sân thể thao</CardTitle>
+            <CardDescription>
+              {`Quản lý ${filteredFields.length} sân thể thao trong hệ thống`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AdminFilters
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              filters={filterOptions}
+            />
+
+            <FieldTable
+              fields={filteredFieldsForTable}
+              onFieldAction={handleFieldAction}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Field Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa sân thể thao</DialogTitle>
-            <DialogDescription>
-              Cập nhật thông tin sân thể thao
-            </DialogDescription>
+            <DialogDescription>Cập nhật thông tin sân thể thao</DialogDescription>
           </DialogHeader>
           {selectedField && (
             <FieldForm
               initialData={{
-                name: selectedField.name,
-                location: selectedField.location,
-                price: selectedField.price,
-                sport: selectedField.sport,
-                description: selectedField.description,
-                status: selectedField.status,
-                openingHours: selectedField.openingHours,
-                closingHours: selectedField.closingHours,
-                surfaceType: selectedField.surfaceType,
-                capacity: selectedField.capacity,
-                phone: selectedField.phone,
-                email: selectedField.email,
-                ownerName: selectedField.ownerName,
-                ownerPhone: selectedField.ownerPhone,
-                amenities: selectedField.amenities
+                name: selectedField.name ?? "",
+                location: selectedField.address ?? "",
+                price: Number(selectedField.defaultPrice) || 0,
+                sport: selectedField.sport_name ?? "",
+                description: "",
+                status: "available",
+                openingHours: "",
+                closingHours: "",
+                surfaceType: "",
+                capacity: "",
+                phone: "",
+                email: "",
+                ownerName: "",
+                ownerPhone: "",
+                amenities: []
               }}
               onSubmit={handleUpdateField}
               onCancel={() => {
@@ -267,19 +400,14 @@ export default function FieldsManagement() {
 
       {/* View Field Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Chi tiết sân thể thao</DialogTitle>
-            <DialogDescription>
-              Xem thông tin chi tiết sân thể thao
-            </DialogDescription>
+            <DialogTitle>Thông tin chi tiết sân thể thao</DialogTitle>
+            <DialogDescription>Xem chi tiết thông tin sân</DialogDescription>
           </DialogHeader>
-          {selectedField && <FieldDetail field={selectedField} />}
-          <DialogFooter>
-            <Button onClick={() => setIsViewDialogOpen(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
+          {selectedField && (
+            <FieldDetail field={mapFieldToAdminField(selectedField)} />
+          )}
         </DialogContent>
       </Dialog>
     </div>

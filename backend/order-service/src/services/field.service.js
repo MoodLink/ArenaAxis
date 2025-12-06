@@ -2,6 +2,8 @@ import { Field } from "../models/field.model.js";
 import { handleUpdateSportForStore } from "./store.service.js";
 import axios from "axios";
 import dotenv from "dotenv";
+import { getFieldPricingsByFieldIdAndDateTime } from "./field-pricing.service.js";
+import { getOrderByFieldIdAndDateTime } from "./order.service.js";
 
 dotenv.config();
 
@@ -31,43 +33,49 @@ export const getStoreDetails = async (storeId) => {
   }
 }
 
-export const getFields = async (filter) => {
+export const getFields = async (filter, dateTime) => {
   const data = await Field.find(filter).sort({ updatedAt: -1 }).lean();
   for (let field of data) {
-    const sport = await getSportDetails(field.sportId);
-    field.sport_name = sport ? sport.name : "Unknown Sport";
+    const pricings = await getFieldPricingsByFieldIdAndDateTime(field._id, dateTime);
+    field.pricings = pricings;
+
+    const statusField = await getOrderByFieldIdAndDateTime(field._id, dateTime);
+    field.statusField = statusField;
   }
-  console.log("Fields with details:", data);
+  // console.log("Fields with details:", data);
   return data;
 };
 
 export const getFieldById = async (fieldId) => {
   const data = await Field.find({ _id: fieldId }).lean();
-  for (let field of data) {
-    const sport = await getSportDetails(field.sportId);
-    field.sport_name = sport ? sport.name : "Unknown Sport";
-  }
+  // for (let field of data) {
+  //   const sport = await getSportDetails(field.sportId);
+  //   field.sport_name = sport ? sport.name : "Unknown Sport";
+  // }
   return data;
 };
 
 export const create = async (body, req) => {
   const field = new Field(body);
   const data = await field.save();
-  await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  // await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
   return data;
 };
 
 export const update = async (fieldId, updateData) => {
   const existingField = await Field.findById(fieldId);
+  if (!existingField) {
+    return null;
+  }
   const oldSportId = existingField.sportId;
-
+  
   Object.assign(existingField, updateData);
   const data = await existingField.save();
 
-  if (oldSportId !== data.sportId) {
-    await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
-    await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
-  }
+  // if (oldSportId !== data.sportId) {
+  //   await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
+  //   await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  // }
 
   return data;
 };

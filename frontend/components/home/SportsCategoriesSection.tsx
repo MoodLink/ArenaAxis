@@ -11,8 +11,23 @@ interface SportsCategoriesSectionProps {
 }
 
 export default function SportsCategoriesSection({ sports }: SportsCategoriesSectionProps) {
-    // Hiển thị tất cả sports nếu có
-    const displaySports = sports
+    // Gán cứng image cho từng sport nếu chưa có
+    // Map theo id chuẩn hóa từ database
+    const sportImages: Record<string, string> = {
+        football: "/football-soccer-ball.png",
+        basketball: "/outdoor-basketball-court.png",
+        tennis: "/outdoor-tennis-court.png",
+        volleyball: "/volleyball-court.png",
+        badminton: "/badminton-court.png",
+        pickleball: "/lush-golf-course.png",      // <-- mới
+        pingpong: "/professional-football-field.png",
+        swimming: "/swimming-pool.png",
+
+    };
+    const displaySports = sports.map(sport => ({
+        ...sport,
+        image: sport.image || sportImages[sport.id] || "/placeholder.svg"
+    }));
 
     return (
         <section className="py-16 bg-white">
@@ -25,19 +40,18 @@ export default function SportsCategoriesSection({ sports }: SportsCategoriesSect
                 {/* Carousel hiển thị các môn thể thao */}
                 {displaySports.length > 0 ? (
                     <HomeCarousel
-                        itemsToShow={5}
-                        showNavigation={displaySports.length > 5}
+                        itemsToShow={4}
+                        showNavigation={displaySports.length > 4}
                         className="px-4"
                     >
                         {displaySports.map((sport) => (
                             <SportCard
-                                key={sport.id} // Dùng sport.id làm key
-                                sport={sport} // Truyền thông tin môn thể thao
+                                key={sport.id}
+                                sport={sport}
                             />
                         ))}
                     </HomeCarousel>
                 ) : (
-                    /* Hiển thị message nếu không có môn thể thao nào */
                     <div className="text-center py-12">
                         <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <span className="text-2xl text-gray-400">⚽</span>

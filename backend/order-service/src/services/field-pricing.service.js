@@ -3,6 +3,10 @@ import { Field } from "../models/field.model.js";
 import { generateDurations } from "../utils/time.util.js";
 import { joinDurations } from "../utils/time.util.js";
 import { daysOfWeekEnum } from "../models/field-pricing.model.js";
+import { generateDurationsDateTime } from "../utils/time.util.js";
+import moment from "moment-timezone";
+import { FieldPricingSpecial } from "../models/field-pricing-special.model.js";
+import { joinDurationsDateTime } from "../utils/time.util.js";
 
 export const createFieldPricing = async (body) => {
   try {
@@ -44,14 +48,44 @@ export const createFieldPricing = async (body) => {
   }
 };
 
+export const createFieldPricingSpecial = async (body) => {
+  try {
+    const { startAt, endAt } = body;
+    body.durations = generateDurationsDateTime(startAt, endAt);
+    for (const duration of body.durations) {
+      // convert duration.startAt and duration.endAt to Date
+      // const startDate = moment(duration.startAt).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm");
+      // const endDate = moment(duration.endAt).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm");
+      await FieldPricingSpecial.findOneAndUpdate(
+        {
+          fieldId: body.fieldId,
+          startAt: duration.startAt,
+          endAt: duration.endAt,
+          deletedAt: null,
+        },
+        { deletedAt: new Date() },
+        { new: true }
+      );
+
+      const newPricingSpecial = await FieldPricingSpecial.create({
+        fieldId: body.fieldId,
+        specialPrice: body.specialPrice,
+        startAt: duration.startAt,
+        endAt: duration.endAt,
+      });
+    }
+  } catch (error) {
+    console.error("Error in createFieldPricingSpecial:", {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
 export const getFieldPricingsByFieldId = async (fieldId) => {
   try {
-    const field = await Field.findById(fieldId).lean();
-    if (!field) {
-      throw new Error("Field not found");
-    }
-
-    const defaultPrice = field.defaultPrice;
     // get price from monday to sunday, if not found, use default price
     const pricings = {};
     for (const day of Object.values(daysOfWeekEnum)) {
@@ -63,7 +97,107 @@ export const getFieldPricingsByFieldId = async (fieldId) => {
 
       if (pricing.length > 0) pricings[day] = joinDurations(pricing);
     }
-    return { defaultPrice, pricings };
+    return pricings;
+  } catch (error) {
+    console.error("Error in getFieldPricingsByFieldId:", {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
+export const getFieldSpecialPricingsByFieldId = async (fieldId) => {
+  try {
+    const specialPricings = await FieldPricingSpecial.find({
+      fieldId,
+      deletedAt: null,
+    }).lean();
+
+    if (specialPricings.length > 0) {
+      // using moment to convert specialPricings.startAt and specialPricings.endAt to YYYY-MM-DD HH:mm format
+      const duration = joinDurationsDateTime(specialPricings)
+      for (const item of duration) {
+        item.startAt = moment(item.startAt).format("YYYY-MM-DD HH:mm");
+        item.endAt = moment(item.endAt).format("YYYY-MM-DD HH:mm");
+      }
+      return duration;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error in getFieldSpecialPricingsByFieldId:", {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack,
+    });
+    throw error;
+  }
+};
+
+export const getFieldPricingsByFieldIdAndDateTime = async (
+  fieldId,
+  dateTime
+) => {
+  try {
+    // dateTime is in format yyyy-mm-dd
+    const date = new Date(dateTime);
+    const dayOfWeek = date
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase();
+    const pricing = await FieldPricing.find({
+      fieldId,
+      dayOfWeek,
+      deletedAt: null,
+    }).lean();
+
+    // for pricing items, find in FieldPricingSpecial where fieldId matches and dateTime == startAt == endAt (yyyy-mm-dd), if found, replace specialPrice, else add item to pricing
+    const specialPricings = await FieldPricingSpecial.find({
+      fieldId,
+      startAt: {
+        $gte: new Date(dateTime + "T00:00:00.000Z"),
+        $lte: new Date(dateTime + "T23:59:59.999Z"),
+      },
+      deletedAt: null,
+    }).lean();
+
+    console.log("specialPricings:", date, specialPricings);
+
+    for (const special of specialPricings) {
+      // find matching pricing item
+      const match = pricing.find(
+        (item) =>
+          item.startAt.hour === special.startAt.getHours() &&
+          item.startAt.minute === special.startAt.getMinutes() &&
+          item.endAt.hour === special.endAt.getHours() &&
+          item.endAt.minute === special.endAt.getMinutes()
+      );
+      if (match) {
+        match.specialPrice = special.specialPrice;
+      } else {
+        // add new item to pricing
+        pricing.push({
+          fieldId,
+          specialPrice: special.specialPrice,
+          dayOfWeek,
+          startAt: {
+            hour: special.startAt.getHours(),
+            minute: special.startAt.getMinutes(),
+          },
+          endAt: {
+            hour: special.endAt.getHours(),
+            minute: special.endAt.getMinutes(),
+          },
+        });
+      }
+    }
+
+    if (pricing.length > 0) {
+      return joinDurations(pricing);
+    } else {
+      return null;
+    }
   } catch (error) {
     console.error("Error in getFieldPricingsByFieldId:", {
       message: error.message,

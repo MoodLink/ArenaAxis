@@ -234,13 +234,13 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
+      {/* <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">  
           <ContactFAQ />
         </div>
       </section>
 
-      {/* Office Locations */}
+     
       <section className="py-16">
         <div className="container mx-auto px-4">
           <OfficeLocations />
@@ -248,7 +248,7 @@ export default function ContactPage() {
 
 
 
-      </section>
+      </section> */}
 
 
       {/* Quick Contact Bar */}

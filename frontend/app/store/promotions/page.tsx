@@ -2,50 +2,68 @@
 
 import React, { useState } from 'react'
 import StoreLayout from '@/components/store/StoreLayout'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
     Plus,
     Search,
-    Filter,
-    MoreHorizontal,
     Eye,
-    Edit,
-    Trash2,
-    Calendar as CalendarIcon,
-    Percent,
+    MapPin,
+    Calendar,
     DollarSign,
-    Clock,
-    Package,
-    TrendingUp,
     Users,
-    Target,
-    Copy,
-    CheckCircle
+    AlertCircle,
+    CheckCircle,
+    Store as StoreIcon,
+    Percent,
+    Clock,
+    Package
 } from 'lucide-react'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ViewPromotionDialog, EditPromotionDialog, DeletePromotionDialog } from '@/components/store/promotions/PromotionDialogs'
 
-// Mock data
-const promotions = [
+// Types
+interface Promotion {
+    id: string
+    name: string
+    description: string
+    type: 'percentage' | 'fixed_amount' | 'free_hours' | 'package_deal'
+    value: number
+    code: string
+    startDate: string
+    endDate: string
+    status: 'active' | 'paused' | 'scheduled' | 'expired'
+    usageLimit: number
+    usageCount: number
+    minAmount: number
+    maxDiscount: number
+    createdAt: string
+}
+
+interface Store {
+    id: string
+    name: string
+    address: string
+    avatar?: string
+}
+
+interface AppliedPromotion {
+    id: string
+    store: Store
+    promotion: Promotion
+    appliedAt: string
+    totalSavings: number
+}
+
+// Mock Data
+const mockPromotions: Promotion[] = [
     {
-        id: 1,
+        id: '1',
         name: 'Giảm giá cuối tuần',
         description: 'Giảm 20% cho tất cả sân vào cuối tuần',
         type: 'percentage',
@@ -58,14 +76,10 @@ const promotions = [
         usageCount: 34,
         minAmount: 200000,
         maxDiscount: 100000,
-        applicableFields: ['Sân bóng đá 1', 'Sân bóng đá 2'],
-        timeRestriction: 'weekend',
-        createdAt: '2024-12-20T10:00:00',
-        totalRevenue: 6800000,
-        totalSavings: 1360000
+        createdAt: '2024-12-20T10:00:00'
     },
     {
-        id: 2,
+        id: '2',
         name: 'Khuyến mãi khách hàng mới',
         description: 'Giảm 50,000đ cho lần đặt sân đầu tiên',
         type: 'fixed_amount',
@@ -78,14 +92,10 @@ const promotions = [
         usageCount: 127,
         minAmount: 100000,
         maxDiscount: 50000,
-        applicableFields: 'all',
-        timeRestriction: 'none',
-        createdAt: '2024-11-30T15:30:00',
-        totalRevenue: 7620000,
-        totalSavings: 6350000
+        createdAt: '2024-11-30T15:30:00'
     },
     {
-        id: 3,
+        id: '3',
         name: 'Giờ vàng giảm sâu',
         description: 'Miễn phí 1 giờ khi đặt 3 giờ liên tục',
         type: 'free_hours',
@@ -98,51 +108,52 @@ const promotions = [
         usageCount: 18,
         minAmount: 300000,
         maxDiscount: 200000,
-        applicableFields: ['Sân tennis 1', 'Sân cầu lông 1'],
-        timeRestriction: 'morning',
-        createdAt: '2024-12-15T09:00:00',
-        totalRevenue: 5400000,
-        totalSavings: 3600000
+        createdAt: '2024-12-15T09:00:00'
+    }
+]
+
+const mockStores: Store[] = [
+    {
+        id: '1',
+        name: 'Sân Bóng Đá ABC',
+        address: '123 Đường Lê Lợi, Quận 1, TP.HCM',
+        avatar: '🏟️'
     },
     {
-        id: 4,
-        name: 'Gói ưu đãi tháng',
-        description: 'Đặt 10 giờ chỉ với giá 8 giờ',
-        type: 'package_deal',
-        value: 20,
-        code: 'MONTHLY10',
-        startDate: '2024-12-01',
-        endDate: '2025-02-28',
-        status: 'paused',
-        usageLimit: 30,
-        usageCount: 8,
-        minAmount: 1600000,
-        maxDiscount: 400000,
-        applicableFields: 'all',
-        timeRestriction: 'none',
-        createdAt: '2024-12-01T14:20:00',
-        totalRevenue: 12800000,
-        totalSavings: 3200000
+        id: '2',
+        name: 'Sân Tennis XYZ',
+        address: '456 Đường Nguyễn Huệ, Quận 3, TP.HCM',
+        avatar: '🎾'
     },
     {
-        id: 5,
-        name: 'Flash Sale Tết',
-        description: 'Giảm 30% trong 3 ngày Tết',
-        type: 'percentage',
-        value: 30,
-        code: 'TET2025',
-        startDate: '2025-01-29',
-        endDate: '2025-01-31',
-        status: 'scheduled',
-        usageLimit: 200,
-        usageCount: 0,
-        minAmount: 150000,
-        maxDiscount: 150000,
-        applicableFields: 'all',
-        timeRestriction: 'none',
-        createdAt: '2024-12-27T16:45:00',
-        totalRevenue: 0,
-        totalSavings: 0
+        id: '3',
+        name: 'Sân Cầu Lông DEF',
+        address: '789 Đường Trần Hưng Đạo, Quận 5, TP.HCM',
+        avatar: '🏸'
+    }
+]
+
+const mockAppliedPromotions: AppliedPromotion[] = [
+    {
+        id: '1',
+        store: mockStores[0],
+        promotion: mockPromotions[0],
+        appliedAt: '2024-12-22T14:00:00',
+        totalSavings: 450000
+    },
+    {
+        id: '2',
+        store: mockStores[1],
+        promotion: mockPromotions[0],
+        appliedAt: '2024-12-23T10:30:00',
+        totalSavings: 380000
+    },
+    {
+        id: '3',
+        store: mockStores[0],
+        promotion: mockPromotions[1],
+        appliedAt: '2024-12-10T09:00:00',
+        totalSavings: 1250000
     }
 ]
 
@@ -167,392 +178,284 @@ const statusLabels = {
     scheduled: 'Đã lên lịch'
 }
 
-function PromotionCard({ promotion }: { promotion: any }) {
-    const typeConfig = promotionTypes[promotion.type as keyof typeof promotionTypes]
+// Component: PromotionCard
+function PromotionCard({
+    promotion,
+    onViewStores,
+    onApply,
+    storesCount
+}: {
+    promotion: Promotion
+    onViewStores: (promotion: Promotion) => void
+    onApply: (promotion: Promotion) => void
+    storesCount: number
+}) {
+    const typeConfig = promotionTypes[promotion.type]
     const Icon = typeConfig.icon
-    const usagePercentage = (promotion.usageCount / promotion.usageLimit) * 100
 
     return (
-        <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+        <Card className="hover:shadow-lg transition-shadow h-full flex flex-col">
+            <CardContent className="p-6 flex-1 flex flex-col">
+                {/* Header with View Button */}
                 <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start space-x-3">
-                        <div className={`p-2 rounded-lg bg-gray-50`}>
-                            <Icon className={`h-5 w-5 ${typeConfig.color}`} />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-lg text-gray-900">{promotion.name}</h3>
-                            <p className="text-sm text-gray-600 mt-1">{promotion.description}</p>
-                            <div className="flex items-center space-x-2 mt-2">
-                                <Badge className={statusColors[promotion.status as keyof typeof statusColors]}>
-                                    {statusLabels[promotion.status as keyof typeof statusLabels]}
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                    {typeConfig.label}
-                                </Badge>
-                            </div>
-                        </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">{promotion.name}</h3>
+                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{promotion.description}</p>
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <ViewPromotionDialog
-                                promotion={promotion}
-                                trigger={
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        Xem chi tiết
-                                    </DropdownMenuItem>
-                                }
-                            />
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(promotion.code)}>
-                                <Copy className="h-4 w-4 mr-2" />
-                                Sao chép mã
-                            </DropdownMenuItem>
-                            <EditPromotionDialog
-                                promotion={promotion}
-                                trigger={
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Chỉnh sửa
-                                    </DropdownMenuItem>
-                                }
-                            />
-                            <DeletePromotionDialog
-                                promotion={promotion}
-                                trigger={
-                                    <DropdownMenuItem
-                                        className="text-red-600"
-                                        onSelect={(e) => e.preventDefault()}
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Xóa
-                                    </DropdownMenuItem>
-                                }
-                            />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-
-                {/* Promotion Details */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <p className="text-sm text-gray-500">Mã khuyến mãi</p>
-                        <p className="font-mono text-lg font-semibold text-gray-900">{promotion.code}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500">Giá trị</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                            {promotion.type === 'percentage' ? `${promotion.value}%` :
-                                promotion.type === 'fixed_amount' ? `${promotion.value.toLocaleString()}đ` :
-                                    promotion.type === 'free_hours' ? `${promotion.value} giờ` :
-                                        `${promotion.value}% off`}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500">Thời gian</p>
-                        <p className="text-sm font-medium text-gray-900">
-                            {format(new Date(promotion.startDate), 'dd/MM', { locale: vi })} - {format(new Date(promotion.endDate), 'dd/MM/yyyy', { locale: vi })}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-gray-500">Đã sử dụng</p>
-                        <p className="text-sm font-medium text-gray-900">
-                            {promotion.usageCount}/{promotion.usageLimit}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Usage Progress */}
-                <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Tỷ lệ sử dụng</span>
-                        <span>{usagePercentage.toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                            className="bg-blue-600 h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                        />
-                    </div>
-                </div>
-
-                {/* Revenue Impact */}
-                <div className="bg-green-50 rounded-lg p-3 mb-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <p className="text-green-700">Doanh thu tạo ra</p>
-                            <p className="font-semibold text-green-900">{promotion.totalRevenue.toLocaleString()}đ</p>
-                        </div>
-                        <div>
-                            <p className="text-green-700">Giá trị giảm</p>
-                            <p className="font-semibold text-green-900">{promotion.totalSavings.toLocaleString()}đ</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex space-x-2">
-                    {promotion.status === 'active' && (
-                        <Button variant="outline" size="sm" className="flex-1">
-                            Tạm dừng
-                        </Button>
-                    )}
-                    {promotion.status === 'paused' && (
-                        <Button size="sm" className="flex-1">
-                            Kích hoạt
-                        </Button>
-                    )}
-                    {promotion.status === 'scheduled' && (
-                        <Button variant="outline" size="sm" className="flex-1">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Sẵn sàng
-                        </Button>
-                    )}
-                    <Button variant="outline" size="sm">
-                        <Copy className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onViewStores(promotion)}
+                        className="ml-2 flex-shrink-0"
+                        title="Xem danh sách store đã đăng kí"
+                    >
+                        <Eye className="h-4 w-4" />
                     </Button>
                 </div>
+
+                {/* Applied Stores Count Badge */}
+                {storesCount > 0 && (
+                    <Badge variant="outline" className="w-fit mb-4 text-xs">
+                        <Users className="h-3 w-3 mr-1" />
+                        {storesCount} store đã áp dụng
+                    </Badge>
+                )}
+
+                {/* Type and Status */}
+                <div className="flex items-center space-x-2 mb-4">
+                    <Badge className={statusColors[promotion.status]}>
+                        {statusLabels[promotion.status]}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                        {typeConfig.label}
+                    </Badge>
+                </div>
+
+                {/* Value Section */}
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 mb-6 flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <Icon className={`h-5 w-5 ${typeConfig.color}`} />
+                        <p className="text-sm text-gray-600">Giá trị khuyến mãi</p>
+                    </div>
+                    <p className="text-3xl font-bold text-blue-600">
+                        {promotion.type === 'percentage' ? `${promotion.value}%` :
+                            promotion.type === 'fixed_amount' ? `${promotion.value.toLocaleString()}đ` :
+                                promotion.type === 'free_hours' ? `${promotion.value} giờ` :
+                                    `${promotion.value}%`}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Mã: {promotion.code}</p>
+                </div>
+
+                {/* Key Info */}
+                <div className="space-y-2 mb-4 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Thời gian:</span>
+                        <span className="font-medium">
+                            {format(new Date(promotion.startDate), 'dd/MM', { locale: vi })} - {format(new Date(promotion.endDate), 'dd/MM/yyyy', { locale: vi })}
+                        </span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600">Đã sử dụng:</span>
+                        <span className="font-medium">{promotion.usageCount}/{promotion.usageLimit}</span>
+                    </div>
+                </div>
+
+                {/* Apply Button */}
+                <Button
+                    onClick={() => onApply(promotion)}
+                    className="w-full mt-auto"
+                >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Áp dụng cho store
+                </Button>
             </CardContent>
         </Card>
     )
 }
 
-function CreatePromotionDialog() {
-    const [open, setOpen] = useState(false)
-    const [promotionType, setPromotionType] = useState('')
-    const [startDate, setStartDate] = useState<Date>()
-    const [endDate, setEndDate] = useState<Date>()
+// Component: StoresAppliedDialog
+function StoresAppliedDialog({
+    promotion,
+    onClose
+}: {
+    promotion: Promotion
+    onClose: () => void
+}) {
+    const appliedStores = mockAppliedPromotions
+        .filter(app => app.promotion.id === promotion.id)
+        .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tạo khuyến mãi
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <Dialog open={true} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Tạo khuyến mãi mới</DialogTitle>
+                    <DialogTitle className="flex items-center space-x-2">
+                        <StoreIcon className="h-5 w-5" />
+                        <span>Danh sách Store - {promotion.name}</span>
+                    </DialogTitle>
                     <DialogDescription>
-                        Tạo chương trình khuyến mãi cho sân thể thao của bạn
+                        {appliedStores.length} store đã áp dụng khuyến mãi này
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6">
-                    {/* Basic Info */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="promotion-name">Tên khuyến mãi *</Label>
-                            <Input id="promotion-name" placeholder="VD: Giảm giá cuối tuần" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="promotion-code">Mã khuyến mãi *</Label>
-                            <Input id="promotion-code" placeholder="VD: WEEKEND20" className="font-mono" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Mô tả</Label>
-                        <Textarea
-                            id="description"
-                            placeholder="Mô tả chi tiết về chương trình khuyến mãi..."
-                            rows={3}
-                        />
-                    </div>
-
-                    {/* Promotion Type */}
+                {appliedStores.length > 0 ? (
                     <div className="space-y-3">
-                        <Label>Loại khuyến mãi *</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                            {Object.entries(promotionTypes).map(([key, config]) => {
-                                const Icon = config.icon
-                                const isSelected = promotionType === key
+                        {appliedStores.map((app) => (
+                            <Card key={app.id} className="p-4">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-start space-x-4 flex-1">
+                                        {/* Store Avatar */}
+                                        <div className="text-3xl mt-1">
+                                            {app.store.avatar}
+                                        </div>
 
-                                return (
-                                    <div
-                                        key={key}
-                                        onClick={() => setPromotionType(key)}
-                                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${isSelected
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-gray-200 hover:border-gray-300'
-                                            }`}
-                                    >
-                                        <div className="flex items-center space-x-3">
-                                            <Icon className={`h-5 w-5 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                                            <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-700'}`}>
-                                                {config.label}
-                                            </span>
+                                        {/* Store Info */}
+                                        <div className="flex-1">
+                                            <h4 className="font-semibold text-gray-900">{app.store.name}</h4>
+                                            <div className="flex items-center text-sm text-gray-600 mt-1">
+                                                <MapPin className="h-3 w-3 mr-1" />
+                                                {app.store.address}
+                                            </div>
                                         </div>
                                     </div>
-                                )
-                            })}
-                        </div>
+
+                                    {/* Application Info */}
+                                    <div className="text-right ml-4">
+                                        <div className="flex items-center justify-end text-sm text-gray-600 mb-1">
+                                            <Calendar className="h-3 w-3 mr-1" />
+                                            {format(new Date(app.appliedAt), 'dd/MM/yyyy', { locale: vi })}
+                                        </div>
+                                        <div className="flex items-center justify-end space-x-2">
+                                            <DollarSign className="h-3 w-3 text-green-600" />
+                                            <span className="font-semibold text-green-600">
+                                                Đã giảm: {app.totalSavings.toLocaleString()}đ
+                                            </span>
+                                        </div>
+                                        <Badge variant="secondary" className="mt-2 text-xs">
+                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                            Đang áp dụng
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))}
                     </div>
-
-                    {/* Value Configuration */}
-                    {promotionType && (
-                        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                            <h4 className="font-medium text-gray-900">Cấu hình giá trị</h4>
-
-                            {promotionType === 'percentage' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="percentage">Phần trăm giảm (%)</Label>
-                                        <Input id="percentage" type="number" min="1" max="100" placeholder="20" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="max-discount">Giảm tối đa (đ)</Label>
-                                        <Input id="max-discount" type="number" placeholder="100000" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {promotionType === 'fixed_amount' && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="fixed-amount">Số tiền giảm (đ)</Label>
-                                    <Input id="fixed-amount" type="number" placeholder="50000" />
-                                </div>
-                            )}
-
-                            {promotionType === 'free_hours' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="free-hours">Số giờ miễn phí</Label>
-                                        <Input id="free-hours" type="number" min="1" placeholder="1" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="min-hours">Đặt tối thiểu (giờ)</Label>
-                                        <Input id="min-hours" type="number" min="2" placeholder="3" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {promotionType === 'package_deal' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="package-hours">Số giờ trong gói</Label>
-                                        <Input id="package-hours" type="number" min="5" placeholder="10" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="discount-percent">Giảm giá (%)</Label>
-                                        <Input id="discount-percent" type="number" min="1" max="50" placeholder="20" />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <Label htmlFor="min-amount">Giá trị đơn tối thiểu (đ)</Label>
-                                <Input id="min-amount" type="number" placeholder="200000" />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Time Range */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Ngày bắt đầu *</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {startDate ? format(startDate, 'dd/MM/yyyy', { locale: vi }) : 'Chọn ngày'}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={startDate}
-                                        onSelect={setStartDate}
-                                        initialFocus
-                                        locale={vi}
-                                        disabled={(date) => date < new Date()}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Ngày kết thúc *</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {endDate ? format(endDate, 'dd/MM/yyyy', { locale: vi }) : 'Chọn ngày'}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={endDate}
-                                        onSelect={setEndDate}
-                                        initialFocus
-                                        locale={vi}
-                                        disabled={(date) => !startDate || date < startDate}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-600">Chưa có store nào áp dụng khuyến mãi này</p>
                     </div>
+                )}
+            </DialogContent>
+        </Dialog>
+    )
+}
 
-                    {/* Usage Limits */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="usage-limit">Giới hạn sử dụng</Label>
-                            <Input id="usage-limit" type="number" min="1" placeholder="100" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="time-restriction">Giới hạn thời gian</Label>
-                            <Select>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn giới hạn" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Không giới hạn</SelectItem>
-                                    <SelectItem value="morning">Chỉ buổi sáng (6:00-12:00)</SelectItem>
-                                    <SelectItem value="afternoon">Chỉ buổi chiều (12:00-18:00)</SelectItem>
-                                    <SelectItem value="evening">Chỉ buổi tối (18:00-22:00)</SelectItem>
-                                    <SelectItem value="weekend">Chỉ cuối tuần</SelectItem>
-                                    <SelectItem value="weekday">Chỉ ngày thường</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+// Component: ApplyPromotionDialog
+function ApplyPromotionDialog({
+    promotion,
+    onClose,
+    onConfirm
+}: {
+    promotion: Promotion
+    onClose: () => void
+    onConfirm: (storeId: string) => void
+}) {
+    const [selectedStoreId, setSelectedStoreId] = useState<string>('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-                    {/* Applicable Fields */}
+    const handleConfirm = async () => {
+        if (!selectedStoreId) return
+
+        setIsSubmitting(true)
+        setTimeout(() => {
+            onConfirm(selectedStoreId)
+            setIsSubmitting(false)
+            onClose()
+        }, 500)
+    }
+
+    return (
+        <Dialog open={true} onOpenChange={onClose}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Áp dụng khuyến mãi</DialogTitle>
+                    <DialogDescription>
+                        Chọn store của bạn để áp dụng khuyến mãi
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    {/* Promotion Info */}
+                    <Card className="p-4 bg-blue-50 border-blue-200">
+                        <h4 className="font-semibold text-gray-900">{promotion.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{promotion.description}</p>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-blue-200">
+                            <span className="text-sm text-gray-700">Mã:</span>
+                            <span className="font-mono font-bold text-blue-600">{promotion.code}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-gray-700">Giá trị:</span>
+                            <span className="font-bold text-blue-600">
+                                {promotion.type === 'percentage' ? `${promotion.value}%` :
+                                    promotion.type === 'fixed_amount' ? `${promotion.value.toLocaleString()}đ` :
+                                        promotion.type === 'free_hours' ? `${promotion.value} giờ` :
+                                            `${promotion.value}%`}
+                            </span>
+                        </div>
+                    </Card>
+
+                    {/* Store Selection */}
                     <div className="space-y-2">
-                        <Label>Áp dụng cho sân</Label>
-                        <div className="space-y-2 max-h-32 overflow-y-auto border rounded-lg p-3">
-                            <div className="flex items-center space-x-2">
-                                <input type="checkbox" id="all-fields" className="rounded" />
-                                <Label htmlFor="all-fields" className="font-medium">Tất cả sân</Label>
-                            </div>
-                            {['Sân bóng đá 1', 'Sân bóng đá 2', 'Sân tennis 1', 'Sân cầu lông 1', 'Sân bóng rổ 1'].map((field, index) => (
-                                <div key={index} className="flex items-center space-x-2">
-                                    <input type="checkbox" id={`field-${index}`} className="rounded" />
-                                    <Label htmlFor={`field-${index}`}>{field}</Label>
-                                </div>
-                            ))}
-                        </div>
+                        <Label htmlFor="store-select">Chọn store của bạn *</Label>
+                        <Select value={selectedStoreId} onValueChange={setSelectedStoreId}>
+                            <SelectTrigger id="store-select">
+                                <SelectValue placeholder="Chọn một store" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {mockStores.map((store) => (
+                                    <SelectItem key={store.id} value={store.id}>
+                                        <span>{store.avatar} {store.name}</span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    {/* Auto-activate */}
-                    <div className="flex items-center space-x-3">
-                        <Switch id="auto-activate" defaultChecked />
-                        <Label htmlFor="auto-activate">Kích hoạt ngay sau khi tạo</Label>
-                    </div>
+                    {/* Selected Store Details */}
+                    {selectedStoreId && (
+                        <Card className="p-3 border-green-200 bg-green-50">
+                            {(() => {
+                                const store = mockStores.find(s => s.id === selectedStoreId)
+                                return store ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-start space-x-2">
+                                            <span className="text-2xl">{store.avatar}</span>
+                                            <div>
+                                                <p className="font-semibold text-gray-900">{store.name}</p>
+                                                <div className="flex items-center text-xs text-gray-600 mt-1">
+                                                    <MapPin className="h-3 w-3 mr-1" />
+                                                    {store.address}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null
+                            })()}
+                        </Card>
+                    )}
 
                     {/* Actions */}
                     <div className="flex justify-end space-x-3 pt-4">
-                        <Button variant="outline" onClick={() => setOpen(false)}>
+                        <Button variant="outline" onClick={onClose}>
                             Hủy
                         </Button>
-                        <Button onClick={() => setOpen(false)}>
-                            Tạo khuyến mãi
+                        <Button
+                            onClick={handleConfirm}
+                            disabled={!selectedStoreId || isSubmitting}
+                            className="min-w-[120px]"
+                        >
+                            {isSubmitting ? 'Đang xử lý...' : 'Xác nhận áp dụng'}
                         </Button>
                     </div>
                 </div>
@@ -561,44 +464,75 @@ function CreatePromotionDialog() {
     )
 }
 
+// Main Page Component
 export default function StorePromotions() {
+    const [promotions] = useState<Promotion[]>(mockPromotions)
+    const [appliedPromotions, setAppliedPromotions] = useState<AppliedPromotion[]>(mockAppliedPromotions)
     const [searchQuery, setSearchQuery] = useState('')
-    const [statusFilter, setStatusFilter] = useState('all')
-    const [typeFilter, setTypeFilter] = useState('all')
+    const [selectedPromotionForView, setSelectedPromotionForView] = useState<Promotion | null>(null)
+    const [selectedPromotionForApply, setSelectedPromotionForApply] = useState<Promotion | null>(null)
+    const [successMessage, setSuccessMessage] = useState('')
 
-    const filteredPromotions = promotions.filter(promotion => {
-        const matchesSearch =
-            promotion.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            promotion.code.toLowerCase().includes(searchQuery.toLowerCase())
+    // Filter promotions
+    const filteredPromotions = promotions.filter(promotion =>
+        promotion.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        promotion.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        promotion.description.toLowerCase().includes(searchQuery.toLowerCase())
+    )
 
-        const matchesStatus = statusFilter === 'all' || promotion.status === statusFilter
-        const matchesType = typeFilter === 'all' || promotion.type === typeFilter
+    // Get stores count for a promotion
+    const getStoresCount = (promotionId: string) => {
+        return appliedPromotions.filter(app => app.promotion.id === promotionId).length
+    }
 
-        return matchesSearch && matchesStatus && matchesType
-    })
+    // Handle apply confirmation
+    const handleApplyConfirm = (storeId: string) => {
+        if (!selectedPromotionForApply) return
+
+        const newApplied: AppliedPromotion = {
+            id: `${Math.random()}`,
+            store: mockStores.find(s => s.id === storeId)!,
+            promotion: selectedPromotionForApply,
+            appliedAt: new Date().toISOString(),
+            totalSavings: 0
+        }
+
+        setAppliedPromotions([...appliedPromotions, newApplied])
+        setSuccessMessage(`Đã áp dụng khuyến mãi "${selectedPromotionForApply.name}" thành công! `)
+
+        setTimeout(() => {
+            setSuccessMessage('')
+        }, 3000)
+    }
 
     const stats = {
         total: promotions.length,
         active: promotions.filter(p => p.status === 'active').length,
         totalUsage: promotions.reduce((sum, p) => sum + p.usageCount, 0),
-        totalRevenue: promotions.reduce((sum, p) => sum + p.totalRevenue, 0),
-        totalSavings: promotions.reduce((sum, p) => sum + p.totalSavings, 0)
+        totalStores: new Set(appliedPromotions.map(a => a.store.id)).size
     }
 
     return (
         <StoreLayout>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Khuyến mãi</h1>
-                        <p className="text-gray-600 mt-1">Quản lý chương trình khuyến mãi và mã giảm giá</p>
-                    </div>
-                    <CreatePromotionDialog />
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900">Khuyến mãi</h1>
+                    <p className="text-gray-600 mt-1">Áp dụng khuyến mãi cho store của bạn</p>
                 </div>
 
+                {/* Success Message */}
+                {successMessage && (
+                    <Card className="p-4 bg-green-50 border-green-200">
+                        <p className="text-sm text-green-800 flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            {successMessage}
+                        </p>
+                    </Card>
+                )}
+
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-center">
@@ -626,93 +560,66 @@ export default function StorePromotions() {
                     <Card>
                         <CardContent className="p-4">
                             <div className="text-center">
-                                <p className="text-lg font-bold text-green-600">{stats.totalRevenue.toLocaleString()}đ</p>
-                                <p className="text-sm text-gray-600">Doanh thu tạo ra</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="text-center">
-                                <p className="text-lg font-bold text-orange-600">{stats.totalSavings.toLocaleString()}đ</p>
-                                <p className="text-sm text-gray-600">Giá trị giảm</p>
+                                <p className="text-2xl font-bold text-purple-600">{stats.totalStores}</p>
+                                <p className="text-sm text-gray-600">Store tham gia</p>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Filters */}
+                {/* Search */}
                 <Card>
                     <CardContent className="p-4">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 transform -translate-y-1/2" />
-                                    <Input
-                                        placeholder="Tìm kiếm khuyến mãi..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Trạng thái" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tất cả</SelectItem>
-                                        <SelectItem value="active">Đang hoạt động</SelectItem>
-                                        <SelectItem value="paused">Tạm dừng</SelectItem>
-                                        <SelectItem value="scheduled">Đã lên lịch</SelectItem>
-                                        <SelectItem value="expired">Hết hạn</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Loại" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tất cả loại</SelectItem>
-                                        <SelectItem value="percentage">Phần trăm</SelectItem>
-                                        <SelectItem value="fixed_amount">Số tiền cố định</SelectItem>
-                                        <SelectItem value="free_hours">Giờ miễn phí</SelectItem>
-                                        <SelectItem value="package_deal">Gói ưu đãi</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 text-gray-400 transform -translate-y-1/2" />
+                            <Input
+                                placeholder="Tìm kiếm khuyến mãi..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10"
+                            />
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Promotions Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {filteredPromotions.map((promotion) => (
-                        <PromotionCard key={promotion.id} promotion={promotion} />
-                    ))}
-                </div>
-
-                {filteredPromotions.length === 0 && (
+                {filteredPromotions.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredPromotions.map((promotion) => (
+                            <PromotionCard
+                                key={promotion.id}
+                                promotion={promotion}
+                                onViewStores={setSelectedPromotionForView}
+                                onApply={setSelectedPromotionForApply}
+                                storesCount={getStoresCount(promotion.id)}
+                            />
+                        ))}
+                    </div>
+                ) : (
                     <Card>
                         <CardContent className="p-12 text-center">
-                            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy khuyến mãi nào</h3>
-                            <p className="text-gray-600 mb-6">
-                                Thử thay đổi bộ lọc hoặc tạo chương trình khuyến mãi mới
-                            </p>
-                            <div className="flex justify-center space-x-3">
-                                <Button variant="outline" onClick={() => {
-                                    setSearchQuery('')
-                                    setStatusFilter('all')
-                                    setTypeFilter('all')
-                                }}>
-                                    Xóa bộ lọc
-                                </Button>
-                                <CreatePromotionDialog />
-                            </div>
+                            <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900">Không tìm thấy khuyến mãi nào</h3>
+                            <p className="text-gray-600 mt-2">Thử thay đổi từ khóa tìm kiếm</p>
                         </CardContent>
                     </Card>
+                )}
+
+                {/* View Stores Dialog */}
+                {selectedPromotionForView && (
+                    <StoresAppliedDialog
+                        promotion={selectedPromotionForView}
+                        onClose={() => setSelectedPromotionForView(null)}
+                    />
+                )}
+
+                {/* Apply Promotion Dialog */}
+                {selectedPromotionForApply && (
+                    <ApplyPromotionDialog
+                        promotion={selectedPromotionForApply}
+                        onClose={() => setSelectedPromotionForApply(null)}
+                        onConfirm={handleApplyConfirm}
+                    />
                 )}
             </div>
         </StoreLayout>
