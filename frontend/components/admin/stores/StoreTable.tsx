@@ -2,13 +2,14 @@
 // Hiển thị bảng danh sách Trung tâm thể thao
 
 import AdminTable, { TableColumn, TableAction } from "../shared/AdminTable"
-import { Eye, Edit, Trash2, Star, Eye as EyeIcon, ShoppingCart } from "lucide-react"
+import { Eye, Edit, Trash2, Star, Eye as EyeIcon, ShoppingCart, CheckCircle, Clock } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import type { StoreSearchItemResponse } from "@/types"
 
 interface StoreTableProps {
     stores: StoreSearchItemResponse[]
-    onStoreAction: (storeId: string, action: 'view' | 'edit' | 'delete') => void
+    onStoreAction: (storeId: string, action: 'view' | 'edit' | 'delete' | 'approve') => void
 }
 
 export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
@@ -77,6 +78,27 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
                     <span className="text-sm text-gray-600">{orderCount || 0}</span>
                 </div>
             )
+        },
+        {
+            key: 'status',
+            label: 'Trạng thái',
+            render: (status) => (
+                <Badge className={status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'}>
+                    <div className="flex items-center gap-2">
+                        {status === 'approved' ? (
+                            <>
+                                <CheckCircle className="h-4 w-4" />
+                                Phê duyệt
+                            </>
+                        ) : (
+                            <>
+                                <Clock className="h-4 w-4" />
+                                Chưa phê duyệt
+                            </>
+                        )}
+                    </div>
+                </Badge>
+            )
         }
     ]
 
@@ -86,6 +108,13 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
             label: 'Xem chi tiết',
             icon: <Eye className="mr-2 h-4 w-4" />,
             onClick: (store) => onStoreAction(store.id, 'view')
+        },
+        {
+            key: 'approve',
+            label: 'Phê duyệt',
+            icon: <CheckCircle className="mr-2 h-4 w-4" />,
+            onClick: (store) => onStoreAction(store.id, 'approve'),
+            show: (store) => store.status !== 'approved'
         },
         {
             key: 'edit',

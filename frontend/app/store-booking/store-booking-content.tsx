@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Calendar, MapPin, ArrowLeft } from "lucide-react"
 import { getFieldBookingGrid } from "@/services/api"
+import { getStoreById } from "@/services/api-new"
 import { FieldService } from "@/services/field.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
 import type { StoreClientDetailResponse, Sport } from "@/types"
@@ -206,16 +207,12 @@ export default function StoreBookingContent() {
                 const activeFields = (fieldsResponse.data || []).filter((f: FieldServiceType) => f.activeStatus)
                 setFields(activeFields)
 
-                // Lấy store info từ field đầu tiên (tất cả field trong cùng 1 store)
-                const storeData = activeFields.length > 0 ? {
-                    _id: activeFields[0].storeId,
-                    name: activeFields[0].name?.split(' ').slice(0, -1).join(' ') || 'Store',
-                    address: activeFields[0].address || 'Address',
-                    startTime: '05:00',
-                    endTime: '24:00',
-                    avatarUrl: activeFields[0].avatar,
-                    coverImageUrl: activeFields[0].cover_image,
-                } : null
+                // Lấy store info từ API sử dụng storeId từ field
+                let storeData: StoreClientDetailResponse | null = null
+                if (activeFields.length > 0) {
+                    console.log('📦 Fetching store data from backend with storeId:', activeFields[0].storeId)
+                    storeData = await getStoreById(activeFields[0].storeId)
+                }
 
                 // Lấy sport info từ field đầu tiên
                 const sportData = activeFields.length > 0 ? {
@@ -223,7 +220,7 @@ export default function StoreBookingContent() {
                     name: activeFields[0].sport_name || 'Sport',
                 } : null
 
-                console.log('📦 Extracted Store data:', storeData)
+                console.log('📦 Store data from backend:', storeData)
                 console.log('⚽ Extracted Sport data:', sportData)
 
                 if (!storeData || !sportData) {
@@ -232,7 +229,7 @@ export default function StoreBookingContent() {
                     return
                 }
 
-                setStore(storeData as any)
+                setStore(storeData)
                 setSport(sportData as any)
 
                 // Extract pricing from field response
@@ -243,10 +240,11 @@ export default function StoreBookingContent() {
                 })
                 setFieldPricings(pricingMap)
 
-                // Generate time slots based on store opening hours
+                // Generate time slots based on store opening hours from backend
                 const slots: string[] = []
                 const startHour = storeData?.startTime ? parseInt(storeData.startTime.split(':')[0]) : 5
                 const endHour = storeData?.endTime ? parseInt(storeData.endTime.split(':')[0]) : 24
+                console.log('⏰ Store opening hours from backend:', { startTime: storeData?.startTime, endTime: storeData?.endTime, startHour, endHour })
 
                 for (let hour = startHour; hour < endHour; hour++) {
                     slots.push(`${hour.toString().padStart(2, "0")}:00`)

@@ -709,6 +709,7 @@ export interface StoreSearchItemResponse {
     viewCount?: number; // Long -> number
     ward?: WardResponse;
     province?: ProvinceResponse;
+    status?: "approved" | "pending"; // Approval status
 }
 
 // Interface cho Store Registration Request

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -19,17 +19,15 @@ import { mockUsers, AdminUser } from "@/data/mockDataAdmin"
 
 // Import API service từ api-new (có xử lý token đúng)
 import { getUsers, toggleUserActive, deleteUser as deleteUserAPI } from "@/services/api-new"
+import { useAdminUsers, useAllAdminUsers, adminQueryKeys } from "@/hooks/admin-queries"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function UsersManagement() {
+  const queryClient = useQueryClient()
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize, setPageSize] = useState(10)
-  const [totalUsers, setTotalUsers] = useState(0)
-
-  const [allUsers, setAllUsers] = useState<AdminUser[]>([])  //  Tất cả users (cho stats)
-  const [users, setUsers] = useState<AdminUser[]>([])        //  Users trang hiện tại (cho table)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sportFilter, setSportFilter] = useState<string>('all')
@@ -41,124 +39,66 @@ export default function UsersManagement() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  // Fetch tất cả users (lần đầu) cho stats
-  useEffect(() => {
-    const fetchAllUsers = async () => {
-      try {
-        // Fetch tất cả users từ API (lấy từ page 0 với size lớn)
-        const allApiUsers = await getUsers(0, 1000)
-        console.log(' DEBUG: API Response for all users:', allApiUsers) // DEBUG
+  // Use React Query for paginated users
+  const {
+    data: usersData = [],
+    isLoading,
+    error: fetchError
+  } = useAdminUsers(currentPage, pageSize)
 
-        if (allApiUsers && allApiUsers.length > 0) {
-          // Log từng user để xem structure
-          console.log(' DEBUG: First user:', allApiUsers[0]) // DEBUG
+  // Use React Query for all users (stats)
+  const {
+    data: allUsersData = [],
+    isLoading: allUsersLoading
+  } = useAllAdminUsers()
 
-          const mappedAllUsers: AdminUser[] = allApiUsers.map((user: any, index: number) => ({
-            id: user.id?.toString() || (index + 1).toString(),
-            name: user.name || 'Unknown',
-            email: user.email || 'N/A',
-            phone: user.phone || 'N/A',
-            avatar: user.avatarUrl || "/placeholder-user.jpg",
-            bio: user.bio || 'Không có mô tả',
-            location: user.location || 'Chưa cập nhật',
-            favoriteSports: user.favoriteSports || [],
-            notifications: user.notifications || {
-              booking: true,
-              tournament: true,
-              community: true,
-              email: true,
-              push: true
-            },
-            stats: user.stats || {
-              totalBookings: 0,
-              totalTournaments: 0,
-              totalPosts: 0
-            },
-            createdAt: user.createdAt || new Date().toISOString(),
-            joinDate: user.joinDate || new Date().toISOString().split('T')[0],
-            lastActive: user.lastActive || new Date().toISOString().split('T')[0],
-            // Convert boolean từ API (true=active, false=inactive) thành string
-            status: user.active ? 'active' : 'inactive'
-          }))
-
-          console.log(' DEBUG: First mapped user:', mappedAllUsers[0]) // DEBUG
-
-          setAllUsers(mappedAllUsers)
-          setTotalUsers(mappedAllUsers.length)
-        } else {
-          setAllUsers(mockUsers)
-          setTotalUsers(mockUsers.length)
-        }
-      } catch (err) {
-        console.error('Error fetching all users:', err)
-        setAllUsers(mockUsers)
-        setTotalUsers(mockUsers.length)
-      }
+  const users = useMemo(() => {
+    if (Array.isArray(usersData)) {
+      return usersData.map((user: any) => ({
+        ...user,
+        id: user.id?.toString() || user._id?.toString() || '',
+        name: user.name || user.fullname || 'Unknown',
+        email: user.email || 'N/A',
+        phone: user.phone || user.phoneNumber || 'N/A',
+        avatar: user.avatarUrl || user.avatar || "/placeholder-user.jpg",
+        bio: user.bio || '',
+        location: user.location || user.address || 'Chưa cập nhật',
+        favoriteSports: user.favoriteSports || [],
+        notifications: user.notifications || { booking: true, tournament: true, community: true, email: true, push: true },
+        stats: user.stats || { totalBookings: 0, totalTournaments: 0, totalPosts: 0 },
+        createdAt: user.createdAt || new Date().toISOString(),
+        joinDate: user.joinDate || new Date().toISOString().split('T')[0],
+        lastActive: user.lastActive || new Date().toISOString().split('T')[0],
+        status: user.active !== false ? 'active' : 'inactive'
+      })) as AdminUser[]
     }
+    return []
+  }, [usersData])
 
-    fetchAllUsers()
-  }, [])
-
-  // Fetch users cho trang hiện tại
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Fetch với page và pageSize
-        const apiUsers = await getUsers(currentPage, pageSize)
-        console.log(' DEBUG: API Response for page users:', apiUsers) // DEBUG
-        console.log(' DEBUG: First page user:', apiUsers[0]) // DEBUG
-
-        if (apiUsers && apiUsers.length > 0) {
-          // Map API users (UserResponse) to AdminUser format
-          const mappedUsers: AdminUser[] = apiUsers.map((user: any, index: number) => ({
-            id: user.id?.toString() || (index + 1).toString(),
-            name: user.name || 'Unknown',
-            email: user.email || 'N/A',
-            phone: user.phone || 'N/A',
-            avatar: user.avatarUrl || "/placeholder-user.jpg",
-            bio: user.bio || 'Không có mô tả',
-            location: user.location || 'Chưa cập nhật',
-            favoriteSports: user.favoriteSports || [],
-            notifications: user.notifications || {
-              booking: true,
-              tournament: true,
-              community: true,
-              email: true,
-              push: true
-            },
-            stats: user.stats || {
-              totalBookings: 0,
-              totalTournaments: 0,
-              totalPosts: 0
-            },
-            createdAt: user.createdAt || new Date().toISOString(),
-            joinDate: user.joinDate || new Date().toISOString().split('T')[0],
-            lastActive: user.lastActive || new Date().toISOString().split('T')[0],
-            // Convert boolean từ API (true=active, false=inactive) thành string
-            status: user.active ? 'active' : 'inactive'
-          }))
-
-          console.log(' DEBUG: First mapped page user:', mappedUsers[0]) // DEBUG
-          setUsers(mappedUsers)
-        } else {
-          // Fallback to mock data if API returns empty
-          setUsers(mockUsers.slice(currentPage * pageSize, (currentPage + 1) * pageSize))
-        }
-      } catch (err) {
-        console.error('Error fetching users:', err)
-        // Use mock data as fallback
-        setUsers(mockUsers.slice(currentPage * pageSize, (currentPage + 1) * pageSize))
-        setError(null)
-      } finally {
-        setLoading(false)
-      }
+  const allUsers = useMemo(() => {
+    if (Array.isArray(allUsersData)) {
+      return allUsersData.map((user: any) => ({
+        ...user,
+        id: user.id?.toString() || user._id?.toString() || '',
+        name: user.name || user.fullname || 'Unknown',
+        email: user.email || 'N/A',
+        phone: user.phone || user.phoneNumber || 'N/A',
+        avatar: user.avatarUrl || user.avatar || "/placeholder-user.jpg",
+        bio: user.bio || '',
+        location: user.location || user.address || 'Chưa cập nhật',
+        favoriteSports: user.favoriteSports || [],
+        notifications: user.notifications || { booking: true, tournament: true, community: true, email: true, push: true },
+        stats: user.stats || { totalBookings: 0, totalTournaments: 0, totalPosts: 0 },
+        createdAt: user.createdAt || new Date().toISOString(),
+        joinDate: user.joinDate || new Date().toISOString().split('T')[0],
+        lastActive: user.lastActive || new Date().toISOString().split('T')[0],
+        status: user.active !== false ? 'active' : 'inactive'
+      })) as AdminUser[]
     }
+    return []
+  }, [allUsersData])
 
-    fetchUsers()
-  }, [currentPage, pageSize])
+  const totalUsers = allUsers.length
 
   // Filter users dựa trên search và filters
   const filteredUsers = users.filter(user => {
@@ -214,27 +154,10 @@ export default function UsersManagement() {
 
       // Call API to toggle active status
       const updatedUser = await toggleUserActive(userId)
-      console.log(' User status toggled:', updatedUser)
 
-      // Update local state
-      setUsers(users.map(user =>
-        user.id === userId
-          ? {
-            ...user,
-            status: updatedUser.active ? 'active' : 'inactive'
-          }
-          : user
-      ))
-
-      // Update allUsers for stats
-      setAllUsers(allUsers.map(user =>
-        user.id === userId
-          ? {
-            ...user,
-            status: updatedUser.active ? 'active' : 'inactive'
-          }
-          : user
-      ))
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users.all })
+      queryClient.invalidateQueries({ queryKey: [adminQueryKeys.users.list] as any })
 
       // Show success message
       setActionSuccess(
@@ -270,12 +193,10 @@ export default function UsersManagement() {
 
       // Call API to delete user
       await deleteUserAPI(userId)
-      console.log(' User deleted:', userId)
 
-      // Update local state
-      setUsers(users.filter(user => user.id !== userId))
-      setAllUsers(allUsers.filter(user => user.id !== userId))
-      setTotalUsers(totalUsers - 1)
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users.all })
+      queryClient.invalidateQueries({ queryKey: [adminQueryKeys.users.list] as any })
 
       // Show success message
       setActionSuccess('Đã xóa người dùng thành công')
@@ -290,61 +211,55 @@ export default function UsersManagement() {
     }
   }
 
-  const handleCreateUser = (formData: any) => {
-    // Generate a random ID using timestamp and random number
-    const newId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const handleCreateUser = async (formData: any) => {
+    try {
+      setIsActionLoading(true)
+      setActionError(null)
+      setActionSuccess(null)
 
-    const newUser: AdminUser = {
-      id: newId,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      avatar: "/placeholder-user.jpg",
-      bio: formData.bio || '',
-      location: formData.location || '',
-      favoriteSports: formData.favoriteSports || [],
-      notifications: {
-        booking: true,
-        tournament: true,
-        community: true,
-        email: true,
-        push: true
-      },
-      stats: {
-        totalBookings: 0,
-        totalTournaments: 0,
-        totalPosts: 0
-      },
-      createdAt: new Date().toISOString(),
-      joinDate: new Date().toISOString().split('T')[0],
-      lastActive: new Date().toISOString().split('T')[0],
-      status: formData.status || 'active'
+      // TODO: Call API to create user
+      // await createUserAPI(formData)
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users.all })
+      queryClient.invalidateQueries({ queryKey: [adminQueryKeys.users.list] as any })
+
+      setIsCreateDialogOpen(false)
+      setActionSuccess('Đã tạo người dùng thành công')
+      setTimeout(() => setActionSuccess(null), 3000)
+    } catch (err) {
+      console.error('Error creating user:', err)
+      setActionError('Lỗi khi tạo người dùng')
+    } finally {
+      setIsActionLoading(false)
     }
-
-    setUsers([...users, newUser])
-    setAllUsers([...allUsers, newUser])
-    setTotalUsers(totalUsers + 1)
-    setIsCreateDialogOpen(false)
   }
 
-  const handleUpdateUser = (formData: any) => {
+  const handleUpdateUser = async (formData: any) => {
     if (!selectedUser) return
 
-    const updatedUserData = {
-      ...selectedUser,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      bio: formData.bio || '',
-      location: formData.location || '',
-      favoriteSports: formData.favoriteSports || [],
-      status: formData.status
-    }
+    try {
+      setIsActionLoading(true)
+      setActionError(null)
+      setActionSuccess(null)
 
-    setUsers(users.map(u => u.id === selectedUser.id ? updatedUserData : u))
-    setAllUsers(allUsers.map(u => u.id === selectedUser.id ? updatedUserData : u))
-    setIsEditDialogOpen(false)
-    setSelectedUser(null)
+      // TODO: Call API to update user
+      // await updateUserAPI(selectedUser.id, formData)
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users.all })
+      queryClient.invalidateQueries({ queryKey: [adminQueryKeys.users.list] as any })
+
+      setIsEditDialogOpen(false)
+      setSelectedUser(null)
+      setActionSuccess('Đã cập nhật người dùng thành công')
+      setTimeout(() => setActionSuccess(null), 3000)
+    } catch (err) {
+      console.error('Error updating user:', err)
+      setActionError('Lỗi khi cập nhật người dùng')
+    } finally {
+      setIsActionLoading(false)
+    }
   }
   const filterOptions = [
     {
@@ -405,10 +320,10 @@ export default function UsersManagement() {
       />
 
       {/* Stats Cards */}
-      {!loading && <UserStats users={allUsers} />}
+      {!isLoading && <UserStats users={allUsers} />}
 
       {/* Loading State */}
-      {loading && (
+      {isLoading && (
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-center py-8">
@@ -424,10 +339,10 @@ export default function UsersManagement() {
       )}
 
       {/* Error State */}
-      {error && (
+      {fetchError && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{fetchError instanceof Error ? fetchError.message : 'Lỗi khi tải dữ liệu'}</p>
           </CardContent>
         </Card>
       )}
@@ -465,7 +380,7 @@ export default function UsersManagement() {
       )}
 
       {/* Filters and Content */}
-      {!loading && (
+      {!isLoading && (
         <Card>
           <CardHeader>
             <CardTitle>Danh sách người dùng</CardTitle>

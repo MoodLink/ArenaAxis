@@ -1,82 +1,55 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import type { StoreSearchItemResponse } from '@/types'
-import { searchStores, getUserStores } from '@/services/api-new'
+import { searchStores } from '@/services/api-new'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import StoreTable from '@/components/admin/stores/StoreTable'
 import StoresPagination from '@/components/store/StoresPagination'
 import { SearchFilters } from '@/components/store/SearchStoreForm'
 import AdminHeader from '@/components/admin/shared/AdminHeader'
+import { useAllStores, useStoreSearch, adminQueryKeys } from '@/hooks/admin-queries'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function StoresManagement() {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const [searchValue, setSearchValue] = useState('')
-    const [stores, setStores] = useState<StoreSearchItemResponse[]>([])
-    const [loading, setLoading] = useState(true)
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage] = useState(12)
-    const [totalStores, setTotalStores] = useState(0)
     const [selectedFilters, setSelectedFilters] = useState<SearchFilters>({})
 
-    // Fetch tất cả Trung tâm thể thao để lấy tổng số
-    useEffect(() => {
-        const fetchTotalStores = async () => {
-            try {
-                const allStores = await getUserStores(1, 1000)
-                if (Array.isArray(allStores)) {
-                    setTotalStores(allStores.length)
-                    console.log(' Total stores:', allStores.length)
-                }
-            } catch (error) {
-                console.error('Error fetching total stores:', error)
-                setTotalStores(0)
-            }
-        }
+    // Fetch stores with React Query (handles pagination and caching)
+    const { data: storesData = [], isLoading, error } = useStoreSearch(selectedFilters, currentPage - 1, itemsPerPage)
 
-        fetchTotalStores()
-    }, [])
+    // Fetch all stores count
+    const { data: allStores = [] } = useAllStores()
+    const totalStores = allStores.length
 
-    // Fetch stores của trang hiện tại
-    useEffect(() => {
-        async function fetchStores() {
-            setLoading(true)
-            try {
-                const apiStores = await searchStores(selectedFilters, currentPage - 1, itemsPerPage)
-                setStores(apiStores)
-            } catch (error) {
-                console.error('Error fetching stores:', error)
-                setStores([])
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchStores()
-    }, [selectedFilters, currentPage, itemsPerPage])
-
-    // Filter stores theo search value (client-side)
-    const filteredStores = stores.filter(store => {
-        if (!searchValue.trim()) return true
-
-        const searchLower = searchValue.toLowerCase()
-        return (
-            store.name.toLowerCase().includes(searchLower) ||
-            (store.ward?.name.toLowerCase().includes(searchLower)) ||
-            (store.province?.name.toLowerCase().includes(searchLower))
-        )
-    })
+    // Filter stores by search value (client-side)
+    const filteredStores = useMemo(() => {
+        return storesData.filter((store: StoreSearchItemResponse) => {
+            if (!searchValue.trim()) return true
+            const searchLower = searchValue.toLowerCase()
+            return (
+                store.name.toLowerCase().includes(searchLower) ||
+                (store.ward?.name.toLowerCase().includes(searchLower)) ||
+                (store.province?.name.toLowerCase().includes(searchLower))
+            )
+        })
+    }, [storesData, searchValue])
 
     const totalPages = Math.ceil(totalStores / itemsPerPage)
 
-    useEffect(() => {
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
         setCurrentPage(1)
     }, [searchValue, selectedFilters])
 
-    const handleStoreAction = (storeId: string, action: 'view' | 'edit' | 'delete') => {
+    const handleStoreAction = (storeId: string, action: 'view' | 'edit' | 'delete' | 'approve') => {
         switch (action) {
             case 'view':
                 router.push(`/admin/stores/${storeId}`)
@@ -84,14 +57,20 @@ export default function StoresManagement() {
             case 'edit':
                 router.push(`/admin/stores/${storeId}/edit`)
                 break
+            case 'approve':
+                console.log('Approve store:', storeId)
+                // TODO: Implement approve functionality with API call
+                // On success: queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores.all })
+                break
             case 'delete':
                 console.log('Delete store:', storeId)
                 // TODO: Implement delete functionality
+                // On success: queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores.all })
                 break
         }
     }
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
