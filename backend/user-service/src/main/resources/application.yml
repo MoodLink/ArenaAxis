@@ -11,6 +11,7 @@ logging:
     com.zaxxer.hikari: DEBUG
     org.hibernate.SQL: DEBUG
     org.springframework.jdbc: DEBUG
+    org.thymeleaf: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
 
@@ -28,6 +29,21 @@ spring:
 
   jackson:
     default-property-inclusion: non_null
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: <email>
+    password: <password>
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
 
   cloud:
     config:
@@ -52,6 +68,9 @@ spring:
       hibernate:
         format_sql: true
 
+  thymeleaf:
+    cache: false
+
 jwt:
   signer_key: ${SIGNER_KEY:IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT}
   token_valid_duration: 3600
@@ -72,7 +91,7 @@ management:
 
 service:
   order:
-    url: https://arena-axis.vercel.app
+    url: https://arena-axis.vercel.app/api/v1
 
 recommend:
   near_by:

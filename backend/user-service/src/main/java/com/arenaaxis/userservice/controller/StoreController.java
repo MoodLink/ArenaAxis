@@ -1,5 +1,6 @@
 package com.arenaaxis.userservice.controller;
 
+import com.arenaaxis.userservice.dto.request.ApproveStoreRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.request.UpdateSportForStoreRequest;
@@ -17,11 +18,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +41,7 @@ public class StoreController {
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
-      return ResponseEntity.ok(storeService.getInPagination(page, perPage));
+    return ResponseEntity.ok(storeService.getInPagination(page, perPage));
   }
 
   @PostMapping("/search")
@@ -47,11 +49,27 @@ public class StoreController {
     @RequestBody SearchStoreRequest request,
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
+    request.setApprovable(false);
     return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
   }
 
+  @PostMapping("/admin-search")
+  public ResponseEntity<List<StoreSearchItemResponse>> getApprovableStores(
+    @RequestBody SearchStoreRequest request,
+    @RequestParam(value = "page", defaultValue = "1") int page,
+    @RequestParam(value = "perPage", defaultValue = "12") int perPage
+  ) {
+    return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
+  }
+
+  @PostMapping("/approve")
+  public ResponseEntity<StoreAdminDetailResponse> approveStore(@RequestBody ApproveStoreRequest request) {
+    User current = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.approveStore(request.getStoreId(), current));
+  }
+
   @PostMapping
-  public ResponseEntity<StoreAdminDetailResponse> addStore(@RequestBody StoreCreateRequest request)
+  public ResponseEntity<StoreAdminDetailResponse> addStore(@Validated @RequestBody StoreCreateRequest request)
     throws ParseException, JOSEException {
     User user = currentUserService.getCurrentUser();
     return ResponseEntity.ok(storeService.create(request, user));
@@ -65,7 +83,7 @@ public class StoreController {
     @RequestParam(value = "businessLicenceImage", required = false) MultipartFile  businessLicenceImage,
     @RequestParam(value = "medias", required = false) List<MultipartFile>  medias
   ) {
-    Map<StoreImageType, List<MultipartFile>> images = new HashMap<>();
+    Map<StoreImageType, List<MultipartFile>> images = new EnumMap<>(StoreImageType.class);
     if (avatar != null) images.put(StoreImageType.AVATAR, List.of(avatar));
     if (coverImage != null) images.put(StoreImageType.COVER, List.of(coverImage));
     if (businessLicenceImage != null) images.put(StoreImageType.LICENSE, List.of(businessLicenceImage));

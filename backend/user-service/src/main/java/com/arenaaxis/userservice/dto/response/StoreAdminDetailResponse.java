@@ -3,9 +3,11 @@ package com.arenaaxis.userservice.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -24,6 +26,7 @@ public class StoreAdminDetailResponse {
 
   Boolean active;
   Boolean approved;
+  Boolean approvable;
 
   LocalTime startTime;
   LocalTime endTime;
@@ -40,6 +43,14 @@ public class StoreAdminDetailResponse {
   String businessLicenceImageUrl;
 
   String newToken;
+
+  Set<StoreUtilityResponse> utilities;
+
+  BigDecimal latitude;
+  BigDecimal longitude;
+
+  WardResponse ward;
+  ProvinceResponse province;
 
   List<String> mediaUrls;
 }

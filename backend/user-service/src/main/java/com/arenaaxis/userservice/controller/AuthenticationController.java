@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,7 +30,7 @@ public class AuthenticationController {
   AuthenticationService authenticationService;
 
   @PostMapping("/validate")
-  public ResponseEntity<IntrospectResponse> validate(@RequestBody IntrospectRequest request)
+  public ResponseEntity<IntrospectResponse> validate(@RequestBody @Validated IntrospectRequest request)
     throws JOSEException, ParseException {
     return ResponseEntity.ok(authenticationService.introspect(request));
   }
@@ -50,7 +51,7 @@ public class AuthenticationController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
+  public ResponseEntity<AuthenticationResponse> login(@RequestBody @Validated AuthenticationRequest request) {
     return ResponseEntity.ok(authenticationService.authenticate(request, null));
   }
 

@@ -40,6 +40,7 @@ public class StoreSpecification {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
       settingPredicate(predicates, request, root, cb);
+      settingApprovable(predicates, request, root, cb);
 
       Objects.requireNonNull(query).distinct(true);
       return cb.and(predicates.toArray(new Predicate[0]));
@@ -82,6 +83,24 @@ public class StoreSpecification {
         cb.isTrue(sportJoin.get("hasSport"))
       ));
     }
+  }
+
+  private static void settingApprovable(List<Predicate> predicates, SearchStoreRequest request,
+                                        Root<Store> root, CriteriaBuilder cb) {
+    if (!request.isApprovable()) return;
+
+    List<String> notNullFields = List.of(
+      "plan",
+      "avatar",
+      "coverImage",
+      "introduction",
+      "businessLicenseImage",
+      "linkGoogleMap",
+      "address"
+    );
+    predicates.add(cb.isFalse(root.get("approved")));
+    notNullFields.forEach(field -> predicates.add(cb.isNotNull(root.get(field))));
+    predicates.add(cb.greaterThanOrEqualTo(cb.size(root.get("medias")), Store.IMAGE_COUNT));
   }
 
   private static void settingNameWard(List<Predicate> predicates, String wardName,

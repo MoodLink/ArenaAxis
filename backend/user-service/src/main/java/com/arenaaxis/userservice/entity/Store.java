@@ -24,6 +24,8 @@ import java.util.Set;
   }
 )
 public class Store {
+  public static final int IMAGE_COUNT = 0;
+
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   String id;
@@ -67,6 +69,7 @@ public class Store {
   @Builder.Default
   LocalDateTime updatedAt = LocalDateTime.now();
   LocalDateTime deletedAt;
+  LocalDateTime approvedAt;
 
   @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "province_id", nullable = false)
@@ -91,7 +94,7 @@ public class Store {
   @OneToMany(fetch = FetchType.EAGER, mappedBy = "store")
   Set<StoreMedia> medias;
 
-  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   @JoinColumn(name = "plan_id")
   MainPlan plan;
 
@@ -104,13 +107,27 @@ public class Store {
   @OneToMany(mappedBy = "store")
   Set<StoreHasSport> sports;
 
-  public long increaseViewCount() {
+  @OneToMany(mappedBy = "store", fetch = FetchType.EAGER)
+  Set<StoreUtility> utilities;
+
+  public void increaseViewCount() {
     viewCount += 1;
-    return viewCount;
   }
 
   public long increaseOrderCount() {
     orderCount += 1;
     return orderCount;
+  }
+
+  public boolean isApprovable() {
+    if (Boolean.TRUE.equals(this.approved)) return false;
+    if (this.plan == null) return false;
+    if (this.medias.size() < IMAGE_COUNT) return false;
+    if (this.avatar == null) return false;
+    if (this.coverImage == null) return false;
+    if (this.businessLicenseImage == null) return false;
+    if (this.address == null) return false;
+    if (this.introduction == null) return false;
+    return this.linkGoogleMap != null;
   }
 }

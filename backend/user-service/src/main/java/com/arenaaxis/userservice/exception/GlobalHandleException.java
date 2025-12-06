@@ -2,14 +2,21 @@ package com.arenaaxis.userservice.exception;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import com.arenaaxis.userservice.dto.response.ErrorResponse;
+import com.arenaaxis.userservice.dto.response.RemainingOrderResponse;
+import com.arenaaxis.userservice.dto.response.SpecialErrorResponse;
+import com.arenaaxis.userservice.dto.response.SuspendStoreResponse;
+import com.arenaaxis.userservice.exception.special.DuplicateSuspendException;
+import com.arenaaxis.userservice.exception.special.RemainingOrderException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -18,7 +25,29 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalHandleException {
-    private static final String MIN_ATTRIBUTE = "min";
+  private static final String MIN_ATTRIBUTE = "min";
+
+  @ExceptionHandler(value = DuplicateSuspendException.class)
+  public ResponseEntity<SpecialErrorResponse<List<SuspendStoreResponse>>>
+    handleDuplicateKeyException(DuplicateSuspendException e) {
+    SpecialErrorResponse<List<SuspendStoreResponse>> response =
+      SpecialErrorResponse.<List<SuspendStoreResponse>>builder()
+        .data(e.getDuplicates())
+        .message(e.getMessage())
+        .build();
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  @ExceptionHandler(value = RemainingOrderException.class)
+  public ResponseEntity<SpecialErrorResponse<List<RemainingOrderResponse>>>
+    handleRemainingOrderException(RemainingOrderException e) {
+    SpecialErrorResponse<List<RemainingOrderResponse>> response =
+      SpecialErrorResponse.<List<RemainingOrderResponse>>builder()
+        .data(e.getOrders())
+        .message(e.getMessage())
+        .build();
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
 
   @ExceptionHandler(value = AppException.class)
   ResponseEntity<ErrorResponse> handlingAppException(AppException ex, HttpServletRequest request) {

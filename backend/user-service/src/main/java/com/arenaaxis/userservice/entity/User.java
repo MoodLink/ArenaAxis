@@ -29,7 +29,9 @@ public class User {
   String password;
   String phone;
   String name;
-  boolean active;
+
+  @Builder.Default
+  boolean active = true;
 
   @OneToOne(cascade = CascadeType.ALL)
   @JoinColumn(name = "avatar_id")

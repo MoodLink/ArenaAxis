@@ -43,21 +43,21 @@ public class SecurityConfig {
       "/users/myself",
       "/users/**",
       "/favourites",
-      "/favourites/**"),
+      "/favourites/**",
+      "/revenues/**"),
     HttpMethod.POST, List.of(
       "/users",
       "/auth",
       "/auth/**",
       "/stores/search",
       "/favourites",
-      "recommends/**"),
+      "/recommends/**"),
     HttpMethod.DELETE, List.of(
       "/favourites",
       "/favourites/**"));
 
   CustomJwtDecoder customJwtDecoder;
 
-  @Autowired
   public SecurityConfig(CustomJwtDecoder customJwtDecoder) {
     this.customJwtDecoder = customJwtDecoder;
   }
