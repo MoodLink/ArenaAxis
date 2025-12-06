@@ -604,6 +604,11 @@ export interface MediaResponse {
 }
 
 
+// Interface cho Utility Type (từ UtilityType enum)
+export interface Utility {
+    type: 'WC' | 'CAMERA' | 'CANTEEN' | 'WIFI' | 'WATER' | 'PARKING';
+}
+
 // Interface cho Store Client Detail Response (từ StoreClientDetailResponse DTO)
 export interface StoreClientDetailResponse {
     id: string;
@@ -622,8 +627,11 @@ export interface StoreClientDetailResponse {
     coverImageUrl?: string;
     mediaUrls?: string[]; // List<String>
     sports?: Sport[]; //  List<SportResponse> từ backend
+    utilities?: Utility[]; // Danh sách tiện ích từ backend
     latitude?: number; // Float -> number
     longitude?: number; // Float -> number
+    ward?: WardResponse; // Xã/Phường
+    province?: ProvinceResponse; // Tỉnh/Thành phố
 }
 
 // Interface cho Ward Response (từ WardResponse DTO)

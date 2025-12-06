@@ -764,6 +764,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
       endTime: request.endTime,
       wardId: request.wardId,
       linkGoogleMap: request.linkGoogleMap || null,
+      utilities: request.amenities || [],
       // latitude: request.latitude || null,
       // longitude: request.longitude || null
     };
