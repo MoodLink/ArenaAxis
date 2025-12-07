@@ -15,10 +15,14 @@ export default async function handler(req, res) {
       { $set: { statusPayment: "FAILED" } }
     );
 
-    res.status(200).json({
+    const returnData = {
       success: true,
       modified: result.modifiedCount,
-    });
+    }
+
+    console.log("Cron API result:", returnData);
+
+    res.status(200).json(returnData);
   } catch (err) {
     console.error("Cron API error:", err);
     res.status(500).json({ error: err.message });
