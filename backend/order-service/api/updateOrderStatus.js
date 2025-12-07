@@ -1,5 +1,5 @@
-import { Order } from "../models/order.model.js";
-import { connect } from "../config/database.js";
+import { Order } from "../src/models/order.model.js";
+import { connect } from "../src/config/database.js";
 
 export default async function handler(req, res) {
   try {

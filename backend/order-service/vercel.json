@@ -1,12 +1,14 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "src/app.js",
-      "use": "@vercel/node"
-    }
+    { "src": "src/app.js", "use": "@vercel/node" },
+    { "src": "api/updateOrderStatus.js", "use": "@vercel/node" }
   ],
   "routes": [
+    {
+      "src": "/api/updateOrderStatus",
+      "dest": "/api/updateOrderStatus.js"
+    },
     {
       "src": "/(.*)",
       "dest": "src/app.js"
