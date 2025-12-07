@@ -99,7 +99,7 @@ management:
 
 service:
   order:
-    url: https://arena-axis.vercel.app/api/v1
+    url: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
 
 recommend:
   near_by:

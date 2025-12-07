@@ -1,10 +1,8 @@
 package com.arenaaxis.userservice.controller;
 
-import com.arenaaxis.userservice.dto.request.ApproveStoreRequest;
-import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
-import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
-import com.arenaaxis.userservice.dto.request.UpdateSportForStoreRequest;
+import com.arenaaxis.userservice.dto.request.*;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
+import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.User;
@@ -49,17 +47,16 @@ public class StoreController {
     @RequestBody SearchStoreRequest request,
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
-    request.setApprovable(false);
     return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
   }
 
   @PostMapping("/admin-search")
-  public ResponseEntity<List<StoreSearchItemResponse>> getApprovableStores(
-    @RequestBody SearchStoreRequest request,
+  public ResponseEntity<List<StoreAdminSearchItemResponse>> searchAdmin(
+    @RequestBody(required = false) SearchStoreAdminRequest request,
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage
   ) {
-    return ResponseEntity.ok(storeService.searchInPagination(request, page, perPage));
+    return ResponseEntity.ok(storeService.adminSearch(request, page, perPage));
   }
 
   @PostMapping("/approve")

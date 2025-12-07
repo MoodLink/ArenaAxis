@@ -1,79 +1,76 @@
+version: '3.8'
+
 services:
-  eureka-server:
+  gateway:
     build:
-      context: ./eureka-server
-      dockerfile: Dockerfile_dev
-    volumes:
-      - ./eureka-server:/app/eureka-server/current
-      - /app/eureka-server/target
-      - C:/Users/Acer predator/.m2:/root/.m2
-    environment:
-      CONFIG_SERVER_URL: http://config-service:8088
-      EUREKA_HOSTNAME: eureka-server
+      context: ./gateway
+      dockerfile: Dockerfile
     ports:
-      - "8061:8061"
-    healthcheck:
-      test: curl --fail http://localhost:8061/actuator/health || exit 1
-      interval: 20s
-      timeout: 5s
-      retries: 5
-
-  gateway-service:
-    build:
-      context: ./gateway-service
-      dockerfile: Dockerfile_dev
-    volumes:
-      - ./gateway-service:/app/gateway-service/current
-      - /app/gateway-service/target
-      - C:/Users/Acer predator/.m2:/root/.m2
+      - "8080:8080"
     environment:
-      CONFIG_SERVER_URL: http://config-service:8088
-      EUREKA_DEFAULT_ZONE_URL: http://eureka-server:8061/eureka
-    ports:
-      - "8088:8080"
+      - PORT=8080
+      - USER_SERVICE_URL=http://user-service:8081
+      - MESSAGE_SERVICE_URL=http://message-service:8082
+      - ORDER_SERVICE_URL=http://order-service:3000
     depends_on:
-      eureka-server:
-        condition: service_healthy
-
-  arena-db:
-    image: mysql:8.0
-    container_name: arena-db
-    restart: always
-    environment:
-      MYSQL_DATABASE: arena_db
-      MYSQL_USER: authuser
-      MYSQL_PASSWORD: authpass
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3307:3306"
-    volumes:
-      - arena-db-data:/var/lib/mysql
-    healthcheck:
-      test: mysqladmin ping -h localhost
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - user-service
+      - order-service
+    networks:
+      - arena-network
+    restart: unless-stopped
 
   user-service:
     build:
       context: ./user-service
-      dockerfile: Dockerfile_dev
-    volumes:
-      - ./user-service:/app/user-service/current
-      - /app/user-service/target
-      - C:/Users/Acer predator/.m2:/root/.m2
-    environment:
-      MYSQL_URL: jdbc:mysql://arena-db:3306/arena_db
-      MYSQL_USERNAME: authuser
-      MYSQL_PASSWORD: authpass
-      SIGNER_KEY: IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT
-      CLOUDINARY_URL: cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix
-      ORDER_SERVICE_URL: https://arena-axis.vercel.app
+      dockerfile: Dockerfile
     ports:
       - "8081:8081"
-    depends_on:
-      arena-db:
-        condition: service_healthy
+    environment:
+      - PORT=8081
+      - MYSQL_URL=${MYSQL_URL}
+      - MYSQL_USERNAME=${MYSQL_USERNAME}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - ORDER_SERVICE_URL=http://order-service:3000
+    networks:
+      - arena-network
+    restart: unless-stopped
 
-volumes:
-  arena-db-data:
+  # Message Service (Spring Boot + WebSocket)
+  # message-service:
+  #   build:
+  #     context: ./message-service
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8082:8082"
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=docker
+  #     - MONGODB_URI=${MONGODB_URI}
+  #     - MONGODB_DATABASE=${MONGODB_DATABASE}
+  #   networks:
+  #     - arena-network
+  #   restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URL=${MONGO_URL}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID}
+      - PAYOS_API_KEY=${PAYOS_API_KEY}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY}
+      - USER_SERVICE_URL=http://user-service:8081
+      - PORT=${PORT}
+      - RETURN_URL=${RETURN_URL}
+      - CANCEL_URL=${CANCEL_URL}
+    networks:
+      - arena-network
+    restart: unless-stopped
+
+networks:
+  arena-network:
+    driver: bridge
