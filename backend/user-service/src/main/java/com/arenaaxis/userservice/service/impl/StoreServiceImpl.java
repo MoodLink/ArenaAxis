@@ -1,10 +1,12 @@
 package com.arenaaxis.userservice.service.impl;
 
 import com.arenaaxis.userservice.client.service.OrderClientService;
+import com.arenaaxis.userservice.dto.request.SearchStoreAdminRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.request.StoreUpdateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
+import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.*;
@@ -182,6 +184,16 @@ public class StoreServiceImpl implements StoreService {
         .stream()
         .map(storeMapper::toAdminDetailResponse)
         .toList();
+  }
+
+  @Override
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  public List<StoreAdminSearchItemResponse> adminSearch(SearchStoreAdminRequest request, int page, int perPage) {
+    Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
+    Specification<Store> spec = StoreSpecification.adminSearchStores(request);
+    Page<Store> storePage = storeRepository.findAll(spec, pageable);
+    return storePage.getContent().stream()
+      .map(storeMapper::toStoreAdminSearchItemResponse).toList();
   }
 
   @Override

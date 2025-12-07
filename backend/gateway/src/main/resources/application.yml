@@ -26,22 +26,108 @@ spring:
               uri: ${USER_SERVICE_URL:http://localhost:8081}
               predicates:
                 - Path=/users/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/auth/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/provinces/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/wards/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/banks/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/bank-accounts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/main-plans/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/ratings/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/recommends/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/revenues/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/favorites/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/store-medias/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/store-view-histories/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/subscriptions/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/sports/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/stores/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
                 - Path=/suspend-stores/**
+              filters:
+                - name: AuthenticationFilter
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
+              predicates:
+                - Path=/api/v1/**
               filters:
                 - name: AuthenticationFilter
           default-filters:

@@ -30,7 +30,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             !(authentication instanceof AnonymousAuthentication)) {
 
             ServerHttpRequest mutatedRequest = request.mutate()
-              .header("X-User-Id", authentication.getName())
+              .header("X-User-Email", authentication.getName())
               .header("X-User-Authorities",
                 String.join(",",
                   authentication.getAuthorities().stream()

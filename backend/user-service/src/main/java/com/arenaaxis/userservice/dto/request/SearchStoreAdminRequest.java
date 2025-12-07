@@ -9,9 +9,11 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SearchStoreRequest {
+public class SearchStoreAdminRequest {
   String name;
   String wardId;
   String provinceId;
   String sportId;
+  Boolean approved;
+  Boolean approvable;
 }

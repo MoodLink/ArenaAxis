@@ -1,6 +1,7 @@
 package com.arenaaxis.userservice.specification;
 
 import com.arenaaxis.userservice.dto.request.NearbyRequest;
+import com.arenaaxis.userservice.dto.request.SearchStoreAdminRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.entity.Store;
 import com.arenaaxis.userservice.entity.StoreHasSport;
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class StoreSpecification {
   private static final float DISTANCE_DEFAULT = 10000;
@@ -40,9 +42,28 @@ public class StoreSpecification {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
       settingPredicate(predicates, request, root, cb);
-      settingApprovable(predicates, request, root, cb);
 
       Objects.requireNonNull(query).distinct(true);
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
+  public static Specification<Store> adminSearchStores(SearchStoreAdminRequest request) {
+    return (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+
+      if (request != null) {
+        SearchStoreRequest baseRequest = mappingAdminSearchToBase(request);
+        settingPredicate(predicates, baseRequest, root, cb);
+        settingApprovable(predicates, request, root, cb);
+
+        if (request.getApproved() != null) {
+          predicates.add(cb.equal(root.get("approved"), request.getApproved()));
+        }
+
+        Objects.requireNonNull(query).distinct(true);
+      }
+
       return cb.and(predicates.toArray(new Predicate[0]));
     };
   }
@@ -85,10 +106,8 @@ public class StoreSpecification {
     }
   }
 
-  private static void settingApprovable(List<Predicate> predicates, SearchStoreRequest request,
+  private static void settingApprovable(List<Predicate> predicates, SearchStoreAdminRequest request,
                                         Root<Store> root, CriteriaBuilder cb) {
-    if (!request.isApprovable()) return;
-
     List<String> notNullFields = List.of(
       "plan",
       "avatar",
@@ -98,9 +117,23 @@ public class StoreSpecification {
       "linkGoogleMap",
       "address"
     );
-    predicates.add(cb.isFalse(root.get("approved")));
-    notNullFields.forEach(field -> predicates.add(cb.isNotNull(root.get(field))));
-    predicates.add(cb.greaterThanOrEqualTo(cb.size(root.get("medias")), Store.IMAGE_COUNT));
+    if (Boolean.TRUE.equals(request.getApprovable())) {
+      predicates.add(cb.isFalse(root.get("approved")));
+      notNullFields.forEach(field -> predicates.add(cb.isNotNull(root.get(field))));
+      predicates.add(cb.greaterThanOrEqualTo(cb.size(root.get("medias")), Store.IMAGE_COUNT));
+    } else if (Boolean.FALSE.equals(request.getApprovable())) {
+      List<Predicate> nullFieldPreds = notNullFields.stream()
+        .map(field -> cb.isNull(root.get(field)))
+        .toList();
+
+      Predicate insufficientMedia = cb.lessThan(cb.size(root.get("medias")), Store.IMAGE_COUNT);
+      Predicate failCondition = cb.or(
+        Stream.concat(nullFieldPreds.stream(), Stream.of(insufficientMedia))
+          .toArray(Predicate[]::new)
+      );
+
+      predicates.add(failCondition);
+    }
   }
 
   private static void settingNameWard(List<Predicate> predicates, String wardName,
@@ -145,5 +178,14 @@ public class StoreSpecification {
 
   private static String stringPattern(String str) {
     return "%" + str.toLowerCase() + "%";
+  }
+
+  private static SearchStoreRequest mappingAdminSearchToBase(SearchStoreAdminRequest request) {
+    return SearchStoreRequest.builder()
+      .name(request.getName())
+      .wardId(request.getWardId())
+      .provinceId(request.getProvinceId())
+      .sportId(request.getSportId())
+      .build();
   }
 }

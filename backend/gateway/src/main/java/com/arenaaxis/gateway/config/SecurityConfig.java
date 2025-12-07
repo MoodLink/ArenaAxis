@@ -27,6 +27,8 @@ public class SecurityConfig {
   JwtAuthenticationEntryPoint entryPoint;
 
   static String[] PUBLIC_GET_ENDPOINTS = {
+    "/actuator",
+    "/actuator/**",
     "/sports/**",
     "/provinces/**",
     "/wards/**",
@@ -37,7 +39,15 @@ public class SecurityConfig {
     "/users/myself",
     "/users/**",
     "/favourites/**",
-    "/revenues/**"
+    "/revenues/**",
+    "/api/v1/orders/*",
+    "/api/v1/orders/store/*",
+    "/api/v1/orders/user/*",
+    "/api/v1/fields",
+    "/api/v1/fields/store",
+    "/api/v1/fields/*",
+    "/api/v1/field-pricings/*",
+    "/api/v1/field-pricings/special/*",
   };
 
   static String[] PUBLIC_POST_ENDPOINTS = {
@@ -45,11 +55,20 @@ public class SecurityConfig {
     "/auth/**",
     "/stores/search",
     "/favourites",
-    "/recommends/**"
+    "/recommends/**",
+    "/api/v1/orders/create-payment",
+    "/api/v1/fields",
+    "/api/v1/field-pricings",
+    "/api/v1/field-pricings/special",
+  };
+
+  static String[] PUBLIC_PATCH_ENDPOINTS = {
+    "/api/v1/fields/*",
   };
 
   static String[] PUBLIC_DELETE_ENDPOINTS = {
-    "/favourites/**"
+    "/favourites/**",
+    "/api/v1/fields/*",
   };
 
   @Bean
@@ -60,6 +79,7 @@ public class SecurityConfig {
       .authorizeExchange(auth -> auth
         .pathMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
         .pathMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
+        .pathMatchers(HttpMethod.PATCH, PUBLIC_PATCH_ENDPOINTS).permitAll()
         .pathMatchers(HttpMethod.DELETE, PUBLIC_DELETE_ENDPOINTS).permitAll()
         .pathMatchers("/ws/**").authenticated()
         .anyExchange().authenticated()

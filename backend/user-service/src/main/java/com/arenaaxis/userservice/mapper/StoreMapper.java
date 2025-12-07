@@ -3,6 +3,7 @@ package com.arenaaxis.userservice.mapper;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.request.StoreUpdateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
+import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.Store;
@@ -146,6 +147,19 @@ public interface StoreMapper {
     nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
   )
   StoreSearchItemResponse toStoreSearchItemResponse(Store store);
+
+  @Mapping(
+    target = "avatarUrl",
+    source = "avatar.url",
+    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
+  )
+  @Mapping(
+    target = "coverUrl",
+    source = "coverImage.url",
+    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS
+  )
+  @Mapping(target = "approvable", expression = "java(store.isApprovable())")
+  StoreAdminSearchItemResponse toStoreAdminSearchItemResponse(Store store);
 
   default List<String> mapMediaUrls(Set<StoreMedia> medias) {
     if (medias == null) return Collections.emptyList();

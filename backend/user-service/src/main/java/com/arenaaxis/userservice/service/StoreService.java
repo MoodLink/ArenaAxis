@@ -1,9 +1,11 @@
 package com.arenaaxis.userservice.service;
 
+import com.arenaaxis.userservice.dto.request.SearchStoreAdminRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
 import com.arenaaxis.userservice.dto.request.StoreUpdateRequest;
 import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
+import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
 import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
 import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
 import com.arenaaxis.userservice.entity.User;
@@ -26,5 +28,6 @@ public interface StoreService {
   List<StoreSearchItemResponse> getInPagination(int page, int perPage);
   List<StoreSearchItemResponse> searchInPagination(SearchStoreRequest request, int page, int perPage);
   List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser);
+  List<StoreAdminSearchItemResponse> adminSearch(SearchStoreAdminRequest request, int page, int perPage);
   StoreAdminDetailResponse suspendStore(String storeId, User currentUser);
 }
