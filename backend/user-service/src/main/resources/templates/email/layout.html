@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+	<title th:text="${title}">Arena Axis</title>
+
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			background: #f4f4f7;
+			font-family: Arial, sans-serif;
+		}
+
+		.email-container {
+			max-width: 600px;
+			margin: 30px auto;
+			background: #ffffff;
+			border-radius: 10px;
+			overflow: hidden;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+		}
+
+		.content {
+			padding: 24px 32px;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="email-container">
+		<div th:replace="~{email/fragments/header :: header}"></div>
+
+		<div class="content">
+			<div th:replace="~{${contentFragment}}"></div>
+		</div>
+
+		<div th:replace="~{email/fragments/footer :: footer}"></div>
+
+	</div>
+
+</body>
+
+</html>

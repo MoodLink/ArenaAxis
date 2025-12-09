@@ -1,0 +1,167 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns: "*"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+          routes:
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/users/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/auth/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/provinces/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/wards/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/banks/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/bank-accounts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/main-plans/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/ratings/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/recommends/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/revenues/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/favorites/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/store-medias/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/store-view-histories/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/subscriptions/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/sports/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/stores/**
+              filters:
+                - name: AuthenticationFilter
+            - id: user-service
+              uri: ${USER_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/suspend-stores/**
+              filters:
+                - name: AuthenticationFilter
+            - id: order-service
+              uri: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
+              predicates:
+                - Path=/api/v1/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/messages/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8082}
+              predicates:
+                - Path=/ws/messages/**
+              filters:
+                - name: AuthenticationFilter
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+jwt:
+  signer-key: ${SIGNER_KEY:IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT}
+
+user-service:
+  url: ${USER_SERVICE_URL:http://localhost:8081}
+  introspect-endpoint: /auth/validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    com.arenaaxis.gateway: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"

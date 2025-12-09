@@ -1,0 +1,106 @@
+server:
+  port: 8081
+  forward-headers-strategy: framework
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+
+logging:
+  level:
+    com.zaxxer.hikari: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.thymeleaf: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+springdoc:
+  packageToScan: com.arenaaxis
+  cache:
+    disabled: true
+  version: '@springdoc.version'
+  api-docs:
+    version: openapi_3_1
+
+spring:
+  application:
+    name: user-service
+
+  jackson:
+    default-property-inclusion: non_null
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: marthadoxan@gmail.com
+    password: iepbsywibigvhpmz
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+  cloud:
+    config:
+      enabled: false
+
+  output:
+    ansi:
+      enabled: always
+
+  datasource:
+    url: jdbc:mysql://mysql-b614388-arenaaxisdatabase113.f.aivencloud.com:26787/arena_db?ssl-mode=REQUIRED
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  thymeleaf:
+    cache: false
+
+jwt:
+  signer_key: ${SIGNER_KEY:IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT}
+  token_valid_duration: 3600
+  token_refreshable_duration: 360000
+  password_valid_duration: 300
+
+cloudinary:
+  url: ${CLOUDINARY_URL:cloudinary://616641948111293:HzoQzeNND_XvQnVi7a0nujN1lV4@dfddyteix}
+
+
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+service:
+  order:
+    url: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
+
+recommend:
+  near_by:
+    limit: 10

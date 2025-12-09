@@ -1,0 +1,238 @@
+provinces:
+  - id: '01'
+    name: 'Hà Nội'
+    nameEn: 'Ha Noi'
+    latitude: 21.029449800404876
+    longitude: 105.85444409999998
+    iso: 'VN-HN'
+
+  - id: '04'
+    name: 'Cao Bằng'
+    nameEn: 'Cao Bang'
+    latitude: 22.66399806
+    longitude: 106.2680046
+    iso: 'VN-04'
+
+  - id: '08'
+    name: 'Tuyên Quang'
+    nameEn: 'Tuyen Quang'
+    latitude: 21.8179981
+    longitude: 105.2109996
+    iso: 'VN-07'
+
+  - id: '11'
+    name: 'Điện Biên'
+    nameEn: 'Dien Bien'
+    latitude: 21.74000399
+    longitude: 103.3430047
+    iso: 'VN-71'
+
+  - id: '12'
+    name: 'Lai Châu'
+    nameEn: 'Lai Chau'
+    latitude: 22.3048728
+    longitude: 102.9628862
+    iso: 'VN-01'
+
+  - id: '14'
+    name: 'Sơn La'
+    nameEn: 'Son La'
+    latitude: 21.32800214
+    longitude: 103.9100047
+    iso:
+
+  - id: '15'
+    name: 'Lào Cai'
+    nameEn: 'Lao Cai'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '19'
+    name: 'Thái Nguyên'
+    nameEn: 'Thai Nguyen'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '20'
+    name: 'Lạng Sơn'
+    nameEn: 'Lang Son'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '22'
+    name: 'Quảng Ninh'
+    nameEn: 'Quang Ninh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '24'
+    name: 'Bắc Ninh'
+    nameEn: 'Bac Ninh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '25'
+    name: 'Phú Thọ'
+    nameEn: 'Phu Tho'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '31'
+    name: 'Hải Phòng'
+    nameEn: 'Hai Phong'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '33'
+    name: 'Hưng Yên'
+    nameEn: 'Hung Yen'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '37'
+    name: 'Ninh Bình'
+    nameEn: 'Ninh Binh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '38'
+    name: 'Thanh Hóa'
+    nameEn: 'Thanh Hoa'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '40'
+    name: 'Nghệ An'
+    nameEn: 'Nghe An'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '42'
+    name: 'Hà Tĩnh'
+    nameEn: 'Ha Tinh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '44'
+    name: 'Quảng Trị'
+    nameEn: 'Quang Tri'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '46'
+    name: 'Huế'
+    nameEn: 'Hue'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '48'
+    name: 'Đà Nẵng'
+    nameEn: 'Da Nang'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '51'
+    name: 'Quảng Ngãi'
+    nameEn: 'Quang Ngai'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '52'
+    name: 'Gia Lai'
+    nameEn: 'Gia Lai'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '56'
+    name: 'Khánh Hòa'
+    nameEn: 'Khanh Hoa'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '66'
+    name: 'Đắk Lắk'
+    nameEn: 'Dak Lak'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '68'
+    name: 'Lâm Đồng'
+    nameEn: 'Lam Dong'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '75'
+    name: 'Đồng Nai'
+    nameEn: 'Dong Nai'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '79'
+    name: 'Hồ Chí Minh'
+    nameEn: 'Ho Chi Minh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '80'
+    name: 'Tây Ninh'
+    nameEn: 'Tay Ninh'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '82'
+    name: 'Đồng Tháp'
+    nameEn: 'Dong Thap'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '86'
+    name: 'Vĩnh Long'
+    nameEn: 'Vinh Long'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '91'
+    name: 'An Giang'
+    nameEn: 'An Giang'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '92'
+    name: 'Cần Thơ'
+    nameEn: 'Can Tho'
+    latitude:
+    longitude:
+    iso:
+
+  - id: '96'
+    name: 'Cà Mau'
+    nameEn: 'Ca Mau'
+    latitude:
+    longitude:
+    iso:
