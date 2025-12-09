@@ -58,7 +58,7 @@ export const getFieldById = async (fieldId) => {
 export const create = async (body, req) => {
   const field = new Field(body);
   const data = await field.save();
-  // await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
   return data;
 };
 
@@ -72,10 +72,10 @@ export const update = async (fieldId, updateData) => {
   Object.assign(existingField, updateData);
   const data = await existingField.save();
 
-  // if (oldSportId !== data.sportId) {
-  //   await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
-  //   await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
-  // }
+  if (oldSportId !== data.sportId) {
+    await handleUpdateSportForStore(req, data.storeId, oldSportId, false);
+    await handleUpdateSportForStore(req, data.storeId, data.sportId, true);
+  }
 
   return data;
 };

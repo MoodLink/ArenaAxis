@@ -39,8 +39,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: marthadoxan@gmail.com
-    password: iepbsywibigvhpmz
+    username: ${SMTP_EMAIL}
+    password: ${SMTP_PASSWORD}
     protocol: smtp
     default-encoding: UTF-8
     properties:
@@ -60,9 +60,9 @@ spring:
       enabled: always
 
   datasource:
-    url: jdbc:mysql://mysql-b614388-arenaaxisdatabase113.f.aivencloud.com:26787/arena_db?ssl-mode=REQUIRED
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/arena_db}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
