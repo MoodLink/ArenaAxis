@@ -31,6 +31,8 @@ services:
       - MYSQL_USERNAME=${MYSQL_USERNAME}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - ORDER_SERVICE_URL=http://order-service:3000
+      - SMTP_EMAIL=${SMTP_EMAIL}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
     networks:
       - arena-network
     restart: unless-stopped

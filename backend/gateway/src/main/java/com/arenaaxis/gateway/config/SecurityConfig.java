@@ -48,6 +48,7 @@ public class SecurityConfig {
     "/api/v1/fields/*",
     "/api/v1/field-pricings/*",
     "/api/v1/field-pricings/special/*",
+    "/api/updateOrderStatus"
   };
 
   static String[] PUBLIC_POST_ENDPOINTS = {
