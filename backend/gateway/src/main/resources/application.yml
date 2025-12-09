@@ -127,7 +127,7 @@ spring:
             - id: order-service
               uri: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
               predicates:
-                - Path=/api/v1/**
+                - Path=/api/**
               filters:
                 - name: AuthenticationFilter
           default-filters:
