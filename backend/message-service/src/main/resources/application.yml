@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: message-service
+  data:
+    mongodb:
+      uri: ${MESSAGE_MONGODB_URL:mongodb://localhost:27017}
+      database: ${MESSAGE_MONGODB_DATABASE:arena_message_db}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.arenaaxis.messageservice: DEBUG
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
+
+service:
+  user:
+    url: ${USER_SERVICE_URL:http://localhost:8081}

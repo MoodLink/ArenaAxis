@@ -130,6 +130,30 @@ spring:
                 - Path=/api/**
               filters:
                 - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/messages/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/conversations/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/participants/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8082}
+              predicates:
+                - Path=/ws/messages/**
+              filters:
+                - name: AuthenticationFilter
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
 
@@ -139,6 +163,12 @@ jwt:
 user-service:
   url: ${USER_SERVICE_URL:http://localhost:8081}
   introspect-endpoint: /auth/validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 logging:
   level:
