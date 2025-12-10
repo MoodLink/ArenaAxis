@@ -6,8 +6,8 @@ spring:
     name: message-service
   data:
     mongodb:
-      uri: mongodb+srv://doannhb:ga7eNC.VDeARB5Q@cluster0.krzv10n.mongodb.net/arena_message_service?retryWrites=true&w=majority
-      database: arena_message_service
+      uri: ${MESSAGE_MONGODB_URL:mongodb://localhost:27017}
+      database: ${MESSAGE_MONGODB_DATABASE:arena_message_db}
 
 management:
   endpoints:
