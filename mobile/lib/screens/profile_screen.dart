@@ -19,10 +19,12 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   late final TokenStorage tokenStorage;
   late final FlutterSecureStorage secureStorage;
   late final AuthService authService;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   bool? isLoggedIn;
   User? currentUser;
@@ -33,10 +35,19 @@ class _ProfilePageState extends State<ProfilePage> {
     secureStorage = const FlutterSecureStorage();
     tokenStorage = TokenStorage(storage: secureStorage);
     authService = AuthService();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    
     _checkLoginStatus();
   }
 
-  // Kiểm tra trạng thái đăng nhập
   Future<void> _checkLoginStatus() async {
     try {
       final token = await tokenStorage.getAccessToken();
@@ -54,7 +65,8 @@ class _ProfilePageState extends State<ProfilePage> {
         currentUser = localUser;
       });
 
-      // Nếu đã đăng nhập → refresh dữ liệu user từ server
+      _animationController.forward();
+
       if (loggedIn && token != null) {
         _loadUserData(token, background: currentUser != null);
       }
@@ -65,23 +77,21 @@ class _ProfilePageState extends State<ProfilePage> {
           isLoggedIn = false;
           currentUser = null;
         });
+        _animationController.forward();
       }
     }
   }
 
-  // Load thông tin user từ API
   Future<void> _loadUserData(String token, {bool background = false}) async {
     try {
       final user = await authService.getCurrentUser(token);
       if (user == null) return;
 
-      // Lưu vào secure storage
       await secureStorage.write(
         key: TokenStorage.USER_KEY,
         value: jsonEncode(user.toJson()),
       );
 
-      // Chỉ cập nhật UI nếu widget còn tồn tại
       if (mounted) {
         setState(() {
           currentUser = user;
@@ -94,89 +104,148 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    // Đang kiểm tra trạng thái
     if (isLoggedIn == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    // Chưa đăng nhập
     if (!isLoggedIn!) {
-      return _buildNotLoggedInScreen(size);
+      return _buildNotLoggedInScreen();
     }
 
-    // Đang load user lần đầu
     if (currentUser == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    // Đã đăng nhập + có dữ liệu → hiển thị profile
-    return _buildLoggedInScreen(size);
+    return _buildLoggedInScreen();
   }
 
   // ===================================================================
   // MÀN HÌNH CHƯA ĐĂNG NHẬP
   // ===================================================================
-  Widget _buildNotLoggedInScreen(Size size) {
+  Widget _buildNotLoggedInScreen() {
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(size.width * 0.08),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: size.width * 0.25,
-                  height: size.width * 0.25,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.lock_outline, size: size.width * 0.12, color: Colors.blue),
-                ),
-                SizedBox(height: size.height * 0.04),
-                Text(
-                  'Bạn chưa đăng nhập',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: size.height * 0.02),
-                Text(
-                  'Vui lòng đăng nhập để xem thông tin cá nhân, lịch sử đặt sân và nhiều tính năng khác',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: size.height * 0.08),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Get.to(() => const LoginScreen())?.then((_) => _checkLoginStatus());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.blue.shade600,
+              Colors.blue.shade400,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: constraints.maxWidth * 0.08,
+                      vertical: 24,
                     ),
-                    child: Text('Đăng nhập', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                ),
-                SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: () => Get.to(() => const RegisterScreen()),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.blue, width: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Icon
+                        Container(
+                          width: constraints.maxWidth * 0.3,
+                          height: constraints.maxWidth * 0.3,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.sports_soccer,
+                            size: constraints.maxWidth * 0.15,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: constraints.maxHeight * 0.05),
+                        
+                        Text(
+                          'Chào mừng!',
+                          style: TextStyle(
+                            fontSize: constraints.maxWidth * 0.08,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 12),
+                        
+                        Text(
+                          'Đăng nhập để đặt sân thể thao',
+                          style: TextStyle(
+                            fontSize: constraints.maxWidth * 0.04,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        
+                        SizedBox(height: constraints.maxHeight * 0.08),
+                        
+                        // Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Get.to(() => const LoginScreen())?.then((_) => _checkLoginStatus());
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.blue.shade600,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Đăng nhập',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 14),
+                        
+                        // Register Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: OutlinedButton(
+                            onPressed: () => Get.to(() => const RegisterScreen()),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white, width: 2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Đăng ký',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Text('Đăng ký', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -187,205 +256,287 @@ class _ProfilePageState extends State<ProfilePage> {
   // ===================================================================
   // MÀN HÌNH ĐÃ ĐĂNG NHẬP
   // ===================================================================
-  Widget _buildLoggedInScreen(Size size) {
+  Widget _buildLoggedInScreen() {
     final user = currentUser!;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: size.height * 0.3,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    'assets/images/background.webp',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: Colors.blueGrey.shade700),
-                  ),
-                  Container(
+      backgroundColor: Colors.grey.shade50,
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final headerHeight = constraints.maxHeight * 0.25;
+            
+            return CustomScrollView(
+              slivers: [
+                // Header với Avatar
+                SliverToBoxAdapter(
+                  child: Container(
+                    height: headerHeight,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.blue.shade600, Colors.blue.shade400],
+                      ),
+                    ),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: constraints.maxWidth * 0.05,
+                          vertical: 20,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                // Avatar
+                                Container(
+                                  width: constraints.maxWidth * 0.16,
+                                  height: constraints.maxWidth * 0.16,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                      style: TextStyle(
+                                        fontSize: constraints.maxWidth * 0.08,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: constraints.maxWidth * 0.04),
+                                
+                                // Tên và Email
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        user.email,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    right: 16,
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: size.width * 0.08,
-                          backgroundColor: Colors.blue,
-                          child: Text(
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                            style: TextStyle(fontSize: size.width * 0.08, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.name,
-                                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                user.email,
-                                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+
+                // Menu Items
+                SliverPadding(
+                  padding: EdgeInsets.all(constraints.maxWidth * 0.04),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Thông tin cá nhân
+                      _menuItem(
+                        Icons.person_outline,
+                        'Thông tin cá nhân',
+                        Colors.blue,
+                        subtitle: user.phone?.isNotEmpty == true ? user.phone : 'Chưa cập nhật số điện thoại',
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      
+                      _menuItem(
+                        Icons.favorite_border,
+                        'Sân yêu thích',
+                        Colors.green,
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Cài đặt
+                      _menuItem(
+                        Icons.settings_outlined,
+                        'Cài đặt',
+                        Colors.grey,
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Trợ giúp
+                      _menuItem(
+                        Icons.help_outline,
+                        'Trợ giúp',
+                        Colors.orange,
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Nút Đăng xuất
+                      _logoutButton(),
+                      const SizedBox(height: 40),
+                    ]),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(size.width * 0.04),
-              child: Column(
-                children: [
-                  _buildSection('Thông tin cá nhân', [
-                    _menuItem(Icons.person_outline, 'Chỉnh sửa thông tin'),
-                    _menuItem(
-                      Icons.phone_outlined,
-                      'Số điện thoại',
-                      value: user.phone?.isNotEmpty == true ? user.phone : 'Chưa có số điện thoại',
-                      showChevron: user.phone?.isNotEmpty != true,
-                    ),
-                    _menuItem(Icons.location_on_outlined, 'Địa chỉ'),
-                  ]),
-
-                  SizedBox(height: 16),
-
-                  _buildSection('Hoạt động', [
-                    _menuItem(Icons.history, 'Lịch sử đặt sân'),
-                    _menuItem(Icons.group_outlined, 'Đội của tôi'),
-                    _menuItem(Icons.favorite_outline, 'Sân yêu thích'),
-                  ]),
-
-                  SizedBox(height: 16),
-
-                  _buildSection('Cài đặt', [
-                    _menuItem(Icons.notifications_outlined, 'Thông báo'),
-                    _menuItem(Icons.lock_outline, 'Bảo mật'),
-                    _menuItem(Icons.help_outline, 'Trợ giúp'),
-                    _menuItem(Icons.logout, 'Đăng xuất', color: Colors.red),
-                  ]),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> items) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 2))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-          const Divider(height: 1),
-          ...items,
-        ],
-      ),
-    );
-  }
-
-  Widget _menuItem(IconData icon, String title, {String? value, bool showChevron = true, Color? color}) {
-    return InkWell(
-      onTap: () {
-        if (title == 'Đăng xuất') {
-          _showLogoutDialog();
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, size: 24, color: color ?? Colors.blue),
-            const SizedBox(width: 16),
-            Expanded(child: Text(title, style: TextStyle(fontSize: 16))),
-            if (value != null) ...[
-              Text(value, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
-              const SizedBox(width: 8),
-            ],
-            if (showChevron)
-              Icon(Icons.chevron_right, color: Colors.grey),
-          ],
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  // ===================================================================
-  // DIALOG & LOGOUT
-  // ===================================================================
+  Widget _menuItem(IconData icon, String title, Color color, {String? subtitle}) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _logoutButton() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: _showLogoutDialog,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.logout, color: Colors.red, size: 22),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Text(
+                  'Đăng xuất',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.red, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showLogoutDialog() {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Đăng xuất'),
-        content: const Text('Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?'),
+        content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Hủy')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white60,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Get.back(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
               Get.back();
               _logout();
             },
-            child: const Text('Đăng xuất'),
+            child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // ĐÃ SỬA LỖI setState() after dispose() TẠI ĐÂY
   Future<void> _logout() async {
     await tokenStorage.clear();
 
-    // Reset tab về Home
     if (Get.isRegistered<HomeController>()) {
       Get.find<HomeController>().selectedIndex.value = 0;
     }
 
-    // Chuyển về trang chủ và xóa toàn bộ stack
-    Get.offAll(() =>  HomeScreen());
-
-    // Không gọi setState() ở đây nữa → widget đã bị dispose
-    // Lần sau vào lại tab Profile → initState() sẽ tự kiểm tra và hiện "Chưa đăng nhập"
+    Get.offAll(() => HomeScreen());
   }
 
   @override
   void dispose() {
-    // Không cần gì ở đây vì không có stream/timer
+    _animationController.dispose();
     super.dispose();
   }
 }

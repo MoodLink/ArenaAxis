@@ -35,7 +35,7 @@ class SportCategoryController extends GetxController {
     try {
       isLoading.value = true;
       final response = await http.get(
-        Uri.parse('https://arena-user-service.onrender.com/sports'),
+        Uri.parse('http://www.executexan.store/sports'),
       );
 
       if (response.statusCode == 200) {

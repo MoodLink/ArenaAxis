@@ -3,7 +3,7 @@ import 'dart:convert';
 
 class BookingsService {
   static const String baseUrl = 'https://arena-axis.vercel.app';
-  static const String userServiceUrl = 'https://arena-user-service.onrender.com';
+  static const String userServiceUrl = 'http://www.executexan.store';
 
   /// Lấy danh sách orders của user
   Future<Map<String, dynamic>> getUserOrders(String userId) async {

@@ -7,6 +7,7 @@ import 'package:mobile/utilities/local_storage.dart';
 
 class LocationHelper {
   Future<Map<String, dynamic>?> getUserLocation() async {
+    
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -39,8 +40,8 @@ class LocationHelper {
               "${place.subAdministrativeArea}",
           "province": "${place.administrativeArea}",
         };
-
-        // ✅ Lưu địa chỉ vào SharedPreferences
+        await LocalStorageHelper.clearLocation();
+        log("Location Data: $locationData");
         await LocalStorageHelper.saveLocation(locationData);
         
         return locationData;

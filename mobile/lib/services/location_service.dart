@@ -5,7 +5,7 @@ import 'package:mobile/models/location.dart';
 
 class LocationService extends GetxService {
   static const String baseUrl =
-      'https://arena-user-service.onrender.com'; // Replace with actual URL
+      'http://www.executexan.store'; // Replace with actual URL
 
   Future<List<Province>> fetchProvinces() async {
     try {

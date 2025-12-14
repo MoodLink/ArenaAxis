@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/models/Store.dart';
 
 class StoreService {
-  final String _baseUrl = 'https://arena-user-service.onrender.com';
+  final String _baseUrl = 'http://www.executexan.store';
 
   /// Search stores with filters - POST to /stores/search
   Future<List<Store>> searchStores({

@@ -5,10 +5,11 @@ import '../widgets/bottom_nav.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
-
+ 
   @override
   Widget build(BuildContext context) {
     final HomeController controller = Get.find<HomeController>();
+    controller.getUserLocation();
     return Scaffold(
       body: Obx(() => controller.pages[controller.selectedIndex.value]),
       bottomNavigationBar: myBottomNav(onTabChange: controller.onItemTapped),

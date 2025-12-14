@@ -12,7 +12,24 @@ import 'package:mobile/utilities/token_storage.dart';
 
 class HomeController extends GetxController {
   var selectedIndex = 0.obs;
+  var locationName = ''.obs;
   final LocationHelper _locationHelper = LocationHelper();
+
+  @override
+  void onInit() {
+    super.onInit();
+    getUserLocation();
+  }
+
+  Future<void> getUserLocation() async {
+    final data = await _locationHelper.getUserLocation();
+    if (data != null) {
+      final ward = data["ward"] ?? "";
+      final province = data["province"] ?? "";
+      locationName.value = "$ward, $province";
+    }
+  }
+
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   late final TokenStorage tokenStorage;
 
@@ -23,18 +40,7 @@ class HomeController extends GetxController {
     const ProfilePage(),
   ];
 
-  @override
-  void onInit() {
-    super.onInit();
-    tokenStorage = TokenStorage(storage: secureStorage);
-    getUserLocation();
-  }
 
-  Future<void> getUserLocation() async {
-    await _locationHelper.getUserLocation();
-    final String? accessToken = await tokenStorage.getAccessToken();
-    log("Access Token in HomeScreen: $accessToken");
-  }
 
   void onItemTapped(int index) {
     selectedIndex.value = index;
