@@ -6,7 +6,7 @@ spring:
     name: message-service
   data:
     mongodb:
-      uri: ${MESSAGE_MONGODB_URL:mongodb://localhost:27017}
+      uri: ${MESSAGE_MONGODB_URL:mongodb+srv://doannhb:ga7eNC.VDeARB5Q@cluster0.krzv10n.mongodb.net/arena_message_service?retryWrites=true&w=majority}
       database: ${MESSAGE_MONGODB_DATABASE:arena_message_db}
 
 management:
@@ -17,11 +17,18 @@ management:
 
 logging:
   level:
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+    org.springframework.data.mongodb.repository.query: DEBUG
     org.springframework.cloud.gateway: DEBUG
     com.arenaaxis.messageservice: DEBUG
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
 
+match:
+  limit: 10 # in days
+
 service:
   user:
-    url: ${USER_SERVICE_URL:http://localhost:8081}
+    url: ${USER_SERVICE_URL:http://www.executexan.store}
+  order:
+    url: ${ORDER_SERVICE_URL:http://www.executexan.store/api/v1}

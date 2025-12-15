@@ -23,7 +23,7 @@
     <!-- URL + Token -->
     <div class="row">
       <label for="wsUrl">WebSocket URL</label>
-      <input id="wsUrl" type="text" value="ws://localhost:8080/ws/messages" />
+      <input id="wsUrl" type="text" value="ws://localhost:8082/ws/messages" />
 
       <label for="tokenInput">Token</label>
       <input id="tokenInput" type="text" placeholder="JWT token..." style="width:260px" />
@@ -183,7 +183,7 @@
       if (!to) return alert('Nhập receiverId');
 
       const payload = {
-        type: 'message',
+        type: 'message.send',
         data: {
           senderId: myUserId,
           receiverId: to,

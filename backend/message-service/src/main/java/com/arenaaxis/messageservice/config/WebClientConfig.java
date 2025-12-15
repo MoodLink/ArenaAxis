@@ -12,4 +12,9 @@ public class WebClientConfig {
   public WebClient userWebClient(@Value("${service.user.url}") String url) {
     return WebClient.builder().baseUrl(url).build();
   }
+
+  @Bean("orderWebClient")
+  public WebClient orderWebClient(@Value("${service.order.url}") String url) {
+    return WebClient.builder().baseUrl(url).build();
+  }
 }

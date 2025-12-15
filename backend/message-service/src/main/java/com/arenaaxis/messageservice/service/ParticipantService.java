@@ -7,5 +7,6 @@ import reactor.core.publisher.Mono;
 public interface ParticipantService {
   Mono<Participant> createParticipant(Participant participant);
   Mono<Participant> createFromUserId(String userId);
+  Mono<Participant> getParticipant(String participantId);
   Mono<Participant> updateParticipant(UpdateParticipantRequest participant);
 }
