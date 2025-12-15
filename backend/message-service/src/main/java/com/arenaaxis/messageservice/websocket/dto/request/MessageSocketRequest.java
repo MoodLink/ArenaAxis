@@ -1,4 +1,4 @@
-package com.arenaaxis.messageservice.websocket.dto;
+package com.arenaaxis.messageservice.websocket.dto.request;
 
 import com.arenaaxis.messageservice.model.Message;
 import lombok.*;

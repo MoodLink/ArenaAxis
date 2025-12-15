@@ -2,6 +2,8 @@ package com.arenaaxis.messageservice.service.impl;
 
 import com.arenaaxis.messageservice.client.service.UserClientService;
 import com.arenaaxis.messageservice.dto.request.UpdateParticipantRequest;
+import com.arenaaxis.messageservice.exception.AppException;
+import com.arenaaxis.messageservice.exception.ErrorCode;
 import com.arenaaxis.messageservice.mapper.ParticipantMapper;
 import com.arenaaxis.messageservice.model.Participant;
 import com.arenaaxis.messageservice.repository.ParticipantRepository;
@@ -21,6 +23,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   ParticipantRepository repository;
   UserClientService userClientService;
   ParticipantMapper participantMapper;
+  private final ParticipantRepository participantRepository;
 
   @Override
   public Mono<Participant> createParticipant(Participant participant) {
@@ -40,6 +43,12 @@ public class ParticipantServiceImpl implements ParticipantService {
           return repository.save(participant);
         })
     );
+  }
+
+  @Override
+  public Mono<Participant> getParticipant(String participantId) {
+    return participantRepository.findById(participantId)
+      .switchIfEmpty(Mono.error(new AppException(ErrorCode.USER_NOT_FOUND)));
   }
 
   @Override

@@ -149,6 +149,24 @@ spring:
               filters:
                 - name: AuthenticationFilter
             - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/posts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/apply-posts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/matches/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
               uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8082}
               predicates:
                 - Path=/ws/messages/**

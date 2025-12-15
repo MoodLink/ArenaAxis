@@ -6,5 +6,6 @@ import reactor.core.publisher.Mono;
 
 public interface MessageService {
   Mono<Message> createMessage(String receiverId, Message message);
+  Mono<Message> seenMessage(String messageId, String readerId);
   Flux<Message> getMessagesByConversation(String conversationId, int page, int perPage);
 }

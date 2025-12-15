@@ -46,6 +46,38 @@ public class MessageServiceImpl implements MessageService {
       );
   }
 
+  @Override
+  public Mono<Message> seenMessage(String messageId, String readerId) {
+    return messageRepository.findById(messageId)
+      .switchIfEmpty(Mono.error(new AppException(ErrorCode.MESSAGE_NOT_FOUND)))
+      .flatMap(message -> {
+        if (!message.getSenderId().equals(readerId)) {
+          return Mono.error(new AppException(ErrorCode.FORBIDDEN));
+        }
+
+        if (message.getStatus() == Message.MessageStatus.RECEIVED) {
+          return Mono.just(message);
+        }
+
+        message.setStatus(Message.MessageStatus.RECEIVED);
+        return messageRepository.save(message)
+          .flatMap(savedMessage ->
+            conversationRepository.findById(savedMessage.getConversationId())
+              .flatMap(conv -> {
+                if (conv.getLastMessage() != null &&
+                  conv.getLastMessage().getId().equals(savedMessage.getId())) {
+                  conv.setLastMessage(savedMessage);
+                  conv.setLastMessageAt(savedMessage.getTimestamp());
+                  return conversationRepository.save(conv)
+                    .thenReturn(savedMessage);
+                }
+
+                return Mono.just(savedMessage);
+              })
+          );
+      });
+  }
+
   private Mono<Conversation> createNewConversation(String senderId, String receiverId) {
     Conversation conversation = Conversation.builder()
       .participantIds(List.of(senderId, receiverId))
