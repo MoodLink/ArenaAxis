@@ -12,5 +12,5 @@ import lombok.experimental.FieldDefaults;
 public class ApplyPostRequest {
   String userId;
   String postId;
-  String number;
+  Integer number;
 }

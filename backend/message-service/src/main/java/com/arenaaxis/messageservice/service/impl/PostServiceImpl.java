@@ -4,17 +4,17 @@ import com.arenaaxis.messageservice.client.service.StoreClientService;
 import com.arenaaxis.messageservice.dto.request.ApplyPostRequest;
 import com.arenaaxis.messageservice.dto.request.PostCreateRequest;
 import com.arenaaxis.messageservice.dto.request.SearchPostRequest;
+import com.arenaaxis.messageservice.dto.response.ApplyPostResponse;
+import com.arenaaxis.messageservice.dto.response.ApplyResponse;
 import com.arenaaxis.messageservice.dto.response.PostResponse;
 import com.arenaaxis.messageservice.exception.AppException;
 import com.arenaaxis.messageservice.exception.ErrorCode;
 import com.arenaaxis.messageservice.mapper.MatchMapper;
 import com.arenaaxis.messageservice.mapper.PostMapper;
 import com.arenaaxis.messageservice.mapper.StoreMapper;
-import com.arenaaxis.messageservice.model.Match;
-import com.arenaaxis.messageservice.model.Participant;
-import com.arenaaxis.messageservice.model.Post;
-import com.arenaaxis.messageservice.model.Store;
+import com.arenaaxis.messageservice.model.*;
 import com.arenaaxis.messageservice.model.enums.Sport;
+import com.arenaaxis.messageservice.repository.ApplyPostRepository;
 import com.arenaaxis.messageservice.repository.MatchRepository;
 import com.arenaaxis.messageservice.repository.PostRepository;
 import com.arenaaxis.messageservice.repository.StoreRepository;
@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,6 +45,7 @@ public class PostServiceImpl implements PostService {
   PostRepository postRepository;
   MatchRepository matchRepository;
   StoreRepository storeRepository;
+  ApplyPostRepository applyPostRepository;
 
   StoreClientService storeClientService;
   ParticipantService participantService;
@@ -65,8 +66,36 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override
-  public Mono<PostResponse> applyPost(ApplyPostRequest request) {
-    return null;
+  public Mono<ApplyResponse> applyPost(ApplyPostRequest request) {
+    return Mono.zip(
+      participantService.createFromUserId(request.getUserId()),
+      postRepository.findById(request.getPostId())
+    ).flatMap(tuple -> {
+      Participant applier = tuple.getT1();
+      Post post = tuple.getT2();
+
+      int nextNumber = post.getCurrentNumber() + request.getNumber();
+      if (nextNumber > post.getRequiredNumber()) {
+        return Mono.error(new AppException(ErrorCode.INVALID_APPLY_POST));
+      }
+
+      post.setCurrentNumber(nextNumber);
+
+      List<String> participantIds = post.getParticipantIds();
+      if (participantIds == null) participantIds = new ArrayList<>();
+      participantIds.add(request.getUserId());
+      post.setParticipantIds(participantIds);
+
+      ApplyPost applyPost = ApplyPost.builder()
+        .participantId(applier.getId())
+        .postId(post.getId())
+        .number(request.getNumber())
+        .build();
+
+      return postRepository.save(post)
+        .then(applyPostRepository.save(applyPost)
+          .flatMap(apply ->mapToApplyResponse(apply, applier, post)));
+    });
   }
 
   @Override
@@ -111,6 +140,7 @@ public class PostServiceImpl implements PostService {
     post.setPosterId(request.getUserId());
     post.setPricePerPerson(pricePerPerson);
     post.setSportId(matches.get(0).getSportId());
+    post.setStoreId(matches.get(0).getStoreId());
 
     return post;
   }
@@ -144,6 +174,35 @@ public class PostServiceImpl implements PostService {
 
         return response;
       });
+  }
+
+  private Mono<ApplyResponse> mapToApplyResponse(
+    ApplyPost applyPost,
+    Participant applier,
+    Post post
+  ) {
+    return Mono.zip(
+      getStore(post.getStoreId()),
+      participantService.createFromUserId(post.getPosterId())
+    ).map(tuple -> {
+      Participant poster = tuple.getT2();
+      Store store = tuple.getT1();
+
+      ApplyPostResponse postResponse = ApplyPostResponse.builder()
+        .id(post.getId())
+        .poster(poster)
+        .title(post.getTitle())
+        .timestamp(post.getTimestamp())
+        .store(storeMapper.toResponse(store))
+        .build();
+
+      return ApplyResponse.builder()
+        .timestamp(applyPost.getAppliedAt())
+        .post(postResponse)
+        .applier(applier)
+        .number(applyPost.getNumber())
+        .build();
+    });
   }
 
   private Mono<Store> getStore(String storeId) {

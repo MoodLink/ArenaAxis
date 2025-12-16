@@ -1,0 +1,50 @@
+    [
+        {
+            "id": "af2a9f97-2646-4424-92f0-a61f3a7b845b",
+            "date": "2025-11-13",
+            "startTime": "19:00:00",
+            "endTime": "21:00:00",
+            "field": {
+                "id": "69119b9e492126fe21ed0ab3",
+                "name": null
+            },
+            "sport": {
+                "id": "football",
+                "name": "Bóng đá",
+                "nameEn": "Football"
+            },
+            "price": 1200
+        },
+        {
+            "id": "f3818799-619d-4abe-944c-57011419699c",
+            "date": "2025-11-13",
+            "startTime": "05:00:00",
+            "endTime": "06:00:00",
+            "field": {
+                "id": "69119b53bef81f204e96aaf0",
+                "name": null
+            },
+            "sport": {
+                "id": "football",
+                "name": "Bóng đá",
+                "nameEn": "Football"
+            },
+            "price": 400
+        },
+        {
+            "id": "4f33e421-2f87-417d-907d-52fc0d1c7e09",
+            "date": "2025-11-13",
+            "startTime": "16:30:00",
+            "endTime": "17:30:00",
+            "field": {
+                "id": "69119b53bef81f204e96aaf0",
+                "name": null
+            },
+            "sport": {
+                "id": "football",
+                "name": "Bóng đá",
+                "nameEn": "Football"
+            },
+            "price": 400
+        }
+    ]
