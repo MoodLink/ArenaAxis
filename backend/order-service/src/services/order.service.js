@@ -3,9 +3,11 @@ import dotenv from "dotenv";
 dotenv.config();
 import { Order } from "../models/order.model.js";
 import { OrderDetail } from "../models/order-detail.model.js";
+import { getFieldById } from "./field.service.js";
 import { mergeContinuous } from "../utils/time.util.js";
 import { mergeOrderDetails } from "../utils/time.util.js";
 import { getStoreDetails } from "./field.service.js";
+import { getUserInformation } from "./user.service.js";
 
 const payOS = new PayOS({
   clientId: process.env.PAYOS_CLIENT_ID,
@@ -164,7 +166,15 @@ export const getOrderService = async (filter) => {
     }
 
     const orderDetails = await OrderDetail.find({ orderId: order._id });
-    const plainDetails = orderDetails.map((item) => item.toObject());
+    const plainDetails = [];
+    for (const item of orderDetails) {
+      const detailObj = item.toObject();
+      const fieldDetails = await getFieldById(detailObj.fieldId);
+      detailObj.name = fieldDetails.length > 0 ? fieldDetails[0].name : "Unknown Field";
+      detailObj.sportId = fieldDetails.length > 0 ? fieldDetails[0].sportId : null;
+      plainDetails.push(detailObj);
+    }
+  
     const mergedDetails = mergeOrderDetails(plainDetails);
     order._doc.orderDetails = mergedDetails;
 
@@ -196,6 +206,8 @@ export const getOrderByFieldIdAndDateTime = async (fieldId, dateTime) => {
       const order = await Order.findById(detail.orderId);
       if (order && order.statusPayment !== "FAILED") {
         detail.statusPayment = order.statusPayment;
+        const user = await getUserInformation(order.userId);
+        detail.user = user;
         results.push(detail);
       }
     }
