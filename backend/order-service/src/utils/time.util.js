@@ -208,6 +208,8 @@ export const mergeOrderDetails = (orderDetails) => {
     startTime: formatDate(item.startTime),
     endTime: formatDate(item.endTime),
     price: item.price,
+    name: item.name,
+    sportId: item.sportId,
   }));
 };
 
