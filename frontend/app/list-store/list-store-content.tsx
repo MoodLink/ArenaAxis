@@ -79,17 +79,16 @@ export default function ListStoreContent() {
                 console.log('🔍 Using searchStores (has filters)');
             } else {
                 apiStores = await getStores(currentPage - 1, itemsPerPage);
-                console.log('📦 Using getStores (no filters)');
+                console.log('📋 Using getStores (no filters)');
             }
 
-            return apiStores;
+            return apiStores || [];
         },
-        staleTime: 5 * 60 * 1000, // Cache 5 minutes
-        gcTime: 10 * 60 * 1000,
-        // Optimistic UI: không refetch khi window focus, user not needed to wait
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        // Không show loading saat paginate khi dữ liệu đã cached
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
         placeholderData: (previousData) => previousData,
     });
 
@@ -130,7 +129,11 @@ export default function ListStoreContent() {
             console.log(`📊 Total stores: ${total}`);
             return total;
         },
-        staleTime: 10 * 60 * 1000, // Cache 10 minutes
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
     });
 
     // Filter stores theo search value (client-side) - CHỈ filter stores của page hiện tại

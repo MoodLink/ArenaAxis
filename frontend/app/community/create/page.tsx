@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,740 +24,613 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  Trophy
+  Trophy,
+  Home,
+  Radio
 } from "lucide-react"
 import Link from "next/link"
-import { getSports, createCommunityPost } from "@/services/api"
+import { getSports } from "@/services/api"
+import { getMyProfile } from "@/services/get-my-profile"
+import { getMatchesByOrderId, formatMatchTime, formatMatchDate, formatPrice, getMatchDuration } from "@/services/matches.service"
+import { createPost, validatePostData } from "@/services/posts.service"
 import { Sport } from "@/types"
-import {
-  skillLevels,
-  bookingHistoryLocations,
-  popularTags
-} from "@/data/mockData"
+
+interface Match {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  field: { id: string; name: string | null };
+  sport: { id: string; name: string; nameEn: string };
+  price: number;
+}
 
 export default function CreatePostPage() {
+  const router = useRouter()
+
+  // State for page flow
+  const [pageStep, setPageStep] = useState<'select-order' | 'select-matches' | 'create-post'>('select-order')
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(null)
+  const [selectedMatches, setSelectedMatches] = useState<string[]>([])
+
+  // State for form data
   const [formData, setFormData] = useState({
     title: "",
-    sport: "",
-    location: "",
-    date: "",
-    time: "",
-    endTime: "",
-    level: "",
-    maxParticipants: "",
-    costType: "free", // free, split, total
-    costAmount: "",
     description: "",
-    tags: [] as string[],
-    contactInfo: "",
-    requirements: "",
+    requiredNumber: 10,
+    currentNumber: 1,
   })
 
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [isUploading, setIsUploading] = useState(false)
-  const [sports, setSports] = useState<Sport[]>([])
+  // State for data fetching
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [orders, setOrders] = useState<any[]>([])
+  const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMatches, setLoadingMatches] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [step, setStep] = useState(1) // Multi-step form
-  const [previewMode, setPreviewMode] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [formErrors, setFormErrors] = useState<string[]>([])
 
-  // Fetch sports data on component mount
+  // Fetch user info on mount
   useEffect(() => {
-    const fetchSports = async () => {
-      try {
-        const sportsData = await getSports()
-        console.log('Sports fetched:', sportsData)
-        setSports(Array.isArray(sportsData) ? sportsData : [])
-      } catch (error) {
-        console.error('Error fetching sports:', error)
-        // Add fallback sports data if API fails
-        setSports([
-          { id: '1', name: 'Tennis' },
-          { id: '2', name: 'Cầu lông' },
-          { id: '3', name: 'Bóng đá' },
-          { id: '4', name: 'Bóng rổ' },
-          { id: '5', name: 'Bơi lội' },
-          { id: '6', name: 'Chạy bộ' }
-        ])
-      } finally {
+    try {
+      const userInfo = getMyProfile()
+      if (userInfo?.id) {
+        setUserId(userInfo.id)
+        setUserProfile(userInfo)
         setLoading(false)
+      } else {
+        // User not logged in
+        console.warn('No user profile found')
+        setError('Bạn cần đăng nhập để tạo bài viết')
+        setLoading(false)
+        // Don't redirect immediately, let user see the error message
+        // router.push('/login')
+      }
+    } catch (err) {
+      console.error('Error getting user profile:', err)
+      setLoading(false)
+    }
+  }, [router])
+
+  // Fetch user orders when userId is available
+  useEffect(() => {
+    if (!userId) {
+      console.log('Waiting for userId...')
+      return
+    }
+
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken')
+        if (!token) {
+          console.error('No token found')
+          setError('Không tìm thấy token xác thực')
+          setOrders([])
+          return
+        }
+
+        console.log('Fetching orders for userId:', userId)
+
+        // Fetch user's orders
+        const response = await fetch(`/api/orders/user?userId=${userId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        })
+
+        console.log('Orders response status:', response.status)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Orders fetched:', data)
+          const ordersList = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []
+          setOrders(ordersList)
+          console.log('Orders set:', ordersList.length, 'orders')
+        } else {
+          const errorText = await response.text()
+          console.error('Failed to fetch orders:', response.status, errorText)
+          setOrders([])
+          setError(`Không thể tải đơn đặt sân (${response.status})`)
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err)
+        setOrders([])
+        setError(`Lỗi khi tải đơn đặt sân: ${err}`)
       }
     }
 
-    fetchSports()
-  }, [])
+    fetchOrders()
+  }, [userId])
 
-  // Data được import từ mockData.ts để đồng bộ
-
-  const validateStep1 = () => {
-    return formData.title.trim() && formData.sport && formData.date && formData.time
-  }
-
-  const validateStep2 = () => {
-    // Step 2 is now optional - users can skip it
-    return true
-  }
-
-  const validateStep3 = () => {
-    // Step 3 is now optional - users can skip it
-    return true
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const addTag = (tag: string) => {
-    if (!formData.tags.includes(tag) && formData.tags.length < 5) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tag]
-      }))
-    }
-  }
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }))
-  }
-
-  const handleFileUpload = (files: FileList | null) => {
-    if (!files || files.length === 0) return
-
-    const newFiles = Array.from(files).slice(0, 5 - uploadedFiles.length)
-    setUploadedFiles(prev => [...prev, ...newFiles])
-
-    setIsUploading(true)
-    setUploadProgress(0)
-
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsUploading(false)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 200)
-  }
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    const files = e.dataTransfer.files
-    handleFileUpload(files)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
+  // Handle order selection to fetch matches
+  const handleSelectOrder = async (orderId: string) => {
+    setSelectedOrder(orderId)
+    setSelectedMatches([])
+    setLoadingMatches(true)
+    setError(null)
 
     try {
-      const newPost = {
-        title: formData.title,
-        content: formData.description,
-        author: {
-          id: "current-user-id", // This should come from auth context
-          name: "Current User",
-          avatar: "/placeholder-user.jpg"
+      // Log the selected order details
+      const selectedOrderData = orders.find(o => o._id === orderId)
+      console.log('Selected order:', selectedOrderData)
+      console.log('Order details:', selectedOrderData?.orderDetails)
+      console.log('Order details - detailed:', JSON.stringify(selectedOrderData?.orderDetails, null, 2))
+
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken')
+      console.log(`\n🔴 [CLIENT] Fetching matches for orderId: ${orderId}`)
+
+      const response = await fetch(`/api/matches/order/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
-        sport: formData.sport,
-        location: formData.location,
-        date: formData.date ? new Date(formData.date) : new Date(),
-        time: `${formData.time} - ${formData.endTime}`,
-        level: formData.level,
-        participants: 0,
-        maxParticipants: parseInt(formData.maxParticipants) || 20,
-        cost: formData.costType === 'free' ? 'Miễn phí' : `${formData.costAmount}k VND`,
-        likes: 0,
-        comments: 0,
-        tags: [...formData.tags, formData.sport, formData.level].filter(Boolean),
-        createdAt: new Date().toISOString()
-      }
+      })
 
-      const success = await createCommunityPost(newPost)
+      console.log(`🟠 [CLIENT] Response status: ${response.status}`)
 
-      if (success) {
-        // Redirect to community page or show success message
-        alert("Tạo hoạt động thành công!")
-        // You can add router.push("/community") here if using useRouter
+      if (response.ok) {
+        const data = await response.json()
+        console.log('🟡 [CLIENT] Data received:', data)
+        const matchesArray = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []
+        console.log(`🟢 [CLIENT] Extracted matches: ${matchesArray.length} items\n`)
+
+        setMatches(matchesArray)
+        setPageStep('select-matches')
       } else {
-        alert("Có lỗi xảy ra khi tạo hoạt động")
+        const errorData = await response.text()
+        setError('Không thể lấy danh sách trận đấu. Vui lòng thử lại.')
+        console.error('Failed to fetch matches:', response.status, errorData)
       }
-    } catch (error) {
-      console.error("Error creating post:", error)
-      alert("Có lỗi xảy ra khi tạo hoạt động")
+    } catch (err) {
+      setError('Lỗi khi lấy danh sách trận đấu')
+      console.error('Error fetching matches:', err)
+    } finally {
+      setLoadingMatches(false)
+    }
+  }
+
+  // Handle match selection
+  const toggleMatchSelection = (matchId: string) => {
+    setSelectedMatches(prev =>
+      prev.includes(matchId)
+        ? prev.filter(id => id !== matchId)
+        : [...prev, matchId]
+    )
+  }
+
+  // Handle form input change
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear form errors when user starts typing
+    setFormErrors([])
+  }
+
+  // Handle post creation
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!userId) {
+      setError('Bạn cần đăng nhập để tạo bài viết')
+      return
+    }
+
+    // Validate form data
+    const postData = {
+      matchIds: selectedMatches,
+      title: formData.title,
+      description: formData.description,
+      requiredNumber: formData.requiredNumber,
+      currentNumber: formData.currentNumber,
+      userId: userId,
+    }
+
+    console.log('📝 Post data being sent:', postData)
+
+    const validation = validatePostData(postData)
+    if (!validation.isValid) {
+      setFormErrors(validation.errors)
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      console.log('🚀 Sending POST request to create post...')
+      const result = await createPost(postData)
+      console.log('✅ Post created successfully:', result)
+      console.log('📌 Post ID:', result?.id)
+      alert('Tạo bài viết thành công!')
+      router.push('/community')
+    } catch (err: any) {
+      const errorMessage = err.message || 'Có lỗi xảy ra khi tạo bài viết'
+      setError(errorMessage)
+      console.error('Error creating post:', err)
     } finally {
       setSubmitting(false)
     }
   }
 
-  const nextStep = () => {
-    if (step < 3) setStep(step + 1)
+  // Render step 1: Select order
+  const renderSelectOrder = () => {
+    const unpaidOrders = orders.filter(order => {
+      // Filter for orders that are paid but game date hasn't occurred yet
+      const orderDate = order.orderDetails?.[0]?.startTime
+      if (!orderDate) return false
+      return new Date(orderDate) > new Date()
+    })
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Chọn đơn đặt sân</h2>
+          <p className="text-gray-600">Chọn một đơn đặt sân để tuyển người chơi thay thế</p>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {unpaidOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <Home className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có đơn đặt sân phù hợp</h3>
+            <p className="text-gray-600 mb-6">Bạn cần có đơn đặt sân đã thanh toán nhưng ngày chơi chưa đến để tuyển người.</p>
+            <Link href="/booking-history">
+              <Button className="bg-green-600 hover:bg-green-700">
+                Xem lịch sử đặt sân
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {unpaidOrders.map((order) => {
+              const firstDetail = order.orderDetails?.[0]
+              const orderDate = new Date(firstDetail?.startTime)
+              const orderTime = new Date(firstDetail?.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+
+              return (
+                <button
+                  key={order._id}
+                  onClick={() => handleSelectOrder(order._id)}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{firstDetail?.fieldId || 'Sân thể thao'}</h3>
+                      <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {orderDate.toLocaleDateString('vi-VN')} - {orderTime}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">Mã đơn: {order._id?.slice(0, 8)}</p>
+                    </div>
+                    <Badge className="bg-blue-100 text-blue-700">{order.statusPayment}</Badge>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
   }
 
-  const prevStep = () => {
-    if (step > 1) setStep(step - 1)
+  // Render step 2: Select matches from order
+  const renderSelectMatches = () => {
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Chọn trận đấu</h2>
+          <p className="text-gray-600">Chọn một hoặc nhiều trận đấu để tuyển người chơi</p>
+        </div>
+
+        {loadingMatches ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          </div>
+        ) : matches.length === 0 ? (
+          <div className="text-center py-12">
+            <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Không có trận đấu nào</h3>
+            <p className="text-gray-600">Đơn đặt sân này không có trận đấu phù hợp để tuyển người.</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {matches.map((match) => (
+                <label
+                  key={match.id}
+                  className="flex items-start p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedMatches.includes(match.id)}
+                    onChange={() => toggleMatchSelection(match.id)}
+                    className="w-5 h-5 text-green-600 rounded mt-1 cursor-pointer"
+                  />
+                  <div className="ml-4 flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">{match.sport?.name}</h3>
+                      <span className="text-lg font-bold text-green-600">{formatPrice(match.price)}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      <Calendar className="w-4 h-4 inline mr-1" />
+                      {formatMatchDate(match.date)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      <Clock className="w-4 h-4 inline mr-1" />
+                      {formatMatchTime(match.startTime, match.endTime)} ({getMatchDuration(match.startTime, match.endTime)} phút)
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Sân {match.field?.id}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setPageStep('select-order')}
+                className="flex-1"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Quay lại
+              </Button>
+              <Button
+                onClick={() => setPageStep('create-post')}
+                disabled={selectedMatches.length === 0}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                Tiếp theo
+                <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Render step 3: Create post
+  const renderCreatePost = () => {
+    const selectedMatchList = matches.filter(m => selectedMatches.includes(m.id))
+    const totalPrice = selectedMatchList.reduce((sum, m) => sum + m.price, 0)
+    const pricePerPerson = formData.requiredNumber > 0 ? Math.round(totalPrice / formData.requiredNumber) : 0
+    const playersNeeded = Math.max(0, formData.requiredNumber - formData.currentNumber)
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Tạo bài tuyển người</h2>
+          <p className="text-gray-600">Điền thông tin chi tiết để hoàn thành</p>
+        </div>
+
+        {formErrors.length > 0 && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-2">
+            {formErrors.map((err, idx) => (
+              <div key={idx} className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-red-700 text-sm">{err}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Summary of selected matches */}
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              Trận đấu đã chọn ({selectedMatchList.length})
+            </h3>
+            {selectedMatchList.map((match) => (
+              <div key={match.id} className="text-sm text-gray-700 flex justify-between">
+                <span>
+                  {formatMatchDate(match.date)} - {formatMatchTime(match.startTime, match.endTime)}
+                </span>
+                <span className="font-medium">{formatPrice(match.price)}</span>
+              </div>
+            ))}
+            <div className="pt-3 border-t border-green-200 flex justify-between font-semibold">
+              <span>Tổng tiền:</span>
+              <span className="text-green-600">{formatPrice(totalPrice)}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Form fields */}
+        <div>
+          <Label htmlFor="title" className="text-base font-medium flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-500" />
+            Tiêu đề <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            id="title"
+            placeholder="VD: Tìm 3 người chơi bóng đá vào chiều nay"
+            value={formData.title}
+            onChange={(e) => handleInputChange('title', e.target.value)}
+            className="mt-2 h-12 text-base"
+            maxLength={100}
+          />
+          <div className="text-right text-sm text-gray-500 mt-1">
+            {formData.title.length}/100
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="description" className="text-base font-medium">
+            Mô tả / Trình độ yêu cầu <span className="text-red-500">*</span>
+          </Label>
+          <Textarea
+            id="description"
+            placeholder="VD: Trình độ trung bình, chơi vui vẻ. Vui lòng liên hệ trước 2 tiếng."
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            className="mt-2 min-h-[100px] resize-none"
+            maxLength={500}
+          />
+          <div className="text-right text-sm text-gray-500 mt-1">
+            {formData.description.length}/500
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="requiredNumber" className="text-base font-medium flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              Tổng người cần <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="requiredNumber"
+              type="number"
+              min="1"
+              max="50"
+              value={formData.requiredNumber}
+              onChange={(e) => handleInputChange('requiredNumber', parseInt(e.target.value) || 1)}
+              className="mt-2 h-12"
+            />
+          </div>
+          <div>
+            <Label htmlFor="currentNumber" className="text-base font-medium flex items-center gap-2">
+              <Users className="w-4 h-4 text-green-500" />
+              Người hiện có <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="currentNumber"
+              type="number"
+              min="1"
+              max={formData.requiredNumber}
+              value={formData.currentNumber}
+              onChange={(e) => handleInputChange('currentNumber', parseInt(e.target.value) || 1)}
+              className="mt-2 h-12"
+            />
+          </div>
+        </div>
+
+        {/* Info box */}
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-700">
+                <p className="font-medium mb-2">Chi tiết tuyển người:</p>
+                <ul className="space-y-1">
+                  <li>• Cần tuyển: <strong>{playersNeeded} người</strong></li>
+                  <li>• Giá mỗi người: <strong>{formatPrice(pricePerPerson)}</strong></li>
+                  <li>• Tổng tiền: <strong>{formatPrice(totalPrice)}</strong></li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setPageStep('select-matches')}
+            className="flex-1 h-12"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Quay lại
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting || !formData.title.trim() || !formData.description.trim()}
+            className="flex-1 bg-green-600 hover:bg-green-700 h-12"
+          >
+            {submitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Đang tạo...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Tạo bài viết
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const renderStepContent = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Thông tin cơ bản</h3>
-              <p className="text-gray-600">Hãy bắt đầu với những thông tin quan trọng nhất</p>
-            </div>
-
-            <div>
-              <Label htmlFor="title" className="text-base font-medium flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                Tiêu đề hoạt động <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="title"
-                placeholder="VD: Tìm 2 người chơi tennis đôi chiều nay"
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                className="mt-2 h-12 text-base"
-                maxLength={100}
-                required
-              />
-              <div className="text-right text-sm text-gray-500 mt-1">
-                {formData.title.length}/100
-                {formData.title.length < 15 && (
-                  <span className="text-amber-600 ml-2">
-                    <AlertCircle className="w-3 h-3 inline mr-1" />
-                    Tiêu đề nên dài hơn để thu hút người tham gia
-                  </span>
-                )}
-                {formData.title.length >= 15 && formData.title.length < 80 && (
-                  <span className="text-green-600 ml-2">
-                    <CheckCircle className="w-3 h-3 inline mr-1" />
-                    Tiêu đề tốt
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="sport" className="text-base font-medium flex items-center gap-2">
-                <Star className="w-4 h-4 text-green-500" />
-                Môn thể thao <span className="text-red-500">*</span>
-              </Label>
-              <select
-                id="sport"
-                value={formData.sport}
-                onChange={(e) => handleInputChange("sport", e.target.value)}
-                className="w-full mt-2 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-              >
-                <option value="">Chọn môn thể thao</option>
-                {loading ? (
-                  <option disabled>Đang tải...</option>
-                ) : sports.length > 0 ? (
-                  sports.map((sport) => (
-                    <option key={sport.id} value={sport.name}>
-                      {sport.name}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="Tennis">Tennis</option>
-                    <option value="Cầu lông">Cầu lông</option>
-                    <option value="Bóng đá">Bóng đá</option>
-                    <option value="Bóng rổ">Bóng rổ</option>
-                    <option value="Bơi lội">Bơi lội</option>
-                    <option value="Chạy bộ">Chạy bộ</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="date" className="text-base font-medium flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-500" />
-                  Ngày <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => handleInputChange("date", e.target.value)}
-                  className="mt-2 h-12"
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="time" className="text-base font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-purple-500" />
-                  Giờ bắt đầu <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => handleInputChange("time", e.target.value)}
-                  className="mt-2 h-12"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="endTime" className="text-base font-medium">
-                  Giờ kết thúc
-                </Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  className="mt-2 h-12"
-                />
-              </div>
-            </div>
-
-            {/* Preview card - matches the design in image */}
-            {formData.title && formData.sport && (
-              <Card className="border border-green-200 bg-white shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      N
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900">Nguyễn Văn An</span>
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded">Hot</Badge>
-                      </div>
-                      <p className="text-sm text-gray-500">2 ngày trước</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {/* <Badge className="bg-orange-100 text-orange-700 text-xs px-2 py-1">Gấp</Badge> */}
-                      <Badge className="bg-blue-100 text-blue-700 text-xs px-2 py-1">{formData.sport || 'Tennis'}</Badge>
-                    </div>
-                  </div>
-
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    {formData.title}
-                  </h2>
-
-                  <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4 text-blue-500" />
-                      {formData.date ? new Date(formData.date).toLocaleDateString('vi-VN') : 'Hôm nay'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4 text-purple-500" />
-                      {formData.time ? `${formData.time} - ${formData.endTime || '21:00'}` : '19:00 - 21:00'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-red-500" />
-                      {formData.location || 'Hà Nội'}
-                    </div>
-                  </div>
-
-                  {(formData.description || formData.level || formData.maxParticipants) && (
-                    <p className="text-gray-700 mb-4 text-sm leading-relaxed">
-                      {formData.description || 'Mình và bạn cần tìm thêm 2 người chơi tennis đôi lúc 18h tại sân Lotte Mart Quận 7. Level trung bình, chơi vui vẻ. Chi phí 80k/người bao gồm sân và nước.'}
-                    </p>
-                  )}
-
-                  {/* Info grid matching the design */}
-                  <div className="grid grid-cols-4 gap-4 py-4 mb-4 bg-gray-50 rounded-lg px-4">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-1">Trình độ</p>
-                      <p className="font-medium text-gray-900">{formData.level || 'Trung bình'}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-1">Chi phí</p>
-                      <p className="font-medium text-green-600">
-                        {formData.costType === 'free' ? 'Miễn phí' :
-                          formData.costType === 'split' && formData.costAmount ? `${formData.costAmount}k` :
-                            formData.costType === 'total' && formData.costAmount ? `${formData.costAmount}k VND` : '50k'}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-1">Tham gia</p>
-                      <p className="font-medium text-blue-600">{`9/${formData.maxParticipants || '8'}`}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-500 mb-1">Thời hạn</p>
-                      <p className="font-medium text-orange-600">{formData.date ? '2 ngày' : '2 ngày'}</p>
-                    </div>
-                  </div>
-
-                  {/* Action bar */}
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-6 text-gray-500">
-                      <button className="flex items-center gap-2 hover:text-red-500 transition-colors">
-                        <span>❤️</span>
-                        <span className="text-sm">13</span>
-                      </button>
-                      <button className="flex items-center gap-2 hover:text-blue-500 transition-colors">
-                        <span>💬</span>
-                        <span className="text-sm">5</span>
-                      </button>
-                      <button className="flex items-center gap-2 hover:text-green-500 transition-colors">
-                        <Users className="w-4 h-4" />
-                        <span className="text-sm">9 tham gia</span>
-                      </button>
-                    </div>
-                    <Button className="bg-green-600 hover:bg-green-700 text-white px-6">
-                      Liên hệ với chủ sân
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Địa điểm & Yêu cầu</h3>
-              <p className="text-gray-600">Thông tin về nơi diễn ra và ai có thể tham gia</p>
-            </div>
-
-            <div>
-              <Label htmlFor="location" className="text-base font-medium flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-red-500" />
-                Địa điểm <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative mt-2">
-                <Input
-                  id="location"
-                  placeholder="VD: Sân tennis Lotte Mart, Quận 7 hoặc địa chỉ cụ thể"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
-                  className="h-12 text-base"
-                  required
-                />
-                {formData.location.length > 0 && formData.location.length < 10 && (
-                  <p className="text-sm text-amber-600 mt-1">
-                    <AlertCircle className="w-3 h-3 inline mr-1" />
-                    Nên ghi rõ tên sân và quận/huyện để dễ tìm
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-3">
-                <Label className="text-sm text-gray-600">Hoặc chọn từ lịch sử:</Label>
-                <div className="grid grid-cols-1 gap-2 mt-2">
-                  {bookingHistoryLocations.map((location, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleInputChange("location", location)}
-                      className="text-left p-2 text-sm text-blue-600 hover:bg-blue-50 rounded border border-blue-200 hover:border-blue-300 transition-colors"
-                    >
-                      {location}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="level" className="text-base font-medium flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-yellow-500" />
-                  Trình độ yêu cầu <span className="text-red-500">*</span>
-                </Label>
-                <select
-                  id="level"
-                  value={formData.level}
-                  onChange={(e) => handleInputChange("level", e.target.value)}
-                  className="w-full mt-2 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  required
-                >
-                  <option value="">Chọn trình độ</option>
-                  {skillLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label htmlFor="maxParticipants" className="text-base font-medium flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-500" />
-                  Số người tối đa <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="maxParticipants"
-                  type="number"
-                  min="2"
-                  max="50"
-                  placeholder="VD: 4"
-                  value={formData.maxParticipants}
-                  onChange={(e) => handleInputChange("maxParticipants", e.target.value)}
-                  className="mt-2 h-12"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-base font-medium flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                Chi phí
-              </Label>
-              <div className="mt-3 space-y-3">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="free"
-                    name="costType"
-                    value="free"
-                    checked={formData.costType === "free"}
-                    onChange={(e) => handleInputChange("costType", e.target.value)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="free" className="cursor-pointer">💚 Miễn phí</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="split"
-                    name="costType"
-                    value="split"
-                    checked={formData.costType === "split"}
-                    onChange={(e) => handleInputChange("costType", e.target.value)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="split" className="cursor-pointer">💰 Chia đều chi phí</Label>
-                  {formData.costType === "split" && (
-                    <div className="flex items-center gap-2 ml-4">
-                      <Input
-                        placeholder="50"
-                        value={formData.costAmount}
-                        onChange={(e) => handleInputChange("costAmount", e.target.value)}
-                        className="w-20 h-8"
-                      />
-                      <span className="text-sm text-gray-600">k VNĐ/người</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    id="total"
-                    name="costType"
-                    value="total"
-                    checked={formData.costType === "total"}
-                    onChange={(e) => handleInputChange("costType", e.target.value)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="total" className="cursor-pointer">💳 Tổng chi phí cố định</Label>
-                  {formData.costType === "total" && (
-                    <div className="flex items-center gap-2 ml-4">
-                      <Input
-                        placeholder="200"
-                        value={formData.costAmount}
-                        onChange={(e) => handleInputChange("costAmount", e.target.value)}
-                        className="w-20 h-8"
-                      />
-                      <span className="text-sm text-gray-600">k VNĐ</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Mô tả & Hoàn thiện</h3>
-              <p className="text-gray-600">Cuối cùng, hãy chia sẻ thêm thông tin chi tiết</p>
-            </div>
-
-            <div>
-              <Label htmlFor="description" className="text-base font-medium">
-                Mô tả hoạt động <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="VD: Mình và bạn cần tìm thêm 2 người chơi tennis đôi lúc 18h tại sân Lotte Mart Quận 7. Level trung bình, chơi vui vẻ. Chi phí 80k/người bao gồm sân và nước. Liên hệ Zalo: 0xxx-xxx-xxx"
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                className="mt-2 min-h-[140px] resize-none text-base leading-relaxed"
-                maxLength={600}
-              />
-              <div className="flex justify-between items-center text-sm mt-1">
-                <span className={`${formData.description.length < 30 ? 'text-amber-600' : 'text-green-600'}`}>
-                  {formData.description.length < 30 && (
-                    <>
-                      <AlertCircle className="w-3 h-3 inline mr-1" />
-                      Mô tả chi tiết hơn để thu hút người tham gia
-                    </>
-                  )}
-                  {formData.description.length >= 30 && formData.description.length < 500 && (
-                    <>
-                      <CheckCircle className="w-3 h-3 inline mr-1" />
-                      Mô tả rất tốt!
-                    </>
-                  )}
-                  {formData.description.length >= 500 && (
-                    <>
-                      <Info className="w-3 h-3 inline mr-1" />
-                      Mô tả đầy đủ
-                    </>
-                  )}
-                </span>
-                <span className="text-gray-500">{formData.description.length}/600</span>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-base font-medium">Tags (Tối đa 5)</Label>
-              <div className="mt-2 mb-3">
-                <div className="flex flex-wrap gap-2">
-                  {popularTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => addTag(tag)}
-                      disabled={formData.tags.includes(tag) || formData.tags.length >= 5}
-                      className={`px-3 py-1 text-sm rounded-full border transition-colors ${formData.tags.includes(tag)
-                        ? "bg-green-100 text-green-700 border-green-300 cursor-not-allowed"
-                        : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                        }`}
-                    >
-                      {formData.tags.includes(tag) ? "✓ " : "+ "}{tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <span className="text-sm font-medium text-gray-700">Tags đã chọn:</span>
-                  {formData.tags.map((tag) => (
-                    <Badge key={tag} className="bg-green-100 text-green-800 border-green-300">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 hover:text-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label className="text-base font-medium flex items-center gap-2">
-                <ImagePlus className="w-4 h-4 text-blue-500" />
-                Hình ảnh/Video
-              </Label>
-              <div
-                className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">
-                  <span className="font-medium">Kéo thả file hoặc </span>
-                  <span className="text-blue-600 underline">chọn file</span>
-                </p>
-                <p className="text-sm text-gray-500">JPG, PNG, MP4 • Tối đa 50MB/file • Tối đa 5 file</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={(e) => handleFileUpload(e.target.files)}
-                  className="hidden"
-                />
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="relative">
-                      <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                        <span className="text-sm text-gray-600 text-center p-2">
-                          {file.name.length > 15 ? `${file.name.slice(0, 15)}...` : file.name}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isUploading && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Đang tải lên...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="contactInfo" className="text-base font-medium flex items-center gap-2">
-                <span>📱</span>
-                Thông tin liên hệ (khuyến khích)
-              </Label>
-              <Input
-                id="contactInfo"
-                placeholder="VD: Zalo: 0xxx-xxx-xxx hoặc Facebook: fb.com/username"
-                value={formData.contactInfo}
-                onChange={(e) => handleInputChange("contactInfo", e.target.value)}
-                className="mt-2 h-12 text-base"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                <Info className="w-3 h-3 inline mr-1" />
-                Sẽ hiển thị sau khi người khác tham gia để họ liên hệ trực tiếp với bạn
-              </p>
-            </div>
-          </div>
-        )
-
+    switch (pageStep) {
+      case 'select-order':
+        return renderSelectOrder()
+      case 'select-matches':
+        return renderSelectMatches()
+      case 'create-post':
+        return renderCreatePost()
       default:
         return null
     }
+  }
+
+  // Show loading state while getting user info
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải thông tin...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if not logged in
+  if (error && !userId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4">
+            <Link href="/community" className="flex items-center gap-3 text-gray-600 hover:text-gray-800">
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Cộng đồng</span>
+            </Link>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-16 max-w-2xl">
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-red-900 mb-2">Yêu cầu đăng nhập</h2>
+              <p className="text-red-700 mb-6">{error}</p>
+              <Link href="/login">
+                <Button className="bg-red-600 hover:bg-red-700">Đăng nhập ngay</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  const stepLabels = {
+    'select-order': 'Bước 1/3: Chọn đơn đặt sân',
+    'select-matches': 'Bước 2/3: Chọn trận đấu',
+    'create-post': 'Bước 3/3: Tạo bài viết'
   }
 
   return (
@@ -772,27 +646,24 @@ export default function CreatePostPage() {
 
             {/* Progress indicator */}
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map((stepNumber) => (
+              {(['select-order', 'select-matches', 'create-post'] as const).map((step, idx) => (
                 <div
-                  key={stepNumber}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step === stepNumber
+                  key={step}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${pageStep === step
                     ? "bg-green-600 text-white"
-                    : step > stepNumber
+                    : ['select-order', 'select-matches', 'create-post'].indexOf(pageStep) > idx
                       ? "bg-green-100 text-green-600"
                       : "bg-gray-200 text-gray-500"
                     }`}
                 >
-                  {step > stepNumber ? <CheckCircle className="w-4 h-4" /> : stepNumber}
+                  {['select-order', 'select-matches', 'create-post'].indexOf(pageStep) > idx ? <CheckCircle className="w-4 h-4" /> : idx + 1}
                 </div>
               ))}
             </div>
 
-            <button
-              onClick={() => setPreviewMode(!previewMode)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              {previewMode ? "Chỉnh sửa" : "Xem trước"}
-            </button>
+            <span className="text-sm text-gray-600 font-medium">
+              {stepLabels[pageStep]}
+            </span>
           </div>
         </div>
       </div>
@@ -801,79 +672,15 @@ export default function CreatePostPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-              Tạo hoạt động thể thao
+              Tạo bài tuyển người
             </CardTitle>
             <p className="text-gray-600 mt-2">
-              {step === 1 && "Bước 1/3: Thông tin cơ bản"}
-              {step === 2 && "Bước 2/3: Địa điểm & Yêu cầu"}
-              {step === 3 && "Bước 3/3: Mô tả & Hoàn thiện"}
+              {stepLabels[pageStep]}
             </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit}>
               {renderStepContent()}
-
-              {/* Navigation buttons */}
-              <div className="flex justify-between pt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={step === 1}
-                  className="px-6"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Quay lại
-                </Button>
-
-                <div className="flex gap-3">
-                  {step < 3 ? (
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      disabled={(step === 1 && !validateStep1())}
-                      className="bg-green-600 hover:bg-green-700 px-6"
-                    >
-                      Tiếp theo
-                      <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      disabled={submitting}
-                      className="bg-green-600 hover:bg-green-700 px-8 h-12"
-                    >
-                      {submitting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Đang tạo...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Tạo hoạt động
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Help text */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-blue-900 mb-1"> Mẹo để có hoạt động thu hút:</p>
-                    <ul className="text-blue-700 space-y-1">
-                      <li>• Tiêu đề rõ ràng, cụ thể về môn thể thao và thời gian</li>
-                      <li>• Mô tả chi tiết về địa điểm và yêu cầu kỹ năng</li>
-                      <li>• Thêm hình ảnh minh họa để thu hút hơn</li>
-                      <li>• Cập nhật thông tin liên hệ để dễ kết nối</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
             </form>
           </CardContent>
         </Card>

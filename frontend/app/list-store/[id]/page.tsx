@@ -274,6 +274,10 @@ export default function StoreDetailPage() {
 
       await createRating(request);
 
+      // Chờ 2 giây để backend kịp xử lý async media upload
+      // (vì backend dùng @Async cho RatingMediaService.createMultiple)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       toast({
         title: ' Cảm ơn bạn!',
         description: 'Đánh giá của bạn đã được gửi thành công',
@@ -440,7 +444,7 @@ export default function StoreDetailPage() {
                     <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     <div className="text-left">
                       <div className="text-sm text-gray-600">Đánh giá</div>
-                      <div className="text-2xl font-bold text-gray-900">0.0</div>
+
                     </div>
                   </div>
                   <ChevronDown
@@ -709,7 +713,9 @@ export default function StoreDetailPage() {
                     </span>
                     <button
                       onClick={() => {
-                        alert('Chức năng chat đang được phát triển');
+                        if (store.owner?.id && store.owner?.name) {
+                          router.push(`/chat?owner_id=${store.owner.id}&owner_name=${encodeURIComponent(store.owner.name)}`);
+                        }
                       }}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Chat với chủ sân"

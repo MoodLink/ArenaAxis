@@ -636,11 +636,71 @@ export async function searchStores(
   }
 }
 
+// Admin search stores với thêm filter approvable
+// Backend: POST /stores/admin-search với filters: name, wardId, provinceId, sportId, approvable
+export async function adminSearchStores(
+  searchRequest: {
+    name?: string;
+    wardId?: string;
+    provinceId?: string;
+    sportId?: string;
+    approvable?: boolean;
+  },
+  page: number = 0,
+  perPage: number = 12
+): Promise<StoreSearchItemResponse[]> {
+  try {
+    const token = getToken();
+    if (!token) {
+      console.error('No auth token for admin search');
+      return [];
+    }
+
+    // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
+    const backendPage = page + 1;
+    const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    const response = await fetch(
+      `/api/store/admin-search?page=${backendPage}&perPage=${perPage}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': bearerToken,
+        },
+        body: JSON.stringify(searchRequest),
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      console.warn('Backend not available, returning empty array');
+      return [];
+    }
+
+    const stores: StoreSearchItemResponse[] = await response.json();
+    console.log(`Admin Search: Found ${stores.length} stores from API (page ${backendPage})`);
+
+    return stores;
+
+  } catch (error) {
+    console.error('Error searching stores (admin):', error);
+    console.warn('Backend not available, returning empty array');
+    return [];
+  }
+}
+
 export async function getStoreById(id: string): Promise<StoreClientDetailResponse | null> {
   try {
+    const token = getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
+
+    // Thêm Authorization header nếu có token
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(
       `/api/store/${id}`,
@@ -2055,7 +2115,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 // =================
 
 /**
- * Lấy danh sách tất cả Trung tâm thể thao yêu thích của người dùng (có caching)
+ * Lấy danh sách tất cả Trung tâm thể thao yêu thích của người dùng
  * GET /api/favourites (proxy route - bypass CORS)
  */
 export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
@@ -2063,13 +2123,6 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
   if (!token) {
     console.warn('Không có token, không thể lấy danh sách yêu thích');
     return [];
-  }
-
-  // Check cache
-  const now = Date.now();
-  if (favouritesCache && (now - favouritesCacheTime) < CACHE_DURATION) {
-    console.log('Sử dụng cache yêu thích');
-    return favouritesCache;
   }
 
   try {
@@ -2093,10 +2146,6 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
     const data = await response.json();
     console.log('Danh sách yêu thích đã được tải:', Array.isArray(data) ? data.length : 'N/A');
-
-    // Update cache
-    favouritesCache = data;
-    favouritesCacheTime = now;
 
     return data;
   } catch (error: any) {
@@ -2155,9 +2204,6 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
     const data = await response.json();
     console.log('Đã thêm vào yêu thích:', storeId);
 
-    // Invalidate cache
-    favouritesCache = null;
-
     return data;
   } catch (error: any) {
     console.error('Lỗi khi thêm yêu thích:', error.message);
@@ -2191,7 +2237,6 @@ export async function removeFavourite(storeId: string): Promise<void> {
     // Thành công: 204 No Content hoặc 200 OK
     if (response.ok || response.status === 204) {
       console.log('Đã xóa khỏi yêu thích:', storeId);
-      favouritesCache = null;
       return;
     }
 
@@ -2221,11 +2266,6 @@ export async function removeFavourite(storeId: string): Promise<void> {
   }
 }
 
-// Cache for favourites list
-let favouritesCache: StoreSearchItemResponse[] | null = null;
-let favouritesCacheTime = 0;
-const CACHE_DURATION = 5000; // 5 seconds
-
 /**
  * Toggle favourite - Thêm hoặc xóa
  * Xóa sử dụng workaround: DELETE /all + re-add những cái còn lại
@@ -2237,12 +2277,10 @@ export async function toggleFavourite(storeId: string): Promise<boolean> {
   if (!isFav) {
     // Chưa favourite -> ADD
     await addFavourite(storeId);
-    favouritesCache = null;
     return true;
   } else {
     // Đã favourite -> DELETE
     await removeFavourite(storeId);
-    favouritesCache = null;
     return false;
   }
 }
@@ -2272,21 +2310,32 @@ export async function createRating(request: {
     // Create FormData for multipart upload
     const formData = new FormData();
 
-    // Append rating request fields individually (not as JSON string)
-    // Backend expects individual form fields, not a JSON object
-    formData.append('ratingRequest', new Blob([JSON.stringify({
+    // Append rating request as JSON blob (backend expects @RequestPart("ratingRequest"))
+    const ratingRequestBlob = new Blob([JSON.stringify({
       storeId: request.storeId,
       sportId: request.sportId,
       star: request.star,
       comment: request.comment
-    })], { type: 'application/json' }));
+    })], { type: 'application/json' });
+
+    formData.append('ratingRequest', ratingRequestBlob, 'ratingRequest.json');
 
     // Append media files if any
     if (request.mediaFiles && request.mediaFiles.length > 0) {
-      request.mediaFiles.forEach((file) => {
+      console.log(`Uploading ${request.mediaFiles.length} media files for rating`);
+      request.mediaFiles.forEach((file, index) => {
+        console.log(`Adding file ${index}: ${file.name} (${file.size} bytes)`);
         formData.append('medias', file);
       });
     }
+
+    console.log('Creating rating with:', {
+      storeId: request.storeId,
+      sportId: request.sportId,
+      star: request.star,
+      comment: request.comment,
+      mediaCount: request.mediaFiles?.length || 0
+    });
 
     const response = await fetch(`/api/ratings`, {
       method: 'POST',
@@ -2297,20 +2346,25 @@ export async function createRating(request: {
       body: formData
     });
 
+    console.log('Rating API response status:', response.status);
+
     if (!response.ok) {
       let errorMsg = 'Không thể gửi đánh giá';
       try {
         const errorData = await response.json();
         errorMsg = errorData.message || errorMsg;
+        console.error('Backend error response:', errorData);
       } catch (e) {
         const text = await response.text();
-        console.error('Backend error:', text);
+        console.error('Backend error text:', text);
         errorMsg = text || errorMsg;
       }
       throw new Error(errorMsg);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Rating created successfully:', result);
+    return result;
   } catch (error: any) {
     console.error('Error creating rating:', error);
     throw error;
@@ -2413,7 +2467,6 @@ export async function getStoreRatings(
   perPage: number = 20
 ): Promise<any[]> {
   try {
-    //  FIX: Pass Authorization token if available
     const token = getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -2432,7 +2485,18 @@ export async function getStoreRatings(
       }
     );
 
+    if (!response.ok) {
+      console.warn(`Failed to fetch store ratings: ${response.status}`);
+      return [];
+    }
+
     const data = await response.json();
+
+    // Handle empty array response (endpoint not implemented)
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.log(`No ratings found for store ${storeId}`);
+      return [];
+    }
 
     if (data.success === false || data.error) {
       console.warn('Cannot fetch store ratings');
@@ -2443,6 +2507,50 @@ export async function getStoreRatings(
   } catch (error: any) {
     console.error('Error fetching store ratings:', error);
     return [];
+  }
+}
+
+// ============= STORE APPROVAL =============
+
+/**
+ * Phê duyệt store (Admin only)
+ * @param storeId - ID của store cần phê duyệt
+ */
+export async function approveStore(storeId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('Vui lòng đăng nhập để phê duyệt Trung tâm thể thao');
+    }
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const response = await fetch('/api/store/approve', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ storeId })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Lỗi không xác định' }));
+      const errorMessage = error?.message || error?.error || `Lỗi ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      message: result?.message || 'Phê duyệt Trung tâm thể thao thành công'
+    };
+  } catch (error: any) {
+    console.error('Error approving store:', error);
+    return {
+      success: false,
+      message: error?.message || 'Có lỗi xảy ra khi phê duyệt Trung tâm thể thao'
+    };
   }
 }
 

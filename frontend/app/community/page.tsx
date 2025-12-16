@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, TrendingUp, Star, Flame } from "lucide-react"
-import { getCommunityPosts, getFeaturedCommunities, getTrendingTopics } from "@/services/api"
-import { CommunityPost } from "@/types"
+import { getCommunityPosts, CommunityPost } from "@/services/posts.service"
 import { useCommunitySearchAndFilter } from "@/hooks/use-community-search-filter"
 import CommunitySearchBar from "@/components/community/CommunitySearchBar"
 import CommunityStats from "@/components/community/CommunityStats"
@@ -42,22 +41,20 @@ export default function CommunityPage() {
     itemsPerPage
   } = useCommunitySearchAndFilter(posts, 8)
 
-  // useEffect để fetch tất cả dữ liệu khi component mount
+  // useEffect để fetch dữ liệu bài viết từ API khi component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const [postsData, featuredData, trendingData] = await Promise.all([
-          getCommunityPosts(),
-          getFeaturedCommunities(),
-          getTrendingTopics()
-        ])
+        const postsData = await getCommunityPosts()
 
-        setPosts(postsData)
-        setFeaturedCommunities(featuredData)
-        setTrendingTopics(trendingData)
+        setPosts(Array.isArray(postsData) ? postsData : [])
+        // Featured communities and trending topics are not used right now, 
+        // but we'll keep them as empty arrays for future use
+        setFeaturedCommunities([])
+        setTrendingTopics([])
       } catch (error) {
-        console.error('Error fetching community data:', error)
+        console.error('Error fetching community posts:', error)
         // Set empty arrays on error
         setPosts([])
         setFeaturedCommunities([])
@@ -75,7 +72,7 @@ export default function CommunityPage() {
     setPosts(currentPosts =>
       currentPosts.map(post =>
         post.id === postId
-          ? { ...post, likes: post.likes + 1 }
+          ? { ...post, likes: (post.likes || 0) + 1 }
           : post
       )
     )

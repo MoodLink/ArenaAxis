@@ -30,11 +30,11 @@ export function useFieldsQuery(params: FieldsQueryParams, options?: { enabled?: 
             const data = await response.json();
             return data.data || [];
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 30, // 30 minutes
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        refetchOnMount: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
         placeholderData: (previousData) => previousData,
         enabled: !!params.store_id && (options?.enabled !== false), // Only fetch when store_id exists
     });

@@ -619,6 +619,13 @@ export default function StoreBookingsContent() {
         return FieldPricingService.getSpecialPriceForSlot(fieldPricings, timeSlot, dayOfWeek) !== null;
     };
 
+    // Format date from YYYY-MM-DD to DD-MM-YYYY
+    const formatDateDisplay = (dateStr: string): string => {
+        if (!dateStr || !dateStr.includes('-')) return dateStr;
+        const [year, month, day] = dateStr.split('-');
+        return `${day}-${month}-${year}`;
+    };
+
     // Format day of week to Vietnamese full name
     const formatDayOfWeekVietnamese = (day: string): string => {
         const dayNames: { [key: string]: string } = {
@@ -1200,7 +1207,7 @@ export default function StoreBookingsContent() {
                             </Card>
 
                             {/* Store Details Card */}
-                            {fields.length > 0 && (
+                            {/* {fields.length > 0 && (
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Thông tin chi tiết</CardTitle>
@@ -1226,7 +1233,7 @@ export default function StoreBookingsContent() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            )}
+                            )} */}
                         </div>
 
                         {/* Right Sidebar - 25% */}
@@ -1299,6 +1306,7 @@ export default function StoreBookingsContent() {
                                                                 {specialDatePricings.map((pricing, idx) => {
                                                                     const startAtStr = typeof pricing.startAt === 'string' ? pricing.startAt : '';
                                                                     const dateStr = startAtStr.includes(' ') ? startAtStr.split(' ')[0] : 'N/A';
+                                                                    const formattedDate = formatDateDisplay(dateStr);
                                                                     return (
                                                                         <div
                                                                             key={`special-pricing-item-${pricing._id}-${idx}`}
@@ -1309,7 +1317,7 @@ export default function StoreBookingsContent() {
                                                                                     {FieldPricingService.formatTime(pricing.startAt)} - {FieldPricingService.formatTime(pricing.endAt)}
                                                                                 </div>
                                                                                 <div className="text-xs text-gray-600">
-                                                                                    {dateStr}
+                                                                                    {formattedDate}
                                                                                 </div>
                                                                             </div>
                                                                             <div className="text-right flex-shrink-0">

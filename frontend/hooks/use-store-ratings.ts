@@ -19,10 +19,11 @@ export function useStoreRatings(storeId: string, page: number = 0, perPage: numb
                 return [];
             }
         },
-        staleTime: 10 * 60 * 1000, // Cache 10 minutes
-        gcTime: 30 * 60 * 1000, // Keep in garbage collection for 30 minutes
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
         placeholderData: (previousData) => previousData,
     });
 }

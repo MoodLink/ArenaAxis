@@ -11,13 +11,10 @@ export async function GET(req: Request) {
     if (!res.ok) {
       throw new Error(`IP info service responded with status: ${res.status}`);
     }
-  
+
     const data = await res.json();
     return Response.json(data, {
       status: 200,
-      headers: {
-        'Cache-Control': 'public, s-maxage=600'
-      }
     })
   } catch (error) {
     console.error('Location API error:', error)

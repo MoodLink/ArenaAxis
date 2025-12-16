@@ -58,7 +58,7 @@ export async function getNearbyStores(
         const requestBody: any = {
             latitude: request.latitude,
             longitude: request.longitude,
-            distance: 999999, // Distance rất lớn để không bị giới hạn
+            distance: 10000, // Distance rất lớn để không bị giới hạn
         };
 
         // CHỈ gửi provinceName (nếu có)
@@ -214,7 +214,7 @@ export async function getNearbyStoresFromGeolocation(
                     const stores = await getNearbyStores({
                         latitude,
                         longitude,
-                        distance: 999999, // Distance rất lớn
+                        distance: 10000, // Distance rất lớn
                         // wardName: KHÔNG gửi
                         ...(provinceName && { provinceName }) // CHỈ gửi province
                     });

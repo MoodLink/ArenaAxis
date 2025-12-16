@@ -26,10 +26,11 @@ export function useStoreFields(storeId: string, dateTime?: string) {
             const data = await response.json();
             return data.data || [];
         },
-        staleTime: 3 * 60 * 1000, // 3 minutes - fields data can change
-        gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
         enabled: !!storeId, // Only fetch when storeId exists
     });
 }

@@ -13,10 +13,11 @@ export function useBookingFields(storeId: string, sportId: string, selectedDate:
         queryFn: async () => {
             return await FieldService.getFieldsWithAllData(storeId, sportId, selectedDate);
         },
-        staleTime: 2 * 60 * 1000, // Cache 2 minutes - booking data changes frequently
-        gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
-        refetchOnWindowFocus: false, // Don't refetch when user switches tabs
-        refetchOnReconnect: false, // Don't refetch on network reconnect
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect network
+        refetchInterval: 60 * 1000, // ✅ Polling: check 60 giây 1 lần
         placeholderData: (previousData) => previousData, // Show stale data while fetching
         enabled: !!storeId && !!sportId && !!selectedDate, // Only fetch when all params are present
     });

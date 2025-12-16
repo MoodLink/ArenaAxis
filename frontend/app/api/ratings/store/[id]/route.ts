@@ -2,7 +2,6 @@
 // Proxy API cho ratings của store
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -19,24 +18,36 @@ export async function GET(
             'Content-Type': 'application/json',
         };
 
-        // Store ratings là public endpoint, không cần auth
-        const url = `${API_BASE_URL}/ratings/store/${id}${queryString ? `?${queryString}` : ''}`;
+        // Lấy token từ cookies hoặc headers
+        const token = request.cookies.get('token')?.value || request.headers.get('authorization');
+        if (token) {
+            headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+            console.log(`[API Proxy] Sending token to backend`);
+        }
+
+        const url = `${API_BASE_URL}/ratings/stores/${id}${queryString ? `?${queryString}` : ''}`;
         console.log(`[API Proxy] GET ${url}`);
 
         const response = await fetch(url, {
             method: 'GET',
             headers,
-            // Next.js caching - cache ratings for 10 minutes
-            cache: 'force-cache',
-            next: {
-                revalidate: 600, // 10 minutes
-                tags: ['ratings', id],
-            } as any,
+            // No caching - rely on React Query
+            cache: 'no-cache',
         });
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`[API Proxy] Backend error (${response.status}):`, errorText);
+
+            // Nếu endpoint không implement hoặc không tồn tại, trả về empty array
+            if (response.status === 404 || response.status === 501) {
+                console.log('[API Proxy] Ratings endpoint not available, returning empty array');
+                return NextResponse.json([], {
+                    status: 200,
+                    headers: new Headers({ 'Cache-Control': 'no-cache' }),
+                });
+            }
+
             return NextResponse.json(
                 { success: false, error: true, status: response.status, data: [] },
                 { status: 200 }
@@ -45,12 +56,8 @@ export async function GET(
 
         const data = await response.json();
 
-        const responseHeaders = new Headers();
-        responseHeaders.set('Cache-Control', `public, s-maxage=600, stale-while-revalidate=1200`);
-
         return NextResponse.json(data, {
             status: 200,
-            headers: responseHeaders,
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch store ratings';

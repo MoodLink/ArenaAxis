@@ -9,10 +9,11 @@ export function useNearbyStores(enabled: boolean = true) {
         queryKey: ['nearbyStores'],
         queryFn: () => getNearbyStoresFromGeolocation(10000),
         enabled,
-        staleTime: 30 * 60 * 1000, // 30 phút (avoid refetch on back navigation)
-        gcTime: 60 * 60 * 1000, // 60 phút (keep in cache for 1 hour)
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
     })
 }
 
@@ -23,7 +24,7 @@ export function useSports() {
         queryFn: getSports,
         staleTime: 24 * 60 * 60 * 1000, // 24 hours
         gcTime: 48 * 60 * 60 * 1000, // 48 hours
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: false, // Sports là static data, không cần refetch
     })
 }
 
@@ -32,9 +33,10 @@ export function useSportsNews(category: string = 'all', language: string = 'vi',
     return useQuery({
         queryKey: ['sportsNews', category, language, pageSize, page],
         queryFn: () => getSportsNews(category, language, pageSize, page),
-        staleTime: 30 * 60 * 1000, // 30 phút (avoid refetch on back navigation)
-        gcTime: 60 * 60 * 1000, // 60 phút (keep in cache for 1 hour)
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
     })
 }

@@ -8,6 +8,7 @@ import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
 import { AuthProvider } from "@/components/providers/AuthProvider"
 import { QueryProvider } from "@/providers/query-provider"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -33,6 +34,7 @@ export default function RootLayout({
             {!isAdminRoute && !isStoreRoute && !isAuthRoute && <Header />}
             <main>{children}</main>
             {!isAdminRoute && !isStoreRoute && !isAuthRoute && <Footer />}
+            <Toaster />
           </AuthProvider>
         </QueryProvider>
       </body>

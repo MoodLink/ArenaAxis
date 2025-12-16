@@ -18,12 +18,8 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'application/json',
       },
-      // Add Next.js caching with ISR
-      cache: 'force-cache',
-      next: {
-        revalidate: 180, // Revalidate every 3 minutes (180 seconds)
-        tags: ['fields', searchParams.get('store_id') || 'all'], // Tag for manual invalidation
-      } as any,
+      // No caching - rely on React Query
+      cache: 'no-cache',
     });
 
     if (!response.ok) {
@@ -39,8 +35,6 @@ export async function GET(request: Request) {
       status: response.status,
       headers: {
         'Content-Type': 'application/json',
-        // Browser cache + stale-while-revalidate
-        'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=360',
       },
     });
   } catch (error) {

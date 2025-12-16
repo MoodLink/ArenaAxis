@@ -81,33 +81,27 @@ export default function PaymentSuccessContent() {
                         // 🏐 Enrich order details with field names
                         if (order.orderDetails && order.orderDetails.length > 0) {
                             console.log('Enriching order details with field names...')
-                            const enrichedDetails: OrderDetailWithFieldName[] = []
 
-                            for (const detail of order.orderDetails) {
-                                try {
-                                    const fieldResponse = await FieldService.getFieldById(detail.fieldId)
-                                    const fieldName = fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`
-                                    console.log(`Field ${detail.fieldId}: ${fieldName}`)
-
-                                    enrichedDetails.push({
+                            // Fetch all fields in parallel instead of sequential
+                            const fieldPromises = order.orderDetails.map(detail =>
+                                FieldService.getFieldById(detail.fieldId)
+                                    .then(fieldResponse => ({
                                         fieldId: detail.fieldId,
-                                        fieldName: fieldName,
+                                        fieldName: fieldResponse.data?.name || `Sân ${detail.fieldId.slice(-4)}`,
                                         startTime: detail.startTime,
                                         endTime: detail.endTime,
                                         price: detail.price
-                                    })
-                                } catch (fieldErr: any) {
-                                    console.warn(`Could not fetch field ${detail.fieldId}:`, fieldErr.message)
-                                    enrichedDetails.push({
+                                    }))
+                                    .catch(() => ({
                                         fieldId: detail.fieldId,
                                         fieldName: `Sân ${detail.fieldId.slice(-4)}`,
                                         startTime: detail.startTime,
                                         endTime: detail.endTime,
                                         price: detail.price
-                                    })
-                                }
-                            }
+                                    }))
+                            )
 
+                            const enrichedDetails = await Promise.all(fieldPromises)
                             setEnrichedOrderDetails(enrichedDetails)
                             console.log('Enriched order details:', enrichedDetails)
 
