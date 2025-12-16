@@ -85,7 +85,7 @@ spring:
             - id: user-service
               uri: ${USER_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/favorites/**
+                - Path=/favourites/**
               filters:
                 - name: AuthenticationFilter
             - id: user-service
