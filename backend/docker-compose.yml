@@ -12,6 +12,7 @@ services:
       - USER_SERVICE_URL=http://user-service:8081
       - MESSAGE_SERVICE_URL=http://message-service:8082
       - ORDER_SERVICE_URL=http://order-service:3000
+      - MESSAGE_SERVICE_WS_URL=ws://message-service:8082
     depends_on:
       - user-service
       - order-service
@@ -31,24 +32,27 @@ services:
       - MYSQL_USERNAME=${MYSQL_USERNAME}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - ORDER_SERVICE_URL=http://order-service:3000
+      - SMTP_EMAIL=${SMTP_EMAIL}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
     networks:
       - arena-network
     restart: unless-stopped
 
   # Message Service (Spring Boot + WebSocket)
-  # message-service:
-  #   build:
-  #     context: ./message-service
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8082:8082"
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=docker
-  #     - MONGODB_URI=${MONGODB_URI}
-  #     - MONGODB_DATABASE=${MONGODB_DATABASE}
-  #   networks:
-  #     - arena-network
-  #   restart: unless-stopped
+  message-service:
+    build:
+      context: ./message-service
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - MESSAGE_MONGODB_URL=${MESSAGE_MONGODB_URL}
+      - MESSAGE_MONGODB_DATABASE=${MESSAGE_MONGODB_DATABASE}
+      - USER_SERVICE_URL=http://user-service:8081
+    networks:
+      - arena-network
+    restart: unless-stopped
 
   order-service:
     build:

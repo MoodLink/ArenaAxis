@@ -85,7 +85,7 @@ spring:
             - id: user-service
               uri: ${USER_SERVICE_URL:http://localhost:8081}
               predicates:
-                - Path=/favorites/**
+                - Path=/favourites/**
               filters:
                 - name: AuthenticationFilter
             - id: user-service
@@ -127,7 +127,49 @@ spring:
             - id: order-service
               uri: ${ORDER_SERVICE_URL:https://arena-axis.vercel.app/api/v1}
               predicates:
-                - Path=/api/v1/**
+                - Path=/api/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/messages/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/conversations/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/participants/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/posts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/apply-posts/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/matches/**
+              filters:
+                - name: AuthenticationFilter
+            - id: message-service
+              uri: ${MESSAGE_SERVICE_WS_URL:ws://localhost:8082}
+              predicates:
+                - Path=/ws/messages/**
               filters:
                 - name: AuthenticationFilter
           default-filters:
@@ -139,6 +181,12 @@ jwt:
 user-service:
   url: ${USER_SERVICE_URL:http://localhost:8081}
   introspect-endpoint: /auth/validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 logging:
   level:

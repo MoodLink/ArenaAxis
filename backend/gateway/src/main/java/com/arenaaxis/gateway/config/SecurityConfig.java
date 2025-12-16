@@ -40,6 +40,7 @@ public class SecurityConfig {
     "/users/**",
     "/favourites/**",
     "/revenues/**",
+    "/messages",
     "/api/v1/orders/*",
     "/api/v1/orders/store/*",
     "/api/v1/orders/user/*",
@@ -48,6 +49,7 @@ public class SecurityConfig {
     "/api/v1/fields/*",
     "/api/v1/field-pricings/*",
     "/api/v1/field-pricings/special/*",
+    "/api/updateOrderStatus"
   };
 
   static String[] PUBLIC_POST_ENDPOINTS = {
@@ -81,7 +83,7 @@ public class SecurityConfig {
         .pathMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
         .pathMatchers(HttpMethod.PATCH, PUBLIC_PATCH_ENDPOINTS).permitAll()
         .pathMatchers(HttpMethod.DELETE, PUBLIC_DELETE_ENDPOINTS).permitAll()
-        .pathMatchers("/ws/**").authenticated()
+        .pathMatchers("/ws/**").permitAll()
         .anyExchange().authenticated()
       )
       .oauth2ResourceServer(oauth2 -> oauth2
