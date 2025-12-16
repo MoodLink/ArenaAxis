@@ -24,6 +24,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -34,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -71,6 +73,7 @@ public class PostServiceImpl implements PostService {
       participantService.createFromUserId(request.getUserId()),
       postRepository.findById(request.getPostId())
     ).flatMap(tuple -> {
+      log.info("DEBUG: get participant");
       Participant applier = tuple.getT1();
       Post post = tuple.getT2();
 
@@ -94,7 +97,7 @@ public class PostServiceImpl implements PostService {
 
       return postRepository.save(post)
         .then(applyPostRepository.save(applyPost)
-          .flatMap(apply ->mapToApplyResponse(apply, applier, post)));
+          .flatMap(apply -> mapToApplyResponse(apply, applier, post)));
     });
   }
 
@@ -196,6 +199,7 @@ public class PostServiceImpl implements PostService {
         .store(storeMapper.toResponse(store))
         .build();
 
+      log.info("DEBUG: get apply response");
       return ApplyResponse.builder()
         .timestamp(applyPost.getAppliedAt())
         .post(postResponse)

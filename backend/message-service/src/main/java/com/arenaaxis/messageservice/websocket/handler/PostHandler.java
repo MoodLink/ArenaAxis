@@ -19,6 +19,7 @@ import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -69,7 +70,10 @@ public class PostHandler implements SocketHandler{
       .number(socketRequest.getNumber())
       .build();
     return postService.applyPost(request)
-      .flatMap(this::notifyPosterIfNeeded);
+      .flatMap(this::notifyPosterIfNeeded)
+      .then()
+      .doOnNext(applyResponse -> log.info("Response " + writeJson(applyResponse)))
+      .doOnError(ex -> log.error("Apply post error", ex));
   }
 
   private Mono<Void> notifyPosterIfNeeded(ApplyResponse applyResponse) {
@@ -78,19 +82,25 @@ public class PostHandler implements SocketHandler{
       .data(applyResponse)
       .build();
 
-    List<String> receiverIds = applyResponse.getPost().getParticipantIds();
+    List<String> receiverIds = new ArrayList<>(
+      applyResponse.getPost().getParticipantIds() == null
+        ? List.of()
+        : applyResponse.getPost().getParticipantIds()
+    );
+
     receiverIds.add(applyResponse.getPost().getPoster().getId());
 
     return Flux.fromIterable(receiverIds)
       .filter(id -> !id.equals(applyResponse.getApplier().getId()))
       .distinct()
-      .map(sessionRegistry::get)
+      .flatMap(id -> Mono.justOrEmpty(sessionRegistry.get(id)))
       .filter(this::isOnline)
       .flatMap(session ->
         session.send(
           Mono.just(session.textMessage(writeJson(response)))
         )
       )
+      .doOnError(ex -> log.error("Log receive apply event", ex.fillInStackTrace()))
       .then();
   }
 
