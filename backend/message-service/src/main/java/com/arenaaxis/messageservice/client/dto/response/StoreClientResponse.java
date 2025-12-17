@@ -12,4 +12,26 @@ public class StoreClientResponse {
   String id;
   String name;
   String address;
+  Ward ward;
+  Province province;
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class Ward {
+    String id;
+    String name;
+  }
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class Province {
+    String id;
+    String name;
+  }
 }

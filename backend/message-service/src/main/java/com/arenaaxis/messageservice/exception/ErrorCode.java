@@ -12,6 +12,7 @@ public enum ErrorCode {
   MATCH_NOT_FOUND(1004, "Match is not valid", HttpStatus.BAD_REQUEST),
   MESSAGE_NOT_FOUND(1005, "Message not found", HttpStatus.BAD_REQUEST),
   FORBIDDEN(1006, "Forbidden", HttpStatus.FORBIDDEN),
+  INVALID_APPLY_POST(1007, "Invalid apply post", HttpStatus.BAD_REQUEST),
   ;
 
   private final int code;
