@@ -17,4 +17,6 @@ public class Store {
   String id;
   String name;
   String address;
+  String wardId;
+  String provinceId;
 }

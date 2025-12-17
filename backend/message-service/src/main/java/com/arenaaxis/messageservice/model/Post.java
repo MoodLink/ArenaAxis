@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,8 +30,11 @@ public class Post {
   Integer requiredNumber;
   Integer currentNumber;
 
-  List<String> participantIds;
-  List<String> matchIds;
+  @Builder.Default
+  List<String> participantIds = new ArrayList<>();
+
+  @Builder.Default
+  List<String> matchIds = new ArrayList<>();
 
   String storeId;
 
@@ -40,8 +44,8 @@ public class Post {
   Long pricePerPerson;
   String sportId;
 
+  LocalDateTime matchDate;
+
   @Builder.Default
   LocalDateTime timestamp = LocalDateTime.now();
-
-  List<Comment> comments;
 }

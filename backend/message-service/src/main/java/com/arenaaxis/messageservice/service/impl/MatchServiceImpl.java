@@ -3,7 +3,6 @@ package com.arenaaxis.messageservice.service.impl;
 import com.arenaaxis.messageservice.client.dto.response.OrderClientResponse;
 import com.arenaaxis.messageservice.client.service.OrderClientService;
 import com.arenaaxis.messageservice.dto.response.MatchResponse;
-import com.arenaaxis.messageservice.dto.response.SportResponse;
 import com.arenaaxis.messageservice.exception.AppException;
 import com.arenaaxis.messageservice.exception.ErrorCode;
 import com.arenaaxis.messageservice.mapper.MatchMapper;
@@ -21,7 +20,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -78,7 +76,7 @@ public class MatchServiceImpl implements MatchService {
           .storeId(order.getStoreId())
           .orderId(order.get_id())
           .sportId(d.getSportId())
-          .fieldName(d.getFieldName())
+          .fieldName(d.getName())
           .build();
       })
       .toList();

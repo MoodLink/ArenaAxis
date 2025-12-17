@@ -2,6 +2,7 @@ package com.arenaaxis.messageservice.mapper;
 
 import com.arenaaxis.messageservice.dto.request.PostCreateRequest;
 import com.arenaaxis.messageservice.dto.response.PostResponse;
+import com.arenaaxis.messageservice.dto.response.PostSearchItemResponse;
 import com.arenaaxis.messageservice.model.Post;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -19,11 +20,16 @@ public interface PostMapper {
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "pricePerPerson", ignore = true)
   @Mapping(target = "active", ignore = true)
-  @Mapping(target = "comments", ignore = true)
   @Mapping(target = "participantIds", ignore = true)
   @Mapping(target = "matchIds", ignore = true)
   Post fromRequest(PostCreateRequest request);
 
   @Mapping(target = "pricePerPerson", source = "pricePerPerson")
   PostResponse toResponse(Post post);
+
+  @Mapping(target = "participants", ignore = true)
+  @Mapping(target = "store", ignore = true)
+  @Mapping(target = "sport", ignore = true)
+  @Mapping(target = "pricePerPerson", source = "pricePerPerson")
+  PostSearchItemResponse toSearchItemResponse(Post post);
 }
