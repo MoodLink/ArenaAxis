@@ -6,6 +6,7 @@ import com.arenaaxis.messageservice.dto.request.PostCreateRequest;
 import com.arenaaxis.messageservice.dto.request.SearchPostRequest;
 import com.arenaaxis.messageservice.dto.response.ApplyPostResponse;
 import com.arenaaxis.messageservice.dto.response.ApplyResponse;
+import com.arenaaxis.messageservice.dto.response.MatchResponse;
 import com.arenaaxis.messageservice.dto.response.PostResponse;
 import com.arenaaxis.messageservice.dto.response.PostSearchItemResponse;
 import com.arenaaxis.messageservice.exception.AppException;
@@ -21,6 +22,7 @@ import com.arenaaxis.messageservice.repository.ParticipantRepository;
 import com.arenaaxis.messageservice.repository.PostRepository;
 import com.arenaaxis.messageservice.repository.StoreRepository;
 import com.arenaaxis.messageservice.repository.custom.PostRepositoryCustomImpl;
+import com.arenaaxis.messageservice.service.MatchService;
 import com.arenaaxis.messageservice.service.ParticipantService;
 import com.arenaaxis.messageservice.service.PostService;
 import lombok.AccessLevel;
@@ -56,6 +58,8 @@ public class PostServiceImpl implements PostService {
 
   StoreClientService storeClientService;
   ParticipantService participantService;
+
+  MatchService matchService;
 
   PostMapper postMapper;
   StoreMapper storeMapper;
@@ -226,6 +230,7 @@ public class PostServiceImpl implements PostService {
 
     List<String> userIds = getParticipantIds(posts);
     List<String> storeIds = getStoreIds(posts);
+    List<String> matchIds = getMatchIds(posts);
 
     Mono<Map<String, Participant>> participantMono =
       participantRepository.findAllById(userIds)
@@ -235,26 +240,38 @@ public class PostServiceImpl implements PostService {
       storeRepository.findAllById(storeIds)
         .collectMap(Store::getId);
 
-    return Mono.zip(participantMono, storeMono)
+    Mono<Map<String, Match>> matchMono =
+      matchRepository.findAllById(matchIds)
+        .collectMap(Match::getId);
+
+    return Mono.zip(participantMono, storeMono, matchMono)
       .flatMapMany(tuple -> {
         Map<String, Participant> participantMap = tuple.getT1();
         Map<String, Store> storeMap = tuple.getT2();
+        Map<String, Match> matchMap = tuple.getT3();
 
         return Flux.fromIterable(posts)
-          .map(post -> toSearchItemResponse(post, participantMap, storeMap));
+          .map(post -> toSearchItemResponse(post, participantMap, storeMap, matchMap));
       });
   }
 
   private PostSearchItemResponse toSearchItemResponse (
     Post post,
     Map<String, Participant> participantMap,
-    Map<String, Store> storeMap
+    Map<String, Store> storeMap,
+    Map<String, Match> matchMap
   ) {
     PostSearchItemResponse resp = postMapper.toSearchItemResponse(post);
+
     resp.setStore(storeMapper.toResponse(storeMap.get(post.getSportId())));
     resp.setSport(Objects.requireNonNull(Sport.getById(post.getSportId())).toResponse());
     resp.setPoster(participantMap.get(post.getPosterId()));
     resp.setParticipants(post.getParticipantIds().stream().map(participantMap::get).toList());
+
+    List<MatchResponse> matches = post.getMatchIds().stream().map(matchMap::get)
+      .map(matchService::mapToResponse).toList();
+
+    resp.setMatches(matches);
 
     return resp;
   }
@@ -280,6 +297,17 @@ public class PostServiceImpl implements PostService {
 
   private List<String> getStoreIds(List<Post> posts) {
     return posts.stream().map(Post::getStoreId).distinct().toList();
+  }
+
+  private List<String> getMatchIds(List<Post> posts) {
+    return posts.stream()
+      .flatMap(post ->
+        post.getMatchIds() == null
+          ? Stream.empty()
+          : post.getMatchIds().stream()
+      )
+      .distinct()
+      .toList();
   }
 
   private Mono<Store> getStore(String storeId) {

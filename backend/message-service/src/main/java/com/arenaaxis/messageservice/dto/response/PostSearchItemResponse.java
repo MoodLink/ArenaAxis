@@ -23,6 +23,7 @@ public class PostSearchItemResponse {
   Integer currentNumber;
 
   List<Participant> participants;
+  List<MatchResponse> matches;
 
   Long pricePerPerson;
   LocalDateTime timestamp;

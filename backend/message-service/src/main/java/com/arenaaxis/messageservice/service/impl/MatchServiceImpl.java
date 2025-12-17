@@ -144,7 +144,8 @@ public class MatchServiceImpl implements MatchService {
       .build();
   }
 
-  private MatchResponse mapToResponse(Match match) {
+  @Override
+  public MatchResponse mapToResponse(Match match) {
     MatchResponse response = matchMapper.toResponse(match);
     response.setSport(Objects.requireNonNull(Sport.getById(match.getSportId())).toResponse());
     return response;
