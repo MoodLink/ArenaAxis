@@ -33,6 +33,8 @@ public class SecurityConfig {
     "/provinces/**",
     "/wards/**",
     "/stores/**",
+    "/stores/*/check-suspend",
+    "/stores/*/ratings",
     "/banks/**",
     "/main-plans/**",
     "/ratings/**",
