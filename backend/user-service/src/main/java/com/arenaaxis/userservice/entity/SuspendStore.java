@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -29,8 +30,8 @@ public class SuspendStore {
   @JoinColumn(name = "user_id")
   User operator;
 
-  LocalDateTime startAt;
-  LocalDateTime endAt;
+  LocalDate startAt;
+  LocalDate endAt;
 
   @Column(columnDefinition = "TEXT")
   String reason;

@@ -4,21 +4,20 @@ import com.arenaaxis.userservice.dto.request.*;
 import com.arenaaxis.userservice.dto.response.*;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
-import com.arenaaxis.userservice.service.CurrentUserService;
-import com.arenaaxis.userservice.service.RatingService;
-import com.arenaaxis.userservice.service.StoreHasSportService;
-import com.arenaaxis.userservice.service.StoreService;
+import com.arenaaxis.userservice.service.*;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ public class StoreController {
   StoreService storeService;
   CurrentUserService currentUserService;
   StoreHasSportService storeHasSportService;
+  SuspendStoreService suspendStoreService;
   RatingService ratingService;
 
   @GetMapping
@@ -110,6 +110,24 @@ public class StoreController {
       @PathVariable("id") String storeId) {
     request.setStoreId(storeId);
     storeHasSportService.updateSportForStore(request);
+    return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{id}/check-suspend")
+  public ResponseEntity<CheckSuspendResponse> checkSuspend(
+    @PathVariable("id") String id,
+    @RequestParam("date")
+    @DateTimeFormat(pattern = "yyyy/MM/dd")
+    LocalDate date
+  ) {
+    return ResponseEntity.ok(CheckSuspendResponse.builder()
+      .suspended(suspendStoreService.checkSuspend(id, date))
+      .build());
+  }
+
+  @GetMapping("/{id}/increase-order-count")
+  public ResponseEntity<Void> increaseOrderCount(@PathVariable("id") String storeId) {
+    storeService.increaseOrderCount(storeId);
     return ResponseEntity.noContent().build();
   }
 

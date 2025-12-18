@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -17,11 +17,11 @@ public class SuspendStoreRequest {
   String storeId;
 
   @NotBlank
-  @JsonFormat(pattern = "yyyy/MM/dd HH:mm:ss")
-  LocalDateTime startAt;
+  @JsonFormat(pattern = "yyyy/MM/dd")
+  LocalDate startAt;
 
-  @JsonFormat(pattern = "yyyy/MM/dd HH:mm:ss")
-  LocalDateTime endAt;
+  @JsonFormat(pattern = "yyyy/MM/dd")
+  LocalDate endAt;
 
   String reason;
 
