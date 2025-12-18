@@ -18,10 +18,13 @@ import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.mapper.SportMapper;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
+import com.arenaaxis.userservice.repository.RatingRepository;
+import com.arenaaxis.userservice.repository.RatingStoreSportRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
 import com.arenaaxis.userservice.service.*;
 import com.arenaaxis.userservice.service.event.StoreApprovedEvent;
+import com.arenaaxis.userservice.service.helper.RatingSummary;
 import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
@@ -43,10 +46,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,6 +58,7 @@ public class StoreServiceImpl implements StoreService {
 
   StoreRepository storeRepository;
   WardRepository wardRepository;
+  RatingStoreSportRepository ratingStoreSportRepository;
   StoreViewHistoryRepository storeViewHistoryRepository;
 
   StoreHasSportService storeHasSportService;
@@ -192,8 +193,8 @@ public class StoreServiceImpl implements StoreService {
     Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
     Specification<Store> spec = StoreSpecification.adminSearchStores(request);
     Page<Store> storePage = storeRepository.findAll(spec, pageable);
-    return storePage.getContent().stream()
-      .map(storeMapper::toStoreAdminSearchItemResponse).toList();
+
+    return toAdminSearchResponse(storePage.getContent());
   }
 
   @Override
@@ -301,5 +302,35 @@ public class StoreServiceImpl implements StoreService {
       log.info("Invalid Google Maps link: {}", e.getMessage());
     }
     return coordinates;
+  }
+
+  private List<StoreAdminSearchItemResponse> toAdminSearchResponse(List<Store> stores) {
+    if (stores.isEmpty()) return List.of();
+
+    List<String> ids = stores.stream().map(Store::getId).toList();
+    List<Object[]> ratingRows = ratingStoreSportRepository.findRatingSummary(ids);
+
+    Map<String, RatingSummary> ratingMap = new HashMap<>();
+    for (Object[] row : ratingRows) {
+      String storeId = (String) row[0];
+      Long ratingCount = (Long) row[1];
+
+      ratingMap.put(storeId, new RatingSummary(ratingCount));
+    }
+
+    return stores.stream()
+      .map(store -> {
+        StoreAdminSearchItemResponse res =
+          storeMapper.toStoreAdminSearchItemResponse(store);
+
+        RatingSummary summary = ratingMap.get(store.getId());
+        if (summary != null) {
+          res.setRatingCount(summary.ragingCount().intValue());
+        } else {
+          res.setRatingCount(0);
+        }
+        return res;
+      })
+      .toList();
   }
 }
