@@ -206,6 +206,15 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
+  public void increaseOrderCount(String storeId) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+
+    store.increaseOrderCount();
+    storeRepository.save(store);
+  }
+
+  @Override
   @Transactional
   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public StoreAdminDetailResponse fullInfo(String storeId) {

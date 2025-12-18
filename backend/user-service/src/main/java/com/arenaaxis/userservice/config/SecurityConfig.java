@@ -35,6 +35,8 @@ public class SecurityConfig {
       "/stores",
       "/stores/detail/**",
       "/stores/*/ratings",
+      "/stores/*/check-suspend",
+      "/stores/*/increase-order-count",
       "/banks",
       "/banks/**",
       "/main-plans",

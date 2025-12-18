@@ -30,4 +30,5 @@ public interface StoreService {
   List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser);
   List<StoreAdminSearchItemResponse> adminSearch(SearchStoreAdminRequest request, int page, int perPage);
   StoreAdminDetailResponse suspendStore(String storeId, User currentUser);
+  void increaseOrderCount(String storeId);
 }

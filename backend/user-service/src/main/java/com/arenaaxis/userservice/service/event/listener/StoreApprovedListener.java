@@ -37,7 +37,7 @@ public class StoreApprovedListener {
       .ownerName(store.getOwner().getName())
       .storeName(store.getName())
       .storeId(store.getId())
-      .approvedAt(TimeFormatter.convertDateFormatToString(store.getApprovedAt()))
+      .approvedAt(TimeFormatter.convertDateTimeFormatToString(store.getApprovedAt()))
       .ctaUrl("https://arena-axis-omega.vercel.app/list-store/" + store.getId())
       .build();
 

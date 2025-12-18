@@ -9,9 +9,11 @@ import com.arenaaxis.userservice.service.SuspendStoreService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,8 +34,12 @@ public class SuspendStoreController {
   @GetMapping("/{storeId}")
   public ResponseEntity<List<SuspendStoreResponse>> getAll(
     @PathVariable String storeId,
-    @RequestParam(value = "from", required = false)LocalDateTime from,
-    @RequestParam(value = "to", required = false) LocalDateTime to
+    @RequestParam(value = "from", required = false)
+    @DateTimeFormat(style = "yyyy/MM/dd")
+    LocalDate from,
+    @RequestParam(value = "to", required = false)
+    @DateTimeFormat(style = "yyyy/MM/dd")
+    LocalDate to
   ) {
     User current = currentUserService.getCurrentUser();
     SearchSuspendStoreRequest request = SearchSuspendStoreRequest.builder()
