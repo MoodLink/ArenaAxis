@@ -31,4 +31,6 @@ public class StoreAdminSearchItemResponse {
 
   WardResponse ward;
   ProvinceResponse province;
+
+  Integer ratingCount;
 }

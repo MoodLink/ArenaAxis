@@ -1,13 +1,11 @@
 package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.*;
-import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
-import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
-import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
-import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
+import com.arenaaxis.userservice.dto.response.*;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
 import com.arenaaxis.userservice.service.CurrentUserService;
+import com.arenaaxis.userservice.service.RatingService;
 import com.arenaaxis.userservice.service.StoreHasSportService;
 import com.arenaaxis.userservice.service.StoreService;
 import com.nimbusds.jose.JOSEException;
@@ -34,6 +32,7 @@ public class StoreController {
   StoreService storeService;
   CurrentUserService currentUserService;
   StoreHasSportService storeHasSportService;
+  RatingService ratingService;
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
@@ -112,5 +111,20 @@ public class StoreController {
     request.setStoreId(storeId);
     storeHasSportService.updateSportForStore(request);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{id}/ratings")
+  public ResponseEntity<List<RatingResponse>> getStoreRatings(
+    @PathVariable String id,
+    @RequestParam(required = false) String sportId,
+    @RequestParam(required = false) Integer star,
+    @RequestParam(required = false, defaultValue = "1") int page,
+    @RequestParam(required = false, defaultValue = "12") int perPage) {
+    SearchRatingRequest request = SearchRatingRequest.builder()
+      .storeId(id)
+      .sportId(sportId)
+      .star(star)
+      .build();
+    return ResponseEntity.ok(ratingService.getPageRatingForStore(request, page, perPage));
   }
 }
