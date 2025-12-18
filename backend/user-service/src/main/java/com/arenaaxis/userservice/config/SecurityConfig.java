@@ -73,7 +73,7 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> {
         PUBLIC_ENDPOINTS
           .forEach((method, paths) -> paths.forEach(path -> auth.requestMatchers(method, path).permitAll()));
-        auth.anyRequest().authenticated();
+        auth.anyRequest().permitAll();
       })
       .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
         .decoder(customJwtDecoder)

@@ -175,7 +175,6 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
-  @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser) {
     if (!currentUser.getId().equals(ownerId) && !currentUser.getRole().isAdmin()) {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
