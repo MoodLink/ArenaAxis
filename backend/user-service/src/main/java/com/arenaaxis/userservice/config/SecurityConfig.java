@@ -34,6 +34,7 @@ public class SecurityConfig {
       "/wards/**",
       "/stores",
       "/stores/detail/**",
+      "/stores/*/ratings",
       "/banks",
       "/banks/**",
       "/main-plans",
