@@ -20,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -112,10 +113,10 @@ public class MatchServiceImpl implements MatchService {
           return result.stream();
         }
       )
-//      .filter(match -> {
-//        LocalDateTime time = LocalDateTime.of(match.getDate(), match.getStartTime());
-//        return time.isAfter(LocalDateTime.now().minusDays(limitMatchDays));
-//      })
+      .filter(match -> {
+        LocalDateTime time = LocalDateTime.of(match.getDate(), match.getStartTime());
+        return time.isAfter(LocalDateTime.now().minusDays(limitMatchDays));
+      })
       .toList();
 
     return matchRepository.saveAll(matches);
