@@ -27,9 +27,9 @@ public interface SuspendStoreRepository extends JpaRepository<SuspendStore, Stri
       FROM SuspendStore s
       WHERE s.store.id = :storeId
         AND (
-              (:end IS NULL AND s.endAt IS NULL)
-           OR (:end IS NULL AND s.startAt <= CURRENT_TIMESTAMP)
-           OR (s.startAt <= :end)
+          (:end IS NULL AND s.endAt IS NULL)
+          OR (:end IS NULL AND s.startAt <= CURRENT_DATE)
+          OR (s.startAt <= :end)
         )
         AND (s.endAt IS NULL OR s.endAt >= :start)
       ORDER BY s.startAt ASC

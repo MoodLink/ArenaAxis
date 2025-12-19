@@ -1,6 +1,5 @@
 package com.arenaaxis.userservice.service.impl;
 
-import com.arenaaxis.userservice.client.service.OrderClientService;
 import com.arenaaxis.userservice.dto.request.SearchStoreAdminRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
@@ -18,7 +17,6 @@ import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.mapper.SportMapper;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
-import com.arenaaxis.userservice.repository.RatingRepository;
 import com.arenaaxis.userservice.repository.RatingStoreSportRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
@@ -47,7 +45,6 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,8 +66,6 @@ public class StoreServiceImpl implements StoreService {
   MediaService mediaService;
   AuthenticationService authenticationService;
   SportMapper sportMapper;
-
-  OrderClientService orderClientService;
 
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
@@ -199,8 +194,6 @@ public class StoreServiceImpl implements StoreService {
   @Override
   @PreAuthorize("hasRole('ROLE_CLIENT') or hasRole('ROLE_ADMIN')")
   public StoreAdminDetailResponse suspendStore(String storeId, User currentUser) {
-    Store store = getStore(storeId, currentUser);
-
     return null;
   }
 
