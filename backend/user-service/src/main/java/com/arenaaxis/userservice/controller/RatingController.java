@@ -3,6 +3,7 @@ package com.arenaaxis.userservice.controller;
 import java.util.List;
 
 import com.arenaaxis.userservice.dto.request.RatingUpdateRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,12 +26,21 @@ public class RatingController {
   CurrentUserService currentUserService;
   RatingService ratingService;
 
-  @PostMapping
+  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<RatingResponse> create(
-    @RequestPart("ratingRequest") RatingRequest ratingRequest,
+    @RequestParam("comment") String comment,
+    @RequestParam("storeId") String storeId,
+    @RequestParam("sportId") String sportId,
+    @RequestParam("star") Integer star,
     @RequestPart(value = "medias", required = false) List<MultipartFile> medias
   ) {
     User current = currentUserService.getCurrentUser();
+    RatingRequest ratingRequest = RatingRequest.builder()
+      .comment(comment)
+      .storeId(storeId)
+      .sportId(sportId)
+      .star(star)
+      .build();
 
     return ResponseEntity.ok(ratingService.create(ratingRequest, medias, current));
   }

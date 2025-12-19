@@ -3,6 +3,7 @@ package com.arenaaxis.userservice.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -15,10 +16,11 @@ public class SuspendStoreResponse {
   String id;
   StoreInfoInSuspendResponse store;
   UserResponse operator;
-  LocalDateTime startAt;
-  LocalDateTime endAt;
+  LocalDate startAt;
+  LocalDate endAt;
   LocalDateTime createdAt;
   LocalDateTime updatedAt;
   LocalDateTime deletedAt;
+
   String reason;
 }

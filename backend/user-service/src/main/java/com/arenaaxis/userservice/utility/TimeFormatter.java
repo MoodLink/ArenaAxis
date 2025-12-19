@@ -9,7 +9,7 @@ public class TimeFormatter {
   public static final String DATE_STRING_FORMAT_DEFAULT = "yyyy-MM-dd";
 
   private static final DateTimeFormatter DATE_FORMATTER_DEFAULT =
-    DateTimeFormatter.ofPattern(DATE_TIME_STRING_FORMAT_DEFAULT);
+    DateTimeFormatter.ofPattern(DATE_STRING_FORMAT_DEFAULT);
 
   private TimeFormatter() {}
 
