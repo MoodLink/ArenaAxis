@@ -8,6 +8,7 @@ import { mergeContinuous } from "../utils/time.util.js";
 import { mergeOrderDetails } from "../utils/time.util.js";
 import { getStoreDetails } from "./field.service.js";
 import { getUserInformation } from "./user.service.js";
+import { increaseOrderCountForStore } from "./store.service.js";
 
 const payOS = new PayOS({
   clientId: process.env.PAYOS_CLIENT_ID,
@@ -122,6 +123,7 @@ export const createOrderService = async (paymentData) => {
       description: paymentResponse.description,
     };
     console.log("Returning Data:", data);
+    increaseOrderCountForStore(store_id);
     return data;
   } catch (error) {
     throw new Error(error.message);

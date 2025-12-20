@@ -36,7 +36,6 @@ public class SecurityConfig {
       "/stores/detail/**",
       "/stores/*/ratings",
       "/stores/*/check-suspend",
-      "/stores/*/increase-order-count",
       "/banks",
       "/banks/**",
       "/main-plans",
@@ -53,6 +52,7 @@ public class SecurityConfig {
       "/auth",
       "/auth/**",
       "/stores/search",
+      "/stores/*/increase-order-count",
       "/favourites",
       "/recommends/**"),
     HttpMethod.DELETE, List.of(
