@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mobile/binding/app_binding.dart';
+import 'package:mobile/binding/app_route.dart';
 
 import 'package:mobile/screens/home_screen.dart';
 import 'package:mobile/utilities/token_storage.dart';
@@ -56,6 +57,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       // Điều hướng dựa trên trạng thái đăng nhập
       home: isFirstOpen ? HomeScreen() : OnboardingScreen(),
+      getPages: AppRoutes.routes,
+
     );
   }
 }

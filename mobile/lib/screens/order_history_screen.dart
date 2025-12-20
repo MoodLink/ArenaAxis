@@ -1,8 +1,11 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/controller/booking_controller.dart';
 import 'package:mobile/widgets/loading.dart';
+import 'package:mobile/widgets/order_detail_dialog.dart';
 
 class OrderHistoryPage extends StatelessWidget {
   const OrderHistoryPage({super.key});
@@ -13,7 +16,7 @@ class OrderHistoryPage extends StatelessWidget {
     final Size screenSize = MediaQuery.of(context).size;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(
@@ -28,7 +31,6 @@ class OrderHistoryPage extends StatelessWidget {
                 ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
             ),
           ),
-
           centerTitle: true,
           elevation: 0,
           bottom: const TabBar(
@@ -36,7 +38,8 @@ class OrderHistoryPage extends StatelessWidget {
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
             tabs: [
-              Tab(text: 'Sắp tới'),
+              Tab(text: 'Sắp diễn ra'),
+              Tab(text: 'Đang diễn ra'),
               Tab(text: 'Đã qua'),
             ],
           ),
@@ -45,6 +48,7 @@ class OrderHistoryPage extends StatelessWidget {
           // 1. Đang tải lần đầu
           if (controller.isLoading.value &&
               controller.upcomingOrders.isEmpty &&
+              controller.ongoingOrders.isEmpty &&
               controller.pastOrders.isEmpty) {
             return loadingIndicator();
           }
@@ -107,15 +111,23 @@ class OrderHistoryPage extends StatelessWidget {
             children: [
               _buildRefreshableTab(
                 orders: controller.upcomingOrders,
-                isUpcoming: true,
+                orderType: OrderType.upcoming,
                 screenSize: screenSize,
                 controller: controller,
                 emptyMessage: 'Không có đơn đặt sân sắp tới',
                 emptyIcon: Icons.sports_soccer,
               ),
               _buildRefreshableTab(
+                orders: controller.ongoingOrders,
+                orderType: OrderType.ongoing,
+                screenSize: screenSize,
+                controller: controller,
+                emptyMessage: 'Không có đơn đang diễn ra',
+                emptyIcon: Icons.play_circle_outline,
+              ),
+              _buildRefreshableTab(
                 orders: controller.pastOrders,
-                isUpcoming: false,
+                orderType: OrderType.past,
                 screenSize: screenSize,
                 controller: controller,
                 emptyMessage: 'Chưa có lịch sử đặt sân',
@@ -130,7 +142,7 @@ class OrderHistoryPage extends StatelessWidget {
 
   Widget _buildRefreshableTab({
     required List<Map<String, dynamic>> orders,
-    required bool isUpcoming,
+    required OrderType orderType,
     required Size screenSize,
     required BookingsController controller,
     required String emptyMessage,
@@ -142,7 +154,7 @@ class OrderHistoryPage extends StatelessWidget {
       backgroundColor: Theme.of(Get.context!).cardColor,
       child: orders.isEmpty
           ? _buildEmptyState(emptyMessage, emptyIcon, screenSize)
-          : _buildOrderList(orders, isUpcoming, screenSize, controller),
+          : _buildOrderList(orders, orderType, screenSize, controller),
     );
   }
 
@@ -185,7 +197,7 @@ class OrderHistoryPage extends StatelessWidget {
 
   Widget _buildOrderList(
     List<Map<String, dynamic>> orders,
-    bool isUpcoming,
+    OrderType orderType,
     Size screenSize,
     BookingsController controller,
   ) {
@@ -204,6 +216,12 @@ class OrderHistoryPage extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
+        // Kiểm tra điều kiện hiển thị nút tuyển người chơi
+        final isPaid = order['statusPayment'] == 'PAID';
+        final canRecruit = controller.canRecruitPlayers(earliestStart);
+        final showRecruitButton = orderType == OrderType.upcoming && isPaid && canRecruit;
+        final showPaymentButtons = orderType == OrderType.upcoming && !isPaid;
+
         return Card(
           margin: EdgeInsets.only(bottom: screenSize.height * 0.018),
           shape: RoundedRectangleBorder(
@@ -214,6 +232,15 @@ class OrderHistoryPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: () {
               // TODO: Xem chi tiết
+            },
+            onLongPress: () {
+              // Hiển thị dialog chi tiết khi nhấn giữ
+              Get.dialog(
+                OrderDetailDialog(
+                  order: order,
+                  controller: controller,
+                ),
+              );
             },
             child: Padding(
               padding: EdgeInsets.all(screenSize.width * 0.04),
@@ -327,6 +354,16 @@ class OrderHistoryPage extends StatelessWidget {
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
+                        const Spacer(),
+                        // Hint text for long press
+                        Text(
+                          'Giữ để xem chi tiết',
+                          style: TextStyle(
+                            fontSize: screenSize.width * 0.03,
+                            color: Colors.grey[500],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -354,55 +391,119 @@ class OrderHistoryPage extends StatelessWidget {
                   ),
 
                   // Nút hành động
-                  if (isUpcoming && order['statusPayment'] != 'PAID') ...[
+                  if (showRecruitButton || showPaymentButtons) ...[
                     SizedBox(height: screenSize.height * 0.025),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _showCancelDialog(
-                              context,
-                              controller,
-                              order['_id'],
+                    
+                    // Nếu đã thanh toán và đủ điều kiện - hiện nút tuyển người chơi
+                    if (showRecruitButton)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            log('Chuyển đến trang tuyển người chơi cho đơn ${order['_id']}');
+                            Get.toNamed(
+                              '/select-matches',
+                              arguments: {'orderId': order['_id']},
+                            );
+                          },
+                          icon: const Icon(Icons.group_add),
+                          label: const Text(
+                            'Tuyển người chơi vãng lai',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red.shade600,
-                              side: BorderSide(
-                                color: Colors.red.shade400,
-                                width: 1.5,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              'Hủy đơn',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
-                        SizedBox(width: screenSize.width * 0.03),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => controller.payOrder(order['_id']),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(
+                      )
+                    // Nếu chưa thanh toán - hiện nút hủy và thanh toán
+                    else if (showPaymentButtons)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _showCancelDialog(
                                 context,
-                              ).colorScheme.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                controller,
+                                order['_id'],
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              'Thanh toán',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red.shade600,
+                                side: BorderSide(
+                                  color: Colors.red.shade400,
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: const Text(
+                                'Hủy đơn',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
+                          SizedBox(width: screenSize.width * 0.03),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => controller.payOrder(order['_id']),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: const Text(
+                                'Thanh toán',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                  
+                  // Hiển thị thông báo nếu không đủ điều kiện tuyển người
+                  if (orderType == OrderType.upcoming && isPaid && !canRecruit) ...[
+                    SizedBox(height: screenSize.height * 0.015),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.orange.withOpacity(0.3),
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Colors.orange.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Chỉ có thể tuyển người khi còn ít nhất 2 ngày trước giờ chơi',
+                              style: TextStyle(
+                                fontSize: screenSize.width * 0.032,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],
@@ -500,4 +601,11 @@ class OrderHistoryPage extends StatelessWidget {
       ),
     );
   }
+}
+
+// Enum để phân loại các loại order
+enum OrderType {
+  upcoming,   // Sắp diễn ra
+  ongoing,    // Đang diễn ra
+  past,       // Đã qua
 }

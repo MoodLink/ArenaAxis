@@ -6,6 +6,8 @@ import 'package:mobile/utilities/local_storage.dart';
 
 class StoreController extends GetxController {
   final stores = <Store>[].obs;
+  final storesInCity = <Store>[].obs;  // Stores trong thành phố
+  final storesOutsideCity = <Store>[].obs;  // Stores ngoài thành phố
   final isLoading = false.obs;
   final StoreService _storeService = StoreService();
   
@@ -15,10 +17,44 @@ class StoreController extends GetxController {
   final selectedWardId = ''.obs;
   final selectedProvinceId = ''.obs;
   
+  // User location
+  final userProvince = ''.obs;
+  final userWard = ''.obs;
+  
   @override
   void onInit() {
     super.onInit();
+    _loadUserLocation();
     fetchStores();
+  }
+
+  /// Load user location from local storage
+  Future<void> _loadUserLocation() async {
+    final province = await LocalStorageHelper.getProvince();
+    final ward = await LocalStorageHelper.getWard();
+    
+    if (province != null) userProvince.value = province;
+    if (ward != null) userWard.value = ward;
+    
+    log('User location: Province=$province, Ward=$ward');
+  }
+
+  /// Phân loại stores theo location
+  void _categorizeStoresByLocation(List<Store> allStores) {
+    storesInCity.clear();
+    storesOutsideCity.clear();
+    
+    for (var store in allStores) {
+      // So sánh province của store với province của user
+      if (store.province?.name.toLowerCase() == userProvince.value.toLowerCase()) {
+        log('Store ${store.province?.name.toLowerCase()} is in user province ${userProvince.value.toLowerCase()}');
+        storesInCity.add(store);
+      } else {
+        storesOutsideCity.add(store);
+      }
+    }
+    
+    log('Categorized: ${storesInCity.length} in city, ${storesOutsideCity.length} outside city');
   }
 
   /// Fetch stores with optional filters
@@ -48,6 +84,7 @@ class StoreController extends GetxController {
 
       log('Fetched ${result.length} stores');
       stores.assignAll(result);
+      _categorizeStoresByLocation(result);
     } catch (e) {
       Get.snackbar('Lỗi', e.toString());
     } finally {
@@ -74,6 +111,7 @@ class StoreController extends GetxController {
 
       log('Search returned ${result.length} stores'); 
       stores.assignAll(result);
+      _categorizeStoresByLocation(result);
     } catch (e) {
       Get.snackbar('Lỗi', 'Tìm kiếm thất bại: $e');
     } finally {

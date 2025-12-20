@@ -17,6 +17,7 @@ class TokenStorage {
 
   Future<User?> getUserData() async {
     final userJsonString = await _storage.read(key: USER_KEY);
+    log('Retrieved user data: $userJsonString');
     if (userJsonString != null && userJsonString.isNotEmpty) {
       try {
         final userMap = jsonDecode(userJsonString) as Map<String, dynamic>;

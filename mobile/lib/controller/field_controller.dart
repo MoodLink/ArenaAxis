@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/models/user.dart';
 import 'package:mobile/models/cart_item.dart';
 import 'package:mobile/models/field.dart';
+import 'package:mobile/screens/login_screen.dart';
 import 'package:mobile/services/field_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/utilities/token_storage.dart';
 import 'package:mobile/widgets/payment_web.dart';
+import 'package:mobile/widgets/show_login_required_dialog.dart';
 
 class FieldController extends GetxController {
   final FieldService _service = FieldService();
@@ -174,10 +177,16 @@ class FieldController extends GetxController {
         return null;
       }
 
-      final url = "https://arena-axis.vercel.app/api/v1/orders/create-payment";
+      final url = "http://www.executexan.store/api/v1/orders/create-payment";
       final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
-      User user = await tokenStorage.getUserData() as User;
 
+      dynamic userData = await tokenStorage.getUserData();
+
+      if (userData == null) {
+        showLoginRequiredDialog(Get.context!);
+        return null;
+      }
+      User user = await tokenStorage.getUserData() as User;
       List<Map<String, dynamic>> items = [];
       for (var slot in selectedSlotsDetail.values) {
         DateTime t = DateFormat("HH:mm").parse(slot.startTime);

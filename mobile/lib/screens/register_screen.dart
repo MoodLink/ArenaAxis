@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:get/utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/login_screen.dart';
+import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/widgets/loading.dart';
 import 'package:mobile/widgets/progress_bar.dart';
 
@@ -39,49 +40,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = true;
       });
-  // final authService = AuthService();
-  //   try {
-  //     final authResponse = await authService.register(
-  //      fullName:  _userNameController.text,
-  //       email:  _emailController.text,
-  //       password:  _passwordController.text,
-  //       phone:  _phoneController.text,
-  //     );
+      final authService = AuthService();
+      try {
+        final authResponse = await authService.register(
+          fullName: _userNameController.text,
+          email: _emailController.text,
+          password: _passwordController.text,
+          phone: _phoneController.text,
+        );
 
-  //     if (authResponse == null) {
-  //       // ❌ Sai email hoặc mật khẩu
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text('Email hoặc mật khẩu không chính xác!'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     } else {
-  
-        Get.to(LoginScreen());
+        if (authResponse == null) {
+          // ❌ Sai email hoặc mật khẩu
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email hoặc mật khẩu không chính xác!'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else {
+          Get.to(LoginScreen());
 
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(
-    //         content: Text('Đăng nhập thành công!'),
-    //         backgroundColor: Colors.green,
-    //       ),
-    //     );
-    //   }
-    // } catch (e, stack) {
-    //   log('Lỗi đăng nhập: $e\n$stack');
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text('Có lỗi xảy ra: $e'),
-    //       backgroundColor: Colors.red,
-    //     ),
-    //   );
-    // } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    
-  }}
-
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thành công!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e, stack) {
+        log('Lỗi đăng nhập: $e\n$stack');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Có lỗi xảy ra: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,9 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         foregroundColor: Theme.of(context).colorScheme.onBackground,
         elevation: 0,
         titleSpacing: 5,
-        actions: [
-          ProgressBar(percent: 0.5),
-        ],
+        actions: [ProgressBar(percent: 0.5)],
       ),
       body: Stack(
         children: [
@@ -173,7 +171,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Email không được để trống';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
+                            if (!RegExp(
+                              r'^[^@]+@[^@]+\.[^@]+$',
+                            ).hasMatch(value)) {
                               return 'Email không hợp lệ';
                             }
                             return null;

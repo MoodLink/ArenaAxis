@@ -23,13 +23,13 @@ class myBottomNav extends StatelessWidget {
             icon: Icons.space_bar, // không dùng icon mặc định
             text: ' F I E L D S',
             padding: EdgeInsets.all(10),
-            textSize: 20,
+            textSize: 25,
             leading: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  height: 20,
-                  width: 20,
+                  height: 30,
+                  width: 30,
                   child: Image.asset(
                     'assets/icons/field.png',
                     fit: BoxFit.contain,
@@ -42,13 +42,13 @@ class myBottomNav extends StatelessWidget {
             icon: Icons.space_bar, // không dùng icon mặc định
             text: ' O R D E R S',
             padding: EdgeInsets.all(10),
-            textSize: 20,
+            textSize: 25,
             leading: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  height: 20,
-                  width: 20,
+                  height: 30,
+                  width: 30,
                   child: Image.asset(
                     'assets/icons/order.png',
                     fit: BoxFit.contain,
@@ -57,17 +57,17 @@ class myBottomNav extends StatelessWidget {
               ],
             ),
           ),
-           GButton(
+          GButton(
             icon: Icons.space_bar, // không dùng icon mặc định
             text: 'T E A M M A T E',
             padding: EdgeInsets.all(10),
-            textSize: 20,
+            textSize: 25,
             leading: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(
-                  height: 20,
-                  width: 20,
+                  height: 30,
+                  width: 30,
                   child: Image.asset(
                     'assets/icons/community.png',
                     fit: BoxFit.contain,
@@ -78,9 +78,10 @@ class myBottomNav extends StatelessWidget {
           ),
           GButton(
             icon: Icons.person,
+            iconSize: 30,
             text: ' P R O F I L E',
             padding: EdgeInsets.all(10),
-            textSize: 20,
+            textSize: 25,
             textColor: Colors.black,
           ),
         ],

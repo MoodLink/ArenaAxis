@@ -1,222 +1,324 @@
+// chat_page.dart
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:mobile/controller/chat_controller.dart';
+import 'package:mobile/widgets/loading.dart';
 
-const String _currentUserId = 'me';
-
-class ChatScreen extends StatefulWidget {
-  final String conversationId;
-  final String conversationTitle;
-
-  const ChatScreen({
-    super.key,
-    required this.conversationId,
-    required this.conversationTitle,
-  });
-
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _textController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  final List<_ChatMessage> _messages = [
-    _ChatMessage(id: '1', senderId: 'store_1', text: 'Xin chào! Bạn cần hỗ trợ gì?', time: DateTime.now().subtract(const Duration(minutes: 9))),
-    _ChatMessage(id: '2', senderId: _currentUserId, text: 'Tôi muốn đặt sân vào tối nay.', time: DateTime.now().subtract(const Duration(minutes: 7))),
-    _ChatMessage(id: '3', senderId: 'store_1', text: 'Vâng, sân 1 còn trống khung 18:30 - 20:00.', time: DateTime.now().subtract(const Duration(minutes: 5))),
-  ];
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage() {
-    final text = _textController.text.trim();
-    if (text.isEmpty) return;
-    final msg = _ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      senderId: _currentUserId,
-      text: text,
-      time: DateTime.now(),
-    );
-    setState(() {
-      _messages.add(msg);
-    });
-    _textController.clear();
-    _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  String _timeLabel(DateTime t) {
-    final hh = t.hour.toString().padLeft(2, '0');
-    final mm = t.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
-  }
+class ChatPage extends StatelessWidget {
+  final String posterId;
+  ChatPage({super.key, required this.posterId});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final controller = Get.find<ChatController>(tag: 'chat_$posterId');
+    final Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.conversationTitle),
-        centerTitle: false,
-        elevation: 1,
-        actions: [
-          IconButton(icon: const Icon(Icons.info_outline), onPressed: () {}),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
+        title: Row(
           children: [
-            // messages
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                itemCount: _messages.length,
-                itemBuilder: (context, i) {
-                  final m = _messages[i];
-                  final isMe = m.senderId == _currentUserId;
-                  final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-                  final bg = isMe ? theme.colorScheme.primary : theme.cardColor;
-                  final textColor = isMe ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface;
-                  final radius = BorderRadius.only(
-                    topLeft: const Radius.circular(12),
-                    topRight: const Radius.circular(12),
-                    bottomLeft: Radius.circular(isMe ? 12 : 2),
-                    bottomRight: Radius.circular(isMe ? 2 : 12),
-                  );
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Column(
-                      crossAxisAlignment: align,
-                      children: [
-                        Row(
-                          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                          children: [
-                            if (!isMe)
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor: isDark ? Colors.grey[700] : Colors.grey[300],
-                                child: const Icon(Icons.person, size: 16, color: Colors.white),
-                              ),
-                            if (!isMe) const SizedBox(width: 8),
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: bg,
-                                  borderRadius: radius,
-                                  boxShadow: [
-                                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4),
-                                  ],
-                                ),
-                                child: Text(m.text, style: TextStyle(color: textColor, fontSize: 15)),
-                              ),
-                            ),
-                            if (isMe) const SizedBox(width: 8),
-                            if (isMe)
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor: theme.colorScheme.primary,
-                                child: const Icon(Icons.person, size: 16, color: Colors.white),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: EdgeInsets.only(left: isMe ? 0 : 46, right: isMe ? 46 : 0),
-                          child: Text(
-                            _timeLabel(m.time),
-                            style: TextStyle(fontSize: 11, color: theme.textTheme.bodySmall?.color?.withOpacity(0.6)),
-                          ),
-                        )
-                      ],
-                    ),
-                  );
-                },
-              ),
+            // Avatar
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.grey[300],
+              backgroundImage: controller.otherUserAvatar != null
+                  ? NetworkImage(controller.otherUserAvatar!)
+                  : null,
+              child: controller.otherUserAvatar == null
+                  ? const Icon(Icons.person, size: 20)
+                  : null,
             ),
-
-            // composer
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)],
-              ),
-              child: Row(
+            const SizedBox(width: 12),
+            // Name
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () {},
+                  Text(
+                    controller.otherUserName ?? 'Người dùng',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Expanded(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 120),
-                      child: TextField(
-                        controller: _textController,
-                        textInputAction: TextInputAction.send,
-                        minLines: 1,
-                        maxLines: 5,
-                        onSubmitted: (_) => _sendMessage(),
-                        decoration: InputDecoration(
-                          hintText: 'Nhắn tin...',
-                          filled: true,
-                          fillColor: theme.cardColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                  // Connection status
+                  Obx(() {
+                    return Text(
+                      controller.isConnected.value
+                          ? 'Đang hoạt động'
+                          : 'Ngoại tuyến',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: controller.isConnected.value
+                            ? Colors.green
+                            : Colors.grey,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: theme.colorScheme.primary,
-                      child: const Icon(Icons.send, color: Colors.white),
-                    ),
-                  )
+                    );
+                  }),
                 ],
               ),
             ),
           ],
         ),
+        elevation: 1,
+      ),
+      body: Column(
+        children: [
+          // Messages list
+          Expanded(
+            child: Obx(() {
+              // Loading state
+              if (controller.isLoading.value && controller.messages.isEmpty) {
+                return loadingIndicator();
+              }
+
+              // Error state
+              if (controller.errorMessage.value != null &&
+                  controller.messages.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(screenSize.width * 0.1),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: screenSize.width * 0.15,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          controller.errorMessage.value!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: screenSize.width * 0.04),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Empty state
+              if (controller.messages.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: screenSize.width * 0.2,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Chưa có tin nhắn nào',
+                        style: TextStyle(
+                          fontSize: screenSize.width * 0.045,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gửi tin nhắn để bắt đầu trò chuyện',
+                        style: TextStyle(
+                          fontSize: screenSize.width * 0.035,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Messages
+              return ListView.builder(
+                padding: EdgeInsets.all(screenSize.width * 0.04),
+                reverse: false,
+                itemCount: controller.messages.length,
+                itemBuilder: (context, index) {
+                  final message = controller.messages[index];
+                  final isMyMessage = controller.isMyMessage(message);
+
+                  return _buildMessageBubble(
+                    message,
+                    isMyMessage,
+                    screenSize,
+                    controller,
+                  );
+                },
+              );
+            }),
+          ),
+
+          // Input area
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: screenSize.width * 0.03,
+              vertical: screenSize.height * 0.01,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  // Text field
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: controller.messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Nhập tin nhắn...',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: screenSize.width * 0.04,
+                            vertical: screenSize.height * 0.015,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.newline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Send button
+                  Obx(() {
+                    return IconButton(
+                      onPressed: controller.isSending.value
+                          ? null
+                          : controller.sendMessage,
+                      icon: controller.isSending.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.send),
+                      color: Theme.of(context).colorScheme.primary,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _ChatMessage {
-  final String id;
-  final String senderId;
-  final String text;
-  final DateTime time;
-  _ChatMessage({
-    required this.id,
-    required this.senderId,
-    required this.text,
-    required this.time,
-  });
+  Widget _buildMessageBubble(
+    dynamic message,
+    bool isMyMessage,
+    Size screenSize,
+    ChatController controller,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: screenSize.height * 0.01),
+      child: Row(
+        mainAxisAlignment: isMyMessage
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar for other user
+          if (!isMyMessage) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[300],
+              backgroundImage: controller.otherUserAvatar != null
+                  ? NetworkImage(controller.otherUserAvatar!)
+                  : null,
+              child: controller.otherUserAvatar == null
+                  ? const Icon(Icons.person, size: 16)
+                  : null,
+            ),
+            const SizedBox(width: 8),
+          ],
+
+          // Message bubble
+          Flexible(
+            child: Container(
+              constraints: BoxConstraints(maxWidth: screenSize.width * 0.7),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenSize.width * 0.04,
+                vertical: screenSize.height * 0.012,
+              ),
+              decoration: BoxDecoration(
+                color: isMyMessage
+                    ? Theme.of(Get.context!).colorScheme.primary
+                    : Colors.grey[200],
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isMyMessage ? 16 : 4),
+                  bottomRight: Radius.circular(isMyMessage ? 4 : 16),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Message content
+                  Text(
+                    message.content,
+                    style: TextStyle(
+                      fontSize: screenSize.width * 0.038,
+                      color: isMyMessage ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Timestamp and status
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        controller.formatMessageTime(message.timestamp),
+                        style: TextStyle(
+                          fontSize: screenSize.width * 0.028,
+                          color: isMyMessage
+                              ? Colors.white.withOpacity(0.7)
+                              : Colors.grey[600],
+                        ),
+                      ),
+                      if (isMyMessage) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          message.status == 'SENDING'
+                              ? Icons.access_time
+                              : message.status == 'SENT'
+                              ? Icons.done
+                              : Icons.done_all,
+                          size: 14,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Spacer for my messages
+          if (isMyMessage) const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
 }

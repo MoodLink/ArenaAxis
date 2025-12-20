@@ -9,11 +9,12 @@ import 'package:mobile/widgets/loading.dart';
 class BookingsController extends GetxController {
   final BookingsService _service = BookingsService();
 
-  // Observable lists - giờ mỗi item đại diện cho 1 ngày của order
+  // Observable lists - 3 loại: sắp diễn ra, đang diễn ra, đã qua
   final upcomingOrders = <Map<String, dynamic>>[].obs;
+  final ongoingOrders = <Map<String, dynamic>>[].obs;
   final pastOrders = <Map<String, dynamic>>[].obs;
 
-  // Cache để lưu thông tin store và field
+  // Cache để lưu thông tin store và fieldcanRecruitPlayers
   final Map<String, Map<String, dynamic>> _storeCache = {};
   final Map<String, Map<String, dynamic>> _fieldCache = {};
 
@@ -59,10 +60,11 @@ class BookingsController extends GetxController {
     }
   }
 
-  /// Phân loại orders - tách orderDetails theo ngày
+  /// Phân loại orders - tách orderDetails theo ngày và chia thành 3 loại
   void _classifyOrders(List<dynamic> orders) {
     final now = DateTime.now();
     final upcoming = <Map<String, dynamic>>[];
+    final ongoing = <Map<String, dynamic>>[];
     final past = <Map<String, dynamic>>[];
 
     for (var order in orders) {
@@ -98,14 +100,22 @@ class BookingsController extends GetxController {
         final dateKey = entry.key;
         final detailsForDate = entry.value;
 
-        // Tính thời gian kết thúc muộn nhất của ngày này
+        // Tính thời gian bắt đầu sớm nhất và kết thúc muộn nhất của ngày này
+        DateTime? earliestStartTime;
         DateTime? latestEndTime;
         int totalCost = 0;
 
         for (var detail in detailsForDate) {
+          final startTimeStr = detail['startTime'] as String? ?? '';
           final endTimeStr = detail['endTime'] as String? ?? '';
+          
           try {
+            final startTime = DateTime.parse(startTimeStr.replaceAll(' ', 'T'));
             final endTime = DateTime.parse(endTimeStr.replaceAll(' ', 'T'));
+            
+            if (earliestStartTime == null || startTime.isBefore(earliestStartTime)) {
+              earliestStartTime = startTime;
+            }
             if (latestEndTime == null || endTime.isAfter(latestEndTime)) {
               latestEndTime = endTime;
             }
@@ -114,7 +124,7 @@ class BookingsController extends GetxController {
           totalCost += (detail['price'] as int? ?? 0);
         }
 
-        if (latestEndTime == null) continue;
+        if (earliestStartTime == null || latestEndTime == null) continue;
 
         // Tạo order mới cho ngày này
         final dayOrder = {
@@ -132,17 +142,29 @@ class BookingsController extends GetxController {
           'displayDate': dateKey, // Để dễ hiển thị
         };
 
-        // Phân loại theo thời gian kết thúc
-        if (latestEndTime.isAfter(now)) {
+        // Phân loại theo thời gian
+        if (now.isAfter(latestEndTime)) {
+          // Đã qua: thời gian kết thúc đã qua
+          past.add(dayOrder);
+        } else if (now.isBefore(earliestStartTime)) {
+          // Sắp diễn ra: chưa bắt đầu
           upcoming.add(dayOrder);
         } else {
-          past.add(dayOrder);
+          // Đang diễn ra: đã bắt đầu nhưng chưa kết thúc
+          ongoing.add(dayOrder);
         }
       }
     }
 
     // Sắp xếp
     upcoming.sort((a, b) {
+      final aStart = getEarliestStartTime(a);
+      final bStart = getEarliestStartTime(b);
+      if (aStart == null || bStart == null) return 0;
+      return aStart.compareTo(bStart);
+    });
+
+    ongoing.sort((a, b) {
       final aStart = getEarliestStartTime(a);
       final bStart = getEarliestStartTime(b);
       if (aStart == null || bStart == null) return 0;
@@ -157,7 +179,18 @@ class BookingsController extends GetxController {
     });
 
     upcomingOrders.assignAll(upcoming);
+    ongoingOrders.assignAll(ongoing);
     pastOrders.assignAll(past);
+  }
+
+  /// Kiểm tra xem có thể tuyển người chơi không
+  /// Yêu cầu: thời gian diễn ra phải cách ít nhất 2 ngày so với hiện tại
+  bool canRecruitPlayers(DateTime startTime) {
+    final now = DateTime.now();
+    final difference = startTime.difference(now);
+    
+    // Kiểm tra xem còn ít nhất 2 ngày (48 giờ) không
+    return difference.inHours >= 48;
   }
 
   /// Lấy thời gian bắt đầu sớm nhất
@@ -286,7 +319,7 @@ class BookingsController extends GetxController {
 
   /// Fetch thông tin store và field cho các orders
   Future<void> _fetchAdditionalInfo() async {
-    final allOrders = [...upcomingOrders, ...pastOrders];
+    final allOrders = [...upcomingOrders, ...ongoingOrders, ...pastOrders];
     
     for (var order in allOrders) {
       // Fetch store info
@@ -317,6 +350,7 @@ class BookingsController extends GetxController {
 
     // Trigger update UI
     upcomingOrders.refresh();
+    ongoingOrders.refresh();
     pastOrders.refresh();
   }
 
@@ -365,5 +399,21 @@ class BookingsController extends GetxController {
 
     if (fieldNames.isEmpty) return 'Đang tải...';
     return fieldNames.join(', ');
+  }
+
+  Future<Map<String, dynamic>?> getFullOrderDetails(String orderId) async {
+    try {
+      final response = await _service.getOrderById(orderId);
+      return response['data'] as Map<String, dynamic>?;
+    } catch (e) {
+      Get.snackbar(
+        'Lỗi',
+        'Không thể tải chi tiết đơn hàng: ${e.toString().replaceAll('Exception: ', '')}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+      );
+      return null;
+    }
   }
 }

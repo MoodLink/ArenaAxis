@@ -120,4 +120,22 @@ class StoreService {
       rethrow;
     }
   }
+
+  /// Lấy danh sách sports/categories
+  Future<dynamic> getSports() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/sports'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Lỗi tải danh sách môn thể thao');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
 }

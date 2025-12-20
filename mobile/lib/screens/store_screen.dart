@@ -4,6 +4,7 @@ import 'package:mobile/controller/home_controller.dart';
 import 'package:mobile/controller/store_controller.dart';
 import 'package:mobile/controller/field_search_controller.dart';
 import 'package:mobile/controller/sport_category_controller.dart';
+import 'package:mobile/models/Store.dart';
 import 'package:mobile/screens/store_detail_screen.dart';
 import 'package:mobile/utilities/local_storage.dart';
 import 'package:mobile/widgets/field_card.dart';
@@ -16,8 +17,10 @@ class StorePage extends StatelessWidget {
   const StorePage({super.key});
 
   Future<void> _refreshData(StoreController storeController) async {
-    await storeController.fetchStores();
     final HomeController controller = Get.find<HomeController>();
+    await storeController.fetchStores();
+    final sportCategoryController = Get.find<SportCategoryController>();
+    sportCategoryController.fetchCategoriesFromAPI();
     controller.getUserLocation();
   }
 
@@ -32,6 +35,7 @@ class StorePage extends StatelessWidget {
     final searchController = Get.put(FieldSearchController());
     final sportCategoryController = Get.find<SportCategoryController>();
     final homeController = Get.find<HomeController>();
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Obx(() {
@@ -239,7 +243,7 @@ class StorePage extends StatelessWidget {
   }
 
   // ----------------------------
-  // SEARCH PAGE SLIVERS
+  // SEARCH PAGE SLIVERS - MỚI VỚI 2 MỤC
   // ----------------------------
   List<Widget> _buildSearchSlivers(
     BuildContext context,
@@ -280,76 +284,138 @@ class StorePage extends StatelessWidget {
         ),
       ),
 
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: horizontalPadding,
-            right: horizontalPadding,
-            top: verticalPadding,
-            bottom: verticalPadding * 0.5,
-          ),
-          child: Obx(() {
-            final resultCount = storeController.stores.length;
-            return Text(
-              'Kết quả tìm kiếm ($resultCount)',
-              style: TextStyle(
-                fontSize: screenSize.width * 0.048,
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurface,
+      // LOADING STATE
+      Obx(() {
+        if (storeController.isLoading.value) {
+          return SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: verticalPadding * 3),
+                child: loadingIndicator(),
               ),
-            );
-          }),
-        ),
-      ),
+            ),
+          );
+        }
 
+        // NO RESULTS STATE
+        if (storeController.stores.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(verticalPadding * 3),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.search_off,
+                      size: 48,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                    SizedBox(height: verticalPadding),
+                    Text(
+                      'Không tìm thấy sân nào',
+                      style: TextStyle(
+                        fontSize: screenSize.width * 0.04,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: verticalPadding * 0.5),
+                    Text(
+                      'Hãy thử thay đổi các bộ lọc',
+                      style: TextStyle(
+                        fontSize: screenSize.width * 0.035,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // RESULTS WITH 2 SECTIONS
+        return SliverToBoxAdapter(child: SizedBox.shrink());
+      }),
+
+      // SECTION 1: TRONG THÀNH PHỐ
+      Obx(() {
+        if (storeController.isLoading.value ||
+            storeController.storesInCity.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  verticalPadding * 1.5,
+                  horizontalPadding,
+                  verticalPadding * 0.8,
+                ),
+                child: Row(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          colors: [Colors.green, Colors.blue],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds);
+                      },
+                      child: const Icon(
+                        Icons.location_city,
+                        size: 24,
+                        color: Colors.white, // bắt buộc
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    Text(
+                      'Trong ${storeController.userProvince.value}',
+                      style: TextStyle(
+                        fontSize: screenSize.width * 0.048,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Spacer(),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${storeController.storesInCity.length} sân',
+                        style: TextStyle(
+                          fontSize: screenSize.width * 0.035,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+
+      // GRID FOR IN-CITY STORES
       SliverPadding(
         padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         sliver: Obx(() {
-          if (storeController.isLoading.value) {
-            return SliverToBoxAdapter(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: verticalPadding * 3),
-                  child: loadingIndicator(),
-                ),
-              ),
-            );
-          }
-
-          if (storeController.stores.isEmpty) {
-            return SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(verticalPadding * 3),
-                child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 48,
-                        color: theme.colorScheme.onSurface.withOpacity(0.4),
-                      ),
-                      SizedBox(height: verticalPadding),
-                      Text(
-                        'Không tìm thấy sân nào',
-                        style: TextStyle(
-                          fontSize: screenSize.width * 0.04,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: verticalPadding * 0.5),
-                      Text(
-                        'Hãy thử thay đổi các bộ lọc',
-                        style: TextStyle(
-                          fontSize: screenSize.width * 0.035,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+          if (storeController.isLoading.value ||
+              storeController.storesInCity.isEmpty) {
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
           }
 
           return SliverGrid(
@@ -361,13 +427,115 @@ class StorePage extends StatelessWidget {
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) => _buildSuggestedField(
-                index,
+                storeController.storesInCity[index],
                 screenSize,
                 storeController,
                 sportCategoryController,
                 theme,
               ),
-              childCount: storeController.stores.length,
+              childCount: storeController.storesInCity.length,
+            ),
+          );
+        }),
+      ),
+
+      // SECTION 2: NGOÀI THÀNH PHỐ
+      Obx(() {
+        if (storeController.isLoading.value ||
+            storeController.storesOutsideCity.isEmpty) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  verticalPadding * 2,
+                  horizontalPadding,
+                  verticalPadding * 0.8,
+                ),
+                child: Row(
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          colors: [Colors.green, Colors.blue],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds);
+                      },
+                      child: const Icon(
+                        Icons.public,
+                        size: 24,
+                        color: Colors.white, // bắt buộc
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    SizedBox(width: 8),
+                    Text(
+                      'Ngoài thành phố',
+                      style: TextStyle(
+                        fontSize: screenSize.width * 0.048,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    Spacer(),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${storeController.storesOutsideCity.length} sân',
+                        style: TextStyle(
+                          fontSize: screenSize.width * 0.035,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+
+      // GRID FOR OUTSIDE-CITY STORES
+      SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        sliver: Obx(() {
+          if (storeController.isLoading.value ||
+              storeController.storesOutsideCity.isEmpty) {
+            return const SliverToBoxAdapter(child: SizedBox.shrink());
+          }
+
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: screenSize.width > 600 ? 3 : 2,
+              childAspectRatio: 0.72,
+              crossAxisSpacing: horizontalPadding * 0.8,
+              mainAxisSpacing: verticalPadding * 1.2,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _buildSuggestedField(
+                storeController.storesOutsideCity[index],
+                screenSize,
+                storeController,
+                sportCategoryController,
+                theme,
+              ),
+              childCount: storeController.storesOutsideCity.length,
             ),
           );
         }),
@@ -440,14 +608,12 @@ class StorePage extends StatelessWidget {
   // GRID ITEM
   // ----------------------------
   Widget _buildSuggestedField(
-    int index,
+    Store store,
     Size screenSize,
     StoreController controller,
     SportCategoryController sportController,
     ThemeData theme,
   ) {
-    final store = controller.stores[index];
-
     return GestureDetector(
       onTap: () {
         Get.to(

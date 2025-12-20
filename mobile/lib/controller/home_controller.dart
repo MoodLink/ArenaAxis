@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:mobile/screens/store_screen.dart';
 import 'package:mobile/screens/order_history_screen.dart';
 import 'package:mobile/screens/profile_screen.dart';
-import 'package:mobile/screens/team_match_screen.dart';
+import 'package:mobile/screens/post_search_screen.dart';
 import 'package:mobile/utilities/location_helper.dart';
 import 'package:mobile/utilities/token_storage.dart';
 
@@ -36,7 +36,7 @@ class HomeController extends GetxController {
   final List<Widget> pages = [
     const StorePage(),
     const OrderHistoryPage(),
-    const TeamMatchPage(),
+    const PostSearchPage(),
     const ProfilePage(),
   ];
 
