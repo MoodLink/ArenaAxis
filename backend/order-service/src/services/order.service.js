@@ -86,6 +86,7 @@ export const createOrderService = async (paymentData) => {
 
       return OrderDetail({
         orderId: order._id,
+        storeId: store_id,
         fieldId: item.field_id,
         startTime: startDateTime,
         endTime: endDateTime,
@@ -218,7 +219,7 @@ export const getOrderByFieldIdAndDateTime = async (fieldId, dateTime) => {
   }
 };
 
-export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
+export const getOrdersByStoreService = async (storeId, startTime, endTime, playDateStart, playDateEnd) => {
   try {
     const filter = {
       storeId: storeId,
@@ -226,9 +227,27 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
     };
     if (startTime && endTime) {
       filter.createdAt = {
-        $gte: new Date(startTime).setHours(0, 0, 0, 0),
-        $lte: new Date(endTime).setHours(23, 59, 59, 999),
+        $gte: startOfDay(startTime),
+        $lte: endOfDay(endTime),
       };
+    }
+
+    if (playDateStart && playDateEnd) {
+      const orderIds = await getOrderIdsByPlayDate(
+        storeId,
+        playDateStart,
+        playDateEnd
+      );
+
+      console.log("Fetched orderIds by play date:", orderIds);
+
+      if (!orderIds || orderIds.length === 0) {
+        return [];
+      }
+
+      console.log("orderIds:", orderIds);
+
+      filter._id = { $in: orderIds };
     }
     const orders = await Order.find(filter).sort({ createdAt: -1 });
 
@@ -241,6 +260,7 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime) => {
 
     return orders;
   } catch (error) {
+    console.error("❌ getOrdersByStoreService error:", error);
     throw new Error(error.message);
   }
 };
@@ -264,3 +284,21 @@ export const getOrdersByUserService = async (userId) => {
     throw new Error(error.message);
   }
 };
+
+async function getOrderIdsByPlayDate(storeId, playDateStart, playDateEnd) {
+  return await OrderDetail.distinct("orderId", {
+    storeId,
+    startTime: {
+      $lte: endOfDay(playDateEnd),
+    },
+    endTime: {
+      $gte: startOfDay(playDateStart),
+    },
+  });
+}
+
+const startOfDay = (date) =>
+  new Date(new Date(date).setHours(0, 0, 0, 0));
+
+const endOfDay = (date) =>
+  new Date(new Date(date).setHours(23, 59, 59, 999));
