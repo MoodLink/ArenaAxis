@@ -32,7 +32,9 @@ export const getOrdersByStore = async (req, res) => {
     const storeId = req.params.store_id;
     const startTime = req.query.start_time;
     const endTime = req.query.end_time;
-    const data = await getOrdersByStoreService(storeId, startTime, endTime);
+    const playDateStart = req.query.play_date_start;
+    const playDateEnd = req.query.play_date_end;
+    const data = await getOrdersByStoreService(storeId, startTime, endTime, playDateStart, playDateEnd);
     res.status(200).send({ message: "Orders retrieved successfully", data });
   } catch (error) {
     res.status(500).send({ message: error.message });
