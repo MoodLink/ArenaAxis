@@ -15,6 +15,17 @@ export async function handleUpdateSportForStore(req, storeId, sportId, hasSport)
   }
 }
 
+export async function increaseOrderCountForStore(storeId) {
+  try {
+    await axios.post(
+      `${USER_SERVICE_BASE_URL}/stores/${storeId}/increase-order-count`,
+      {}
+    );
+  } catch (error) {
+    console.error("Error updating sport for store:", error.message);
+  }
+}
+
 async function updateSportForStore(req, storeId, sportId, hasSport) {
 	try {
 		await axios.post(
