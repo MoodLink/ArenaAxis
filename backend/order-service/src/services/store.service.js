@@ -17,7 +17,7 @@ export async function handleUpdateSportForStore(req, storeId, sportId, hasSport)
 
 export async function increaseOrderCountForStore(storeId) {
   try {
-    await axios.get(
+    await axios.post(
       `${USER_SERVICE_BASE_URL}/stores/${storeId}/increase-order-count`,
       {}
     );

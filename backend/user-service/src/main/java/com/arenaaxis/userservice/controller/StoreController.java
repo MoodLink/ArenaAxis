@@ -125,7 +125,7 @@ public class StoreController {
       .build());
   }
 
-  @GetMapping("/{id}/increase-order-count")
+  @PostMapping("/{id}/increase-order-count")
   public ResponseEntity<Void> increaseOrderCount(@PathVariable("id") String storeId) {
     storeService.increaseOrderCount(storeId);
     return ResponseEntity.noContent().build();
