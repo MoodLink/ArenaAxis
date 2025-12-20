@@ -225,6 +225,7 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime, playD
       storeId: storeId,
       statusPayment: "PAID",
     };
+
     if (startTime && endTime) {
       filter.createdAt = {
         $gte: startOfDay(startTime),
@@ -239,16 +240,13 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime, playD
         playDateEnd
       );
 
-      console.log("Fetched orderIds by play date:", orderIds);
-
       if (!orderIds || orderIds.length === 0) {
         return [];
       }
 
-      console.log("orderIds:", orderIds);
-
       filter._id = { $in: orderIds };
     }
+
     const orders = await Order.find(filter).sort({ createdAt: -1 });
 
     for (let order of orders) {
@@ -260,7 +258,6 @@ export const getOrdersByStoreService = async (storeId, startTime, endTime, playD
 
     return orders;
   } catch (error) {
-    console.error("❌ getOrdersByStoreService error:", error);
     throw new Error(error.message);
   }
 };
