@@ -4,7 +4,7 @@ export const infoUser = (req, res, next) => {
   const jti = req.get("X-Jti") || "default-jti";
 
   const authHeader = req.get("Authorization");
-  console.log("Auth Header:", authHeader);
+  // console.log("Auth Header:", authHeader);
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.substring(7, authHeader.length);
     req.token = token;
