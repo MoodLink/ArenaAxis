@@ -98,7 +98,7 @@ public class SuspendStoreServiceImpl implements SuspendStoreService {
     validatePermission(current, store);
     checkDuplicateSuspends(request.getStoreId(), request.getStartAt(), request.getEndAt());
 
-    if (Boolean.FALSE.equals(request.getForce())) {
+    if (!Boolean.TRUE.equals(request.getForce())) {
       checkIfHasAnyOrder(store, request.getStartAt(), request.getEndAt());
     }
 
