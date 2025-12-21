@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -15,9 +16,9 @@ import java.time.LocalDateTime;
 public class SearchSuspendStoreRequest {
   String storeId;
 
-  @JsonFormat(pattern = "yyyy/MM/dd HH:mm:ss")
-  LocalDateTime from;
+  @JsonFormat(pattern = "yyyy/MM/dd")
+  LocalDate from;
 
-  @JsonFormat(pattern = "yyyy/MM/dd HH:mm:ss")
-  LocalDateTime to;
+  @JsonFormat(pattern = "yyyy/MM/dd")
+  LocalDate to;
 }

@@ -21,6 +21,7 @@ public class StoreSpecification {
   public static Specification<Store> recommendStores(NearbyRequest request) {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
+      settingDefault(predicates, root, cb);
       if (request.getLatitude() != null && request.getLongitude() != null) {
         float distance = DISTANCE_DEFAULT;
         if (request.getDistance() != null) {
@@ -38,9 +39,18 @@ public class StoreSpecification {
     };
   }
 
+  public static Specification<Store> defaultSearch() {
+    return (root, query, cb) -> {
+      List<Predicate> predicates = new ArrayList<>();
+      settingDefault(predicates, root, cb);
+      return cb.and(predicates.toArray(new Predicate[0]));
+    };
+  }
+
   public static Specification<Store> searchStores(SearchStoreRequest request) {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
+      settingDefault(predicates, root, cb);
       settingPredicate(predicates, request, root, cb);
 
       Objects.requireNonNull(query).distinct(true);
@@ -174,6 +184,10 @@ public class StoreSpecification {
     );
 
     predicates.add(cb.le(distanceMeters, distance));
+  }
+
+  private static void settingDefault(List<Predicate> predicates, Root<Store> root, CriteriaBuilder cb) {
+    predicates.add(cb.isTrue(root.get("approved")));
   }
 
   private static String stringPattern(String str) {

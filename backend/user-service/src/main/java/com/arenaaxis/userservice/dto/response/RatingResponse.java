@@ -12,6 +12,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RatingResponse {
   String id;
+  String comment;
   Float star;
   SportResponse sport;
   StoreSearchItemResponse store;

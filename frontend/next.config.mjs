@@ -19,6 +19,12 @@ const nextConfig = {
     maxInactiveAge: 60 * 1000, // 60 seconds
     pagesBufferLength: 5,
   },
+  // Configure API body size limits for file uploads
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb', // Allow up to 50MB for compressed images
+    },
+  },
   webpack(config) {
     config.resolve.alias['@'] = path.resolve(__dirname);
     return config;

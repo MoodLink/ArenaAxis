@@ -3,7 +3,6 @@ package com.arenaaxis.messageservice.service.impl;
 import com.arenaaxis.messageservice.client.dto.response.OrderClientResponse;
 import com.arenaaxis.messageservice.client.service.OrderClientService;
 import com.arenaaxis.messageservice.dto.response.MatchResponse;
-import com.arenaaxis.messageservice.dto.response.SportResponse;
 import com.arenaaxis.messageservice.exception.AppException;
 import com.arenaaxis.messageservice.exception.ErrorCode;
 import com.arenaaxis.messageservice.mapper.MatchMapper;
@@ -78,7 +77,7 @@ public class MatchServiceImpl implements MatchService {
           .storeId(order.getStoreId())
           .orderId(order.get_id())
           .sportId(d.getSportId())
-          .fieldName(d.getFieldName())
+          .fieldName(d.getName())
           .build();
       })
       .toList();
@@ -114,10 +113,10 @@ public class MatchServiceImpl implements MatchService {
           return result.stream();
         }
       )
-//      .filter(match -> {
-//        LocalDateTime time = LocalDateTime.of(match.getDate(), match.getStartTime());
-//        return time.isAfter(LocalDateTime.now().minusDays(limitMatchDays));
-//      })
+      .filter(match -> {
+        LocalDateTime time = LocalDateTime.of(match.getDate(), match.getStartTime());
+        return time.isAfter(LocalDateTime.now().minusDays(limitMatchDays));
+      })
       .toList();
 
     return matchRepository.saveAll(matches);
@@ -146,7 +145,8 @@ public class MatchServiceImpl implements MatchService {
       .build();
   }
 
-  private MatchResponse mapToResponse(Match match) {
+  @Override
+  public MatchResponse mapToResponse(Match match) {
     MatchResponse response = matchMapper.toResponse(match);
     response.setSport(Objects.requireNonNull(Sport.getById(match.getSportId())).toResponse());
     return response;

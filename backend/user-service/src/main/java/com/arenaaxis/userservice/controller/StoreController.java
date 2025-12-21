@@ -1,26 +1,23 @@
 package com.arenaaxis.userservice.controller;
 
 import com.arenaaxis.userservice.dto.request.*;
-import com.arenaaxis.userservice.dto.response.StoreAdminDetailResponse;
-import com.arenaaxis.userservice.dto.response.StoreAdminSearchItemResponse;
-import com.arenaaxis.userservice.dto.response.StoreClientDetailResponse;
-import com.arenaaxis.userservice.dto.response.StoreSearchItemResponse;
+import com.arenaaxis.userservice.dto.response.*;
 import com.arenaaxis.userservice.entity.User;
 import com.arenaaxis.userservice.entity.enums.StoreImageType;
-import com.arenaaxis.userservice.service.CurrentUserService;
-import com.arenaaxis.userservice.service.StoreHasSportService;
-import com.arenaaxis.userservice.service.StoreService;
+import com.arenaaxis.userservice.service.*;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +31,15 @@ public class StoreController {
   StoreService storeService;
   CurrentUserService currentUserService;
   StoreHasSportService storeHasSportService;
+  SuspendStoreService suspendStoreService;
+  RatingService ratingService;
 
   @GetMapping
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
-    return ResponseEntity.ok(storeService.getInPagination(page, perPage));
+    User currentUser = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.getInPagination(currentUser, page, perPage));
   }
 
   @PostMapping("/search")
@@ -112,5 +112,38 @@ public class StoreController {
     request.setStoreId(storeId);
     storeHasSportService.updateSportForStore(request);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{id}/check-suspend")
+  public ResponseEntity<CheckSuspendResponse> checkSuspend(
+    @PathVariable("id") String id,
+    @RequestParam("date")
+    @DateTimeFormat(pattern = "yyyy/MM/dd")
+    LocalDate date
+  ) {
+    return ResponseEntity.ok(CheckSuspendResponse.builder()
+      .suspended(suspendStoreService.checkSuspend(id, date))
+      .build());
+  }
+
+  @PostMapping("/{id}/increase-order-count")
+  public ResponseEntity<Void> increaseOrderCount(@PathVariable("id") String storeId) {
+    storeService.increaseOrderCount(storeId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{id}/ratings")
+  public ResponseEntity<List<RatingResponse>> getStoreRatings(
+    @PathVariable String id,
+    @RequestParam(required = false) String sportId,
+    @RequestParam(required = false) Integer star,
+    @RequestParam(required = false, defaultValue = "1") int page,
+    @RequestParam(required = false, defaultValue = "12") int perPage) {
+    SearchRatingRequest request = SearchRatingRequest.builder()
+      .storeId(id)
+      .sportId(sportId)
+      .star(star)
+      .build();
+    return ResponseEntity.ok(ratingService.getPageRatingForStore(request, page, perPage));
   }
 }

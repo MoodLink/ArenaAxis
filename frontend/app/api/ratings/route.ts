@@ -67,20 +67,33 @@ export async function POST(request: NextRequest) {
         let body: BodyInit;
 
         if (contentType && contentType.includes('multipart/form-data')) {
-            // Để browser tự động set Content-Type với boundary
+            // FormData request - DON'T set Content-Type header, let fetch add boundary
             const formData = await request.formData();
             body = formData;
+            // Log form data contents
+            console.log(`[API Proxy] FormData fields:`);
+            for (const [key, value] of formData.entries()) {
+                if (value instanceof File) {
+                    console.log(`  - ${key}: File(${value.name}, ${value.size} bytes)`);
+                } else {
+                    console.log(`  - ${key}: ${typeof value} (${String(value).substring(0, 50)})`);
+                }
+            }
         } else {
             // JSON request
             headers['Content-Type'] = 'application/json';
             body = await request.text();
+            console.log(`[API Proxy] JSON request body length:`, body.length);
         }
 
-        console.log(`[API Proxy] POST /ratings`, { contentType });
+        console.log(`[API Proxy] POST /ratings - Forward to ${API_BASE_URL}/ratings`, {
+            contentType,
+            hasAuthHeader: !!authHeader
+        });
 
         const response = await fetch(`${API_BASE_URL}/ratings`, {
             method: 'POST',
-            headers,
+            headers, // Don't add Content-Type for FormData - let fetch handle it
             body,
         });
 

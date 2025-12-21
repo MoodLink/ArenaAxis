@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MapPin, User, LogOut, Settings, Users, History, MessageCircle } from "lucide-react"
+import { MapPin, User, LogOut, Settings, Users, History, MessageCircle, Eye } from "lucide-react"
 import { logout } from "@/services/auth.service"
 
 export default function Header() {
@@ -125,6 +125,12 @@ export default function Header() {
                     <Link href="/chat" className="flex items-center">
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Tin Nhắn
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/store-view-history" className="flex items-center">
+                      <Eye className="w-4 h-4 mr-2" />
+                      Đã Xem Gần Đây
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

@@ -27,12 +27,21 @@ public class RatingController {
 
   @PostMapping
   public ResponseEntity<RatingResponse> create(
-    @RequestPart("ratingRequest") RatingRequest ratingRequest,
-    @RequestPart(value = "medias", required = false) List<MultipartFile> medias
+    @RequestParam("comment") String comment,
+    @RequestParam("storeId") String storeId,
+    @RequestParam("sportId") String sportId,
+    @RequestParam("star") Integer star,
+    @RequestParam(value = "medias", required = false) MultipartFile[] medias
   ) {
     User current = currentUserService.getCurrentUser();
-
-    return ResponseEntity.ok(ratingService.create(ratingRequest, medias, current));
+    RatingRequest ratingRequest = RatingRequest.builder()
+      .comment(comment)
+      .storeId(storeId)
+      .sportId(sportId)
+      .star(star)
+      .build();
+    List<MultipartFile> files = List.of(medias);
+    return ResponseEntity.ok(ratingService.create(ratingRequest, files, current));
   }
 
   @GetMapping("/{id}")

@@ -2,16 +2,18 @@
 // Hiển thị bảng danh sách Trung tâm thể thao
 
 import AdminTable, { TableColumn, TableAction } from "../shared/AdminTable"
-import { Eye, Edit, Trash2, Star, Eye as EyeIcon, ShoppingCart } from "lucide-react"
+import { Eye, Edit, Trash2, Star, Eye as EyeIcon, ShoppingCart, CheckCircle, Clock, Loader2, PauseCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import type { StoreSearchItemResponse } from "@/types"
 
 interface StoreTableProps {
     stores: StoreSearchItemResponse[]
-    onStoreAction: (storeId: string, action: 'view' | 'edit' | 'delete') => void
+    onStoreAction: (storeId: string, action: 'view' | 'edit' | 'delete' | 'approve' | 'suspend') => void
+    approvingStoreId?: string | null
 }
 
-export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
+export default function StoreTable({ stores, onStoreAction, approvingStoreId }: StoreTableProps) {
     const columns: TableColumn[] = [
         {
             key: 'name',
@@ -77,6 +79,38 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
                     <span className="text-sm text-gray-600">{orderCount || 0}</span>
                 </div>
             )
+        },
+        {
+            key: 'status',
+            label: 'Trạng thái',
+            render: (_, store) => {
+                let statusLabel = ''
+                let statusClass = ''
+
+                if (store.approved) {
+                    statusLabel = 'Đã được phê duyệt'
+                    statusClass = 'bg-green-100 text-green-800 hover:bg-green-100'
+                } else if (store.approvable) {
+                    statusLabel = 'Có khả năng phê duyệt'
+                    statusClass = 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                } else {
+                    statusLabel = 'Chưa có khả năng phê duyệt'
+                    statusClass = 'bg-red-100 text-red-800 hover:bg-red-100'
+                }
+
+                return (
+                    <Badge className={statusClass}>
+                        <div className="flex items-center gap-2">
+                            {store.approved ? (
+                                <CheckCircle className="h-4 w-4" />
+                            ) : (
+                                <Clock className="h-4 w-4" />
+                            )}
+                            {statusLabel}
+                        </div>
+                    </Badge>
+                )
+            }
         }
     ]
 
@@ -86,6 +120,20 @@ export default function StoreTable({ stores, onStoreAction }: StoreTableProps) {
             label: 'Xem chi tiết',
             icon: <Eye className="mr-2 h-4 w-4" />,
             onClick: (store) => onStoreAction(store.id, 'view')
+        },
+        {
+            key: 'approve',
+            label: 'Phê duyệt',
+            icon: <CheckCircle className="mr-2 h-4 w-4" />,
+            onClick: (store) => onStoreAction(store.id, 'approve'),
+            show: (store) => store.approvable && !store.approved
+        },
+        {
+            key: 'suspend',
+            label: 'Tạm dừng',
+            icon: <PauseCircle className="mr-2 h-4 w-4" />,
+            onClick: (store) => onStoreAction(store.id, 'suspend'),
+            variant: 'destructive'
         },
         {
             key: 'edit',

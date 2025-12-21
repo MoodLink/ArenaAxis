@@ -16,6 +16,7 @@ public interface SuspendStoreMapper {
   @Mapping(target = "deletedAt", ignore = true)
   @Mapping(target = "store", ignore = true)
   @Mapping(target = "operator", ignore = true)
+  @Mapping(target = "id", ignore = true)
   SuspendStore fromRequest(SuspendStoreRequest suspendStoreRequest);
 
   @Mapping(target = "createdAt", ignore = true)

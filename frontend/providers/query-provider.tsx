@@ -6,10 +6,12 @@ import { ReactNode } from 'react'
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 5 * 60 * 1000, // Cache 5 phút
-            gcTime: 10 * 60 * 1000, // Giữ cache 10 phút khi unmount
+            staleTime: 3 * 1000, // Cache 3 giây
+            gcTime: 2 * 1000, // Giữ cache 2 giây khi unmount - rất ngắn để tiết kiệm bộ nhớ
             retry: 2,
-            refetchOnWindowFocus: false, // Không fetch khi quay lại tab
+            refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+            refetchInterval: 60 * 1000, // ✅ Polling: check 60 giây 1 lần (giảm từ 30s để giảm API load)
+            refetchOnReconnect: true, // ✅ Refetch khi reconnect network
         },
     },
 })

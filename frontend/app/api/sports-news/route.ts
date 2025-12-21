@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
 
         const response = await fetch(url, {
             method: 'GET',
-            next: { revalidate: 300 }
+            // No caching - rely on React Query
+            cache: 'no-cache'
         })
 
         if (!response.ok) {

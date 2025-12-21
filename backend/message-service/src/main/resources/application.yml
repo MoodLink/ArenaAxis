@@ -25,7 +25,7 @@ logging:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){blue} %clr([%X{traceId:-},%X{spanId:-}]){cyan} %clr(${LOG_LEVEL_PATTERN:-%5p}) %m%n"
 
 match:
-  limit: 10 # in days
+  limit: 3 # in days
 
 service:
   user:

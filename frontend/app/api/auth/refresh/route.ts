@@ -8,14 +8,13 @@ export async function POST(request: NextRequest) {
 	};
 
 	try {
-		const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+		// Backend expect { token: "..." } trong body, KHÔNG phải Authorization header
 		const body = await request.json();
 
 		const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
 			method: 'POST',
 			headers: {
 				...headers,
-				'Authorization': token ? `Bearer ${token}` : '',
 			},
 			body: JSON.stringify(body),
 		});

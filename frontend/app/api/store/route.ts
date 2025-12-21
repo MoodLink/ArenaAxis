@@ -2,7 +2,6 @@
 // Proxy API cho stores - GET list, POST register
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withCache, CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -30,12 +29,8 @@ export async function GET(request: NextRequest) {
         const response = await fetch(url, {
             method: 'GET',
             headers,
-            // Next.js automatic caching
-            cache: 'force-cache',
-            next: {
-                revalidate: CACHE_TIMES.STORES.maxAge,
-                tags: ['stores-cache']
-            }
+            // No caching - rely on React Query
+            cache: 'no-cache',
         });
 
         if (!response.ok) {
@@ -46,8 +41,8 @@ export async function GET(request: NextRequest) {
 
         const data = await response.json();
 
-        // Add CDN-friendly cache headers
-        return withCache(data, CACHE_TIMES.STORES);
+        // Return data without cache headers
+        return NextResponse.json(data);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stores';
         console.error('[API Proxy] Error:', errorMessage);

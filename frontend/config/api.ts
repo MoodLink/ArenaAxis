@@ -60,7 +60,15 @@ export const API_CONFIG = {
 			HISTORY: '/bookings/history',
 		},
 
-		// Chat endpoints
+		// Chat/Message endpoints (updated to match backend message-service API)
+		MESSAGES: {
+			CONVERSATIONS: '/api/messages/conversations',
+			MESSAGES: '/api/messages/messages',
+			// SEND_MESSAGE: Dùng WebSocket thay vì REST API
+			MARK_AS_READ: (conversationId: string) => `/api/messages/conversations/${conversationId}/read`,
+		},
+
+		// Legacy chat endpoints (kept for compatibility)
 		CHAT: {
 			ROOMS: '/chat/rooms',
 			MESSAGES: (roomId: string) => `/chat/rooms/${roomId}/messages`,
@@ -85,7 +93,7 @@ export const API_CONFIG = {
 
 // Request interceptor for adding auth token
 export const authInterceptor = (config: any) => {
-	const token = localStorage.getItem('auth_token')
+	const token = localStorage.getItem('token')
 	if (token) {
 		config.headers.Authorization = `Bearer ${token}`
 	}

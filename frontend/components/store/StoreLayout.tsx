@@ -18,7 +18,8 @@ import {
 	User,
 	Settings,
 	LogOut,
-	BarChart3
+	BarChart3,
+	MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,10 +68,16 @@ const sidebarItems = [
 		href: '/store/revenue',
 
 	},
+	// {
+	// 	title: 'Đánh giá',
+	// 	icon: Star,
+	// 	href: '/store/reviews',
+
+	// },
 	{
-		title: 'Đánh giá',
-		icon: Star,
-		href: '/store/reviews',
+		title: 'Chat',
+		icon: MessageCircle,
+		href: '/store/chat',
 
 	},
 	// {
@@ -188,14 +195,6 @@ function Header({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 
 			{/* Right side */}
 			<div className="flex items-center space-x-4">
-				{/* Notifications */}
-				<Button variant="ghost" size="sm" className="relative">
-					<Bell className="h-4 w-4" />
-					<Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-						3
-					</Badge>
-				</Button>
-
 				{/* User menu */}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -216,14 +215,7 @@ function Header({ onMobileMenuToggle }: { onMobileMenuToggle: () => void }) {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem>
-							<User className="mr-2 h-4 w-4" />
-							<span>Tài khoản</span>
-						</DropdownMenuItem>
-						<DropdownMenuItem>
-							<Settings className="mr-2 h-4 w-4" />
-							<span>Cài đặt</span>
-						</DropdownMenuItem>
+
 						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
 							<LogOut className="mr-2 h-4 w-4" />

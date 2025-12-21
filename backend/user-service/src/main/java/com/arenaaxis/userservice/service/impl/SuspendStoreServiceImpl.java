@@ -27,14 +27,16 @@ import com.arenaaxis.userservice.service.SuspendStoreService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -84,6 +86,11 @@ public class SuspendStoreServiceImpl implements SuspendStoreService {
       .stream().map(suspendStoreMapper::toResponse).toList();
   }
 
+  @Override
+  public Boolean checkSuspend(String storeId, LocalDate date) {
+    return suspendStoreRepository.existsByStore_IdAndTime(storeId, date);
+  }
+
   private Store validateAndGetStore(SuspendStoreRequest request, User current) {
     Store store = storeRepository.findById(request.getStoreId())
       .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
@@ -91,7 +98,7 @@ public class SuspendStoreServiceImpl implements SuspendStoreService {
     validatePermission(current, store);
     checkDuplicateSuspends(request.getStoreId(), request.getStartAt(), request.getEndAt());
 
-    if (Boolean.FALSE.equals(request.getForce())) {
+    if (!Boolean.TRUE.equals(request.getForce())) {
       checkIfHasAnyOrder(store, request.getStartAt(), request.getEndAt());
     }
 
@@ -107,7 +114,7 @@ public class SuspendStoreServiceImpl implements SuspendStoreService {
     }
   }
 
-  private void checkDuplicateSuspends(String storeId, LocalDateTime start, LocalDateTime end) {
+  private void checkDuplicateSuspends(String storeId, LocalDate start, LocalDate end) {
     List<SuspendStore> duplicateSuspends = suspendStoreRepository.findSuspendStore(storeId, start, end);
 
     if (!duplicateSuspends.isEmpty()) {
@@ -116,7 +123,7 @@ public class SuspendStoreServiceImpl implements SuspendStoreService {
     }
   }
 
-  private void checkIfHasAnyOrder(Store store, LocalDateTime start, LocalDateTime end) {
+  private void checkIfHasAnyOrder(Store store, LocalDate start, LocalDate end) {
     OrdersByStoreRequest request = OrdersByStoreRequest.builder()
       .storeId(store.getId())
       .startTime(start)

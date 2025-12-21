@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -13,36 +13,41 @@ import FieldForm from "./fields/FieldForm"
 import FieldDetail from "./fields/FieldDetail"
 import { FieldService, Field } from "@/services/field.service"
 import { AdminField } from "@/data/mockDataAdmin"
-
-// Helper function để fetch store name từ storeId
-const fetchStoreName = async (storeId: string): Promise<string> => {
-  try {
-    // Thử API: /api/stores/{storeId} hoặc /api/v1/stores/{storeId}
-    const response = await fetch(`/api/v1/stores/${storeId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      return data?.data?.name || data?.name || storeId
-    }
-
-    // Fallback: thử API route khác
-    return storeId
-  } catch (error) {
-    console.error('Error fetching store name:', error)
-    return storeId
-  }
-}
+import { useAdminFields, useStoreDetails, adminQueryKeys } from "@/hooks/admin-queries"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function FieldsManagement() {
-  const [fields, setFields] = useState<Field[]>([])
-  const [stores, setStores] = useState<Map<string, string>>(new Map())
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  // Fetch fields using React Query
+  const {
+    data: fieldsResponse,
+    isLoading,
+    error,
+    refetch
+  } = useAdminFields(new Date().toISOString().split('T')[0])
+
+  const fields = fieldsResponse?.data || []
+
+  // Get unique store IDs from fields
+  const uniqueStoreIds = useMemo(() => {
+    return [...new Set(fields.map(f => f.storeId).filter(Boolean))]
+  }, [fields])
+
+  // Fetch store details in parallel using React Query
+  const storeDetailsQueries = useStoreDetails(uniqueStoreIds)
+
+  // Build store name map from cached queries
+  const stores = useMemo(() => {
+    const storeMap = new Map<string, string>()
+    storeDetailsQueries.forEach((query) => {
+      if (query.data && query.data.name) {
+        storeMap.set(query.data.id, query.data.name)
+      }
+    })
+    return storeMap
+  }, [storeDetailsQueries])
+
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -52,46 +57,6 @@ export default function FieldsManagement() {
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchFields()
-  }, [])
-
-  const fetchFields = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await FieldService.getFields()
-      setFields(response.data || [])
-
-      // Fetch store names từ storeId
-      const storeMap = new Map<string, string>()
-      if (response.data) {
-        // Collect unique storeIds
-        const uniqueStoreIds = [...new Set(response.data.map(f => f.storeId))]
-
-        // Fetch store names in parallel
-        const storePromises = uniqueStoreIds.map(async (storeId) => {
-          const storeName = await fetchStoreName(storeId)
-          return { storeId, storeName }
-        })
-
-        const storeResults = await Promise.all(storePromises)
-
-        // Build map
-        storeResults.forEach(({ storeId, storeName }) => {
-          storeMap.set(storeId, storeName)
-        })
-      }
-      setStores(storeMap)
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Lỗi khi tải dữ liệu sân"
-      setError(errorMessage)
-      console.error("Error fetching fields:", err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const filteredFields = fields.filter(field => {
     const searchLower = searchTerm.toLowerCase()
@@ -121,7 +86,7 @@ export default function FieldsManagement() {
     if (window.confirm("Bạn chắc chắn muốn xóa sân này?")) {
       try {
         await FieldService.deleteField(fieldId)
-        setFields(fields.filter(f => f._id !== fieldId))
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.fields.all })
         setActionSuccess("Đã xóa sân thành công")
         setTimeout(() => setActionSuccess(null), 3000)
       } catch (err) {
@@ -133,7 +98,7 @@ export default function FieldsManagement() {
   const handleToggleStatus = async (fieldId: string, currentStatus: boolean) => {
     try {
       const updatedField = await FieldService.toggleFieldStatus(fieldId, currentStatus)
-      setFields(fields.map(f => (f._id === fieldId ? updatedField.data : f)))
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.fields.all })
       setActionSuccess("Đã cập nhật trạng thái sân thành công")
       setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
@@ -186,11 +151,15 @@ export default function FieldsManagement() {
       }
 
       const response = await FieldService.createField(newFieldData)
-      setFields([...fields, response.data])
+
+      // Invalidate and refetch fields cache
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.fields.all })
+
       setIsCreateDialogOpen(false)
-      alert(" Tạo sân thành công!")
+      setActionSuccess("Tạo sân thành công!")
+      setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
-      alert(" Lỗi khi tạo sân: " + (err instanceof Error ? err.message : "Unknown error"))
+      setActionError("Lỗi khi tạo sân: " + (err instanceof Error ? err.message : "Unknown error"))
     }
   }
 
@@ -208,12 +177,16 @@ export default function FieldsManagement() {
       }
 
       const response = await FieldService.updateField(selectedField._id, updateData)
-      setFields(fields.map(f => (f._id === selectedField._id ? response.data : f)))
+
+      // Invalidate and refetch fields cache
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.fields.all })
+
       setIsEditDialogOpen(false)
       setSelectedField(null)
-      alert(" Cập nhật sân thành công!")
+      setActionSuccess("Cập nhật sân thành công!")
+      setTimeout(() => setActionSuccess(null), 3000)
     } catch (err) {
-      alert(" Lỗi khi cập nhật sân: " + (err instanceof Error ? err.message : "Unknown error"))
+      setActionError("Lỗi khi cập nhật sân: " + (err instanceof Error ? err.message : "Unknown error"))
     }
   }
 
@@ -300,7 +273,7 @@ export default function FieldsManagement() {
       {error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error instanceof Error ? error.message : 'Lỗi khi tải dữ liệu'}</p>
           </CardContent>
         </Card>
       )}

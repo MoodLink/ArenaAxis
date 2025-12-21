@@ -25,7 +25,7 @@ import { Loader2, AlertCircle, Upload, X, CheckCircle } from 'lucide-react';
 import { StoreAdminDetailResponse, ProvinceResponse, WardResponse } from '@/types';
 import { getProvinces, getWardsByProvinceId, updateStoreInfo, updateStoreImages, getMainPlans, purchaseMainPlan } from '@/services/api-new';
 
-type EditStep = 1 | 2 | 3;
+type EditStep = 2;
 
 interface StoreEditDialogProps {
     isOpen: boolean;
@@ -40,7 +40,7 @@ export default function StoreEditDialog({
     store,
     onSave,
 }: StoreEditDialogProps) {
-    const [currentStep, setCurrentStep] = useState<EditStep>(1);
+    const [currentStep, setCurrentStep] = useState<EditStep>(2);
     const [formData, setFormData] = useState<Partial<StoreAdminDetailResponse>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,6 +54,7 @@ export default function StoreEditDialog({
         avatar?: File;
         coverImage?: File;
         businessLicense?: File;
+        medias?: File[];
     }>({});
 
     // Step 3: Main Plans
@@ -122,8 +123,8 @@ export default function StoreEditDialog({
             setError(null);
             // Reset province selection
             setSelectedProvinceId('');
-            // Reset to step 1 when dialog opens
-            setCurrentStep(1);
+            // Always start with step 2 (image upload only)
+            setCurrentStep(2);
             setFiles({});
             setSelectedPlanId(mainPlans.length > 0 ? mainPlans[0].id : null);
         }
@@ -163,8 +164,13 @@ export default function StoreEditDialog({
         }));
     };
 
-    const handleFileChange = (field: 'avatar' | 'coverImage' | 'businessLicense', file: File | null) => {
-        if (file) {
+    const handleFileChange = (field: 'avatar' | 'coverImage' | 'businessLicense' | 'medias', file: File | null | FileList) => {
+        if (field === 'medias' && file instanceof FileList) {
+            setFiles((prev) => ({
+                ...prev,
+                medias: [...(prev.medias || []), ...Array.from(file)],
+            }));
+        } else if (file && !(file instanceof FileList)) {
             setFiles((prev) => ({
                 ...prev,
                 [field]: file,
@@ -178,6 +184,13 @@ export default function StoreEditDialog({
             delete updated[field];
             return updated;
         });
+    };
+
+    const removeMediaFile = (index: number) => {
+        setFiles((prev) => ({
+            ...prev,
+            medias: prev.medias?.filter((_, i) => i !== index) || [],
+        }));
     };
 
     const handleStep1Next = async () => {
@@ -220,13 +233,23 @@ export default function StoreEditDialog({
             setError(null);
 
             // Upload images if any
-            if (store?.id && (files.avatar || files.coverImage || files.businessLicense)) {
-                console.log(' Starting image upload...');
+            if (store?.id && (files.avatar || files.coverImage || files.businessLicense || files.medias?.length)) {
+                console.log('🖼️ Starting image upload for store:', store.id);
+                console.log('📦 Files to upload:', {
+                    hasAvatar: !!files.avatar,
+                    hasCoverImage: !!files.coverImage,
+                    hasBusinessLicense: !!files.businessLicense,
+                    mediasCount: files.medias?.length || 0,
+                });
+
                 const uploadResult = await updateStoreImages(store.id, {
                     avatar: files.avatar,
                     coverImage: files.coverImage,
                     businessLicenseImage: files.businessLicense,
+                    medias: files.medias,
                 });
+
+                console.log('✅ Upload result:', uploadResult);
 
                 if (!uploadResult.success) {
                     setError(uploadResult.message);
@@ -240,7 +263,11 @@ export default function StoreEditDialog({
                 console.log(' No images selected - skipping upload');
             }
 
-            setCurrentStep(3);
+            // Close dialog and show success
+            if (onSave) {
+                onSave({});
+            }
+            onClose();
         } catch (err) {
             setError(
                 err instanceof Error ? err.message : 'Lỗi khi tải ảnh lên'
@@ -295,24 +322,13 @@ export default function StoreEditDialog({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Chỉnh sửa thông tin Trung tâm thể thao</DialogTitle>
+                    <DialogTitle>Cập nhật ảnh Trung tâm thể thao</DialogTitle>
                     <DialogDescription>
-                        {currentStep === 1 && 'Step 1: Cập nhật thông tin cơ bản'}
-                        {currentStep === 2 && 'Step 2: Cập nhật ảnh Trung tâm thể thao'}
-                        {currentStep === 3 && 'Step 3: Cập nhật gói dịch vụ'}
+                        Tải lên ảnh đại diện, ảnh bìa, giấy phép kinh doanh và các ảnh khác
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Progress indicator */}
-                <div className="flex gap-2 mb-6">
-                    {[1, 2, 3].map((step) => (
-                        <div
-                            key={step}
-                            className={`flex-1 h-2 rounded-full transition-colors ${currentStep >= step ? 'bg-blue-600' : 'bg-gray-300'
-                                }`}
-                        />
-                    ))}
-                </div>
+                {/* No progress indicator needed - single step only */}
 
                 {error && (
                     <Card className="border-red-200 bg-red-50">
@@ -325,188 +341,7 @@ export default function StoreEditDialog({
 
                 <div className="space-y-4">
                     {/* Step 1: Basic Info */}
-                    {currentStep === 1 && (
-                        <>
-                            <Card className="bg-amber-50 border-amber-200 mb-4">
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-amber-700">
-                                        <strong>⏳ Chú ý:</strong> Backend chưa implement PUT endpoint. Hiện tại chỉ validate frontend, dữ liệu sẽ được lưu khi backend sẵn sàng.
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Tên Trung tâm thể thao */}
-                            <div className="space-y-2">
-                                <Label htmlFor="name" className="font-semibold">
-                                    Tên trung tâm thể thao *
-                                </Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    placeholder="Nhập tên trung tâm thể thao"
-                                    value={formData.name || ''}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Mô tả */}
-                            <div className="space-y-2">
-                                <Label htmlFor="introduction" className="font-semibold">
-                                    Mô tả Trung tâm thể thao
-                                </Label>
-                                <Textarea
-                                    id="introduction"
-                                    name="introduction"
-                                    placeholder="Nhập mô tả về Trung tâm thể thao"
-                                    value={formData.introduction || ''}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                    rows={4}
-                                />
-                            </div>
-
-                            {/* Địa chỉ */}
-                            <div className="space-y-2">
-                                <Label htmlFor="address" className="font-semibold">
-                                    Địa chỉ *
-                                </Label>
-                                <Input
-                                    id="address"
-                                    name="address"
-                                    placeholder="Nhập địa chỉ Trung tâm thể thao"
-                                    value={formData.address || ''}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Liên kết Google Map */}
-                            <div className="space-y-2">
-                                <Label htmlFor="linkGoogleMap" className="font-semibold">
-                                    Liên kết Google Map
-                                </Label>
-                                <Input
-                                    id="linkGoogleMap"
-                                    name="linkGoogleMap"
-                                    type="url"
-                                    placeholder="https://maps.google.com/..."
-                                    value={formData.linkGoogleMap || ''}
-                                    onChange={handleChange}
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Tỉnh/Thành phố */}
-                            <div className="space-y-2">
-                                <Label htmlFor="province" className="font-semibold">
-                                    Tỉnh/Thành phố
-                                </Label>
-                                <Select
-                                    value={selectedProvinceId}
-                                    onValueChange={handleProvinceChange}
-                                >
-                                    <SelectTrigger disabled={isLoading}>
-                                        <SelectValue placeholder="Chọn tỉnh/thành phố" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {provinces.map((province) => (
-                                            <SelectItem key={province.id} value={province.id}>
-                                                {province.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Quận/Huyện */}
-                            <div className="space-y-2">
-                                <Label htmlFor="ward" className="font-semibold">
-                                    Quận/Huyện
-                                </Label>
-                                <Select
-                                    value={selectedWardId}
-                                    onValueChange={handleWardChange}
-                                    disabled={!selectedProvinceId || isLoading}
-                                >
-                                    <SelectTrigger disabled={!selectedProvinceId || isLoading}>
-                                        <SelectValue placeholder="Chọn quận/huyện" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {wards.map((ward) => (
-                                            <SelectItem key={ward.id} value={ward.id}>
-                                                {ward.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Tọa độ - Latitude & Longitude */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="latitude" className="font-semibold">
-                                        Latitude
-                                    </Label>
-                                    <Input
-                                        id="latitude"
-                                        name="latitude"
-                                        type="number"
-                                        placeholder="Vd: 21.0285"
-                                        step="0.0001"
-                                        value={(formData as any)?.latitude || ''}
-                                        onChange={handleChange}
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="longitude" className="font-semibold">
-                                        Longitude
-                                    </Label>
-                                    <Input
-                                        id="longitude"
-                                        name="longitude"
-                                        type="number"
-                                        placeholder="Vd: 105.8542"
-                                        step="0.0001"
-                                        value={(formData as any)?.longitude || ''}
-                                        onChange={handleChange}
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Giờ mở cửa - Đóng cửa */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="startTime" className="font-semibold">
-                                        Giờ mở cửa
-                                    </Label>
-                                    <Input
-                                        id="startTime"
-                                        name="startTime"
-                                        type="time"
-                                        value={formData.startTime || ''}
-                                        onChange={handleChange}
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="endTime" className="font-semibold">
-                                        Giờ đóng cửa
-                                    </Label>
-                                    <Input
-                                        id="endTime"
-                                        name="endTime"
-                                        type="time"
-                                        value={formData.endTime || ''}
-                                        onChange={handleChange}
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-                        </>
-                    )}
+                    {/* Step 1: Basic Info - HIDDEN (only step 2 is available) */}
 
                     {/* Step 2: Images */}
                     {currentStep === 2 && (
@@ -657,6 +492,69 @@ export default function StoreEditDialog({
                                 </div>
                             </div>
 
+                            {/* Medias - Ảnh thêm */}
+                            <div className="space-y-2">
+                                <Label htmlFor="medias" className="font-semibold">
+                                    Ảnh thêm của Trung tâm
+                                </Label>
+                                <div className="space-y-3">
+                                    {files.medias && files.medias.length > 0 && (
+                                        <div className="space-y-2">
+                                            {files.medias.map((file, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between p-3 border rounded-lg bg-green-50"
+                                                >
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <span className="text-sm text-gray-700 block truncate">
+                                                                {file.name}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                                {(file.size / 1024).toFixed(1)} KB
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeMediaFile(index)}
+                                                        disabled={isLoading}
+                                                        className="text-red-600 hover:text-red-800 flex-shrink-0 ml-2"
+                                                    >
+                                                        <X className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <label className="cursor-pointer block">
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:bg-gray-50 transition">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Upload className="w-8 h-8 text-gray-400" />
+                                                <span className="text-sm text-gray-600">
+                                                    Nhấp để chọn ảnh thêm
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    Có thể chọn một hoặc nhiều ảnh
+                                                </span>
+                                            </div>
+                                            <input
+                                                id="medias"
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={(e) =>
+                                                    handleFileChange('medias', e.target.files)
+                                                }
+                                                disabled={isLoading}
+                                                className="hidden"
+                                            />
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
                             <Card className="bg-amber-50 border-amber-200">
                                 <CardContent className="p-4">
                                     <p className="text-sm text-amber-700">
@@ -667,76 +565,9 @@ export default function StoreEditDialog({
                             </Card>
                         </>
                     )}
-
-                    {/* Step 3: Main Plan */}
-                    {currentStep === 3 && (
-                        <>
-                            <Card className="bg-green-50 border-green-200">
-                                <CardContent className="p-4">
-                                    <p className="text-sm text-green-700">
-                                        <strong>Step 3:</strong> Chọn gói dịch vụ chính cho Trung tâm thể thao
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            {loadingPlans ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-4">
-                                    {mainPlans.map((plan) => (
-                                        <Card
-                                            key={plan.id}
-                                            className={`cursor-pointer transition-all ${selectedPlanId === plan.id
-                                                ? 'border-2 border-blue-600 bg-blue-50'
-                                                : 'border border-gray-200 hover:border-blue-300'
-                                                }`}
-                                            onClick={() => setSelectedPlanId(plan.id)}
-                                        >
-                                            <CardContent className="p-4">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <h3 className="font-semibold text-lg">
-                                                            {plan.name}
-                                                        </h3>
-                                                        <p className="text-sm text-gray-600 mt-1">
-                                                            {plan.description}
-                                                        </p>
-                                                        <p className="text-lg font-bold text-blue-600 mt-2">
-                                                            {plan.price?.toLocaleString()} ₫
-                                                        </p>
-                                                    </div>
-                                                    <div
-                                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPlanId === plan.id
-                                                            ? 'border-blue-600 bg-blue-600'
-                                                            : 'border-gray-300'
-                                                            }`}
-                                                    >
-                                                        {selectedPlanId === plan.id && (
-                                                            <CheckCircle className="w-4 h-4 text-white" />
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    )}
                 </div>
 
                 <DialogFooter className="flex gap-2 pt-6">
-                    {currentStep > 1 && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setCurrentStep((prev) => (prev - 1) as EditStep)}
-                            disabled={isLoading}
-                        >
-                            ← Quay lại
-                        </Button>
-                    )}
                     <Button
                         variant="outline"
                         onClick={onClose}
@@ -744,28 +575,14 @@ export default function StoreEditDialog({
                     >
                         Hủy
                     </Button>
-                    {currentStep < 3 && (
-                        <Button
-                            onClick={
-                                currentStep === 1 ? handleStep1Next : handleStep2Next
-                            }
-                            disabled={isLoading}
-                            className="bg-primary hover:bg-primary/90"
-                        >
-                            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {isLoading ? 'Đang xử lý...' : 'Tiếp theo →'}
-                        </Button>
-                    )}
-                    {currentStep === 3 && (
-                        <Button
-                            onClick={handleStep3Complete}
-                            disabled={isLoading}
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {isLoading ? 'Đang hoàn thành...' : ' Hoàn thành'}
-                        </Button>
-                    )}
+                    <Button
+                        onClick={handleStep2Next}
+                        disabled={isLoading}
+                        className="bg-primary hover:bg-primary/90"
+                    >
+                        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {isLoading ? 'Đang tải lên...' : '💾 Lưu ảnh'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

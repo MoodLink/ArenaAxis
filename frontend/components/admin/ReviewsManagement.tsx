@@ -1,88 +1,68 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
 // Import shared components
 import AdminHeader from "./shared/AdminHeader"
 import AdminFilters from "./shared/AdminFilters"
-import ReviewStats from "./reviews/ReviewStats"
-import ReviewTable from "./reviews/ReviewTable"
-import ReviewDetail from "./reviews/ReviewDetail"
+import RatingsStats from "./ratings/RatingsStats"
+import StoreRatingsTable from "./ratings/StoreRatingsTable"
 
-// Import mock data
-import { mockReviews, mockReviewStats, AdminReview } from "@/data/mockDataAdmin"
+// Import hook for fetching ratings
+import { useAdminStoresRatings, StoreRating } from "@/hooks/use-admin-stores-ratings"
 
 export default function ReviewsManagement() {
-    const [reviews, setReviews] = useState<AdminReview[]>(mockReviews)
     const [searchTerm, setSearchTerm] = useState('')
     const [ratingFilter, setRatingFilter] = useState<string>('all')
-    const [statusFilter, setStatusFilter] = useState<string>('all')
-    const [selectedReview, setSelectedReview] = useState<AdminReview | null>(null)
+    const [selectedStore, setSelectedStore] = useState<StoreRating | null>(null)
 
-    // Filter reviews
-    const filteredReviews = reviews.filter(review => {
-        const matchesSearch = review.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            review.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            review.field.name.toLowerCase().includes(searchTerm.toLowerCase())
+    // Fetch stores with ratings
+    const { data: stores = [], isLoading } = useAdminStoresRatings()
 
-        const matchesRating = ratingFilter === 'all' || review.rating.toString() === ratingFilter
-        const matchesStatus = statusFilter === 'all' || review.status === statusFilter
+    // Filter stores
+    const filteredStores = useMemo(() => {
+        return stores.filter(store => {
+            const matchesSearch = store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                store.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                store.id.toLowerCase().includes(searchTerm.toLowerCase())
 
-        return matchesSearch && matchesRating && matchesStatus
-    })
+            const matchesRating = ratingFilter === 'all' ||
+                (ratingFilter === 'high' && store.averageRating >= 4) ||
+                (ratingFilter === 'medium' && store.averageRating >= 3 && store.averageRating < 4) ||
+                (ratingFilter === 'low' && store.averageRating < 3)
 
-    const handleReviewAction = (reviewId: string, action: 'approve' | 'reject' | 'respond' | 'delete') => {
-        switch (action) {
-            case 'approve':
-                setReviews(reviews.map(review =>
-                    review.id === reviewId ? { ...review, status: 'published' as const } : review
-                ))
-                break
-            case 'reject':
-                setReviews(reviews.map(review =>
-                    review.id === reviewId ? { ...review, status: 'rejected' as const } : review
-                ))
-                break
-            case 'delete':
-                setReviews(reviews.filter(review => review.id !== reviewId))
-                break
-            default:
-                console.log(`${action} review ${reviewId}`)
+            return matchesSearch && matchesRating
+        })
+    }, [stores, searchTerm, ratingFilter])
+
+    // Calculate stats
+    const stats = useMemo(() => {
+        const totalRatings = stores.reduce((sum, store) => sum + store.ratingCount, 0)
+        const totalViews = stores.reduce((sum, store) => sum + store.viewCount, 0)
+        const averageRating = stores.length > 0
+            ? stores.reduce((sum, store) => sum + store.averageRating, 0) / stores.length
+            : 0
+
+        return {
+            totalStores: stores.length,
+            totalRatings,
+            averageRating,
+            totalViews
         }
-    }
+    }, [stores])
 
-    const handleResponse = (reviewId: string, responseText: string) => {
-        setReviews(reviews.map(review =>
-            review.id === reviewId
-                ? {
-                    ...review,
-                    response: {
-                        content: responseText,
-                        author: "Admin",
-                        date: "Vừa xong"
-                    }
-                }
-                : review
-        ))
+    const handleViewRatings = (store: StoreRating) => {
+        // Navigate to admin reviews detail page
+        window.location.href = `/admin/reviews/${store.id}`
     }
 
     const ratingOptions = [
-        { value: 'all', label: 'Tất cả sao' },
-        { value: '5', label: '5 sao' },
-        { value: '4', label: '4 sao' },
-        { value: '3', label: '3 sao' },
-        { value: '2', label: '2 sao' },
-        { value: '1', label: '1 sao' }
-    ]
-
-    const statusOptions = [
-        { value: 'all', label: 'Tất cả' },
-        { value: 'published', label: 'Đã xuất bản' },
-        { value: 'pending', label: 'Chờ duyệt' },
-        { value: 'rejected', label: 'Từ chối' },
-        { value: 'reported', label: 'Bị báo cáo' }
+        { value: 'all', label: 'Tất cả đánh giá' },
+        { value: 'high', label: 'Cao (≥4 sao)' },
+        { value: 'medium', label: 'Trung bình (3-4 sao)' },
+        { value: 'low', label: 'Thấp (<3 sao)' }
     ]
 
     return (
@@ -90,17 +70,22 @@ export default function ReviewsManagement() {
             {/* Header */}
             <AdminHeader
                 title="Quản lý đánh giá"
-                description="Kiểm duyệt và phản hồi đánh giá khách hàng"
+                description="Quản lý đánh giá của các cửa hàng"
             />
 
             {/* Stats */}
-            <ReviewStats stats={mockReviewStats} />
+            <RatingsStats
+                totalStores={stats.totalStores}
+                totalRatings={stats.totalRatings}
+                averageRating={stats.averageRating}
+                totalViews={stats.totalViews}
+            />
 
-            {/* Reviews Management */}
+            {/* Ratings Management */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Danh sách đánh giá</CardTitle>
-                    <CardDescription>Quản lý tất cả đánh giá từ khách hàng</CardDescription>
+                    <CardTitle>Danh sách cửa hàng và đánh giá</CardTitle>
+                    <CardDescription>Xem thống kê đánh giá của từng cửa hàng</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <AdminFilters
@@ -113,38 +98,30 @@ export default function ReviewsManagement() {
                                 value: ratingFilter,
                                 onValueChange: setRatingFilter,
                                 options: ratingOptions
-                            },
-                            {
-                                key: "status",
-                                placeholder: "Trạng thái",
-                                value: statusFilter,
-                                onValueChange: setStatusFilter,
-                                options: statusOptions
                             }
                         ]}
                     />
 
-                    <ReviewTable
-                        reviews={filteredReviews}
-                        onReviewAction={handleReviewAction}
-                        onSelectedReviewChange={setSelectedReview}
-                    />
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    ) : (
+                        <>
+                            <StoreRatingsTable
+                                stores={filteredStores}
+                                onViewRatings={handleViewRatings}
+                            />
 
-                    <div className="flex items-center justify-between pt-4">
-                        <p className="text-sm text-gray-500">
-                            Hiển thị {filteredReviews.length} trong tổng số {reviews.length} đánh giá
-                        </p>
-                    </div>
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <p className="text-sm text-gray-500">
+                                    Hiển thị {filteredStores.length} trong tổng số {stores.length} cửa hàng
+                                </p>
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
-
-            {/* Review Detail Dialog */}
-            <ReviewDetail
-                review={selectedReview}
-                isOpen={!!selectedReview}
-                onClose={() => setSelectedReview(null)}
-                onResponse={handleResponse}
-            />
         </div>
     )
 }

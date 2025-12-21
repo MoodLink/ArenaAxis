@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface MediaService {
   void uploadAndUpdateLogoToBank(Bank bank, MultipartFile logo);
@@ -17,6 +18,9 @@ public interface MediaService {
 
   @Async
   Media createMedia(MultipartFile file);
+
+  @Async
+  CompletableFuture<Media> createMediaAsync(MultipartFile file);
 
   @Async
   void uploadMultipleMedias(Store store, List<MultipartFile> files);

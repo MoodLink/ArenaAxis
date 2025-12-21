@@ -2,7 +2,6 @@
 // Proxy API để lấy danh sách môn thể thao và tạo môn thể thao mới
 
 import { NextResponse } from 'next/server';
-import { withCache, CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -18,12 +17,8 @@ export async function GET(request: Request) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            // Next.js automatic caching (Request Memoization + Data Cache)
-            cache: 'force-cache',
-            next: {
-                revalidate: CACHE_TIMES.SPORTS.maxAge, // Revalidate every 24 hours
-                tags: ['sports-cache']
-            }
+            // No caching - rely on React Query
+            cache: 'no-cache',
         });
 
         if (!response.ok) {
@@ -32,8 +27,8 @@ export async function GET(request: Request) {
 
         const data = await response.json();
 
-        // Add CDN-friendly cache headers
-        return withCache(data, CACHE_TIMES.SPORTS);
+        // Return data without cache headers
+        return NextResponse.json(data);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sports';
         return NextResponse.json(

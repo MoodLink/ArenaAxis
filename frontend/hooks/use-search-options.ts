@@ -8,8 +8,7 @@ export function useProvinces() {
         queryFn: getProvinces,
         staleTime: 24 * 60 * 60 * 1000, // 24 hours (match Next.js ISR)
         gcTime: 48 * 60 * 60 * 1000, // 48 hours (keep longer)
-        // Don't refetch automatically - data is stable
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: false, // Provinces là static data
         refetchOnReconnect: false,
     })
 }
@@ -22,7 +21,7 @@ export function useWards(provinceId?: string) {
         enabled: !!provinceId, // Chỉ fetch khi có provinceId
         staleTime: 12 * 60 * 60 * 1000, // 12 hours
         gcTime: 24 * 60 * 60 * 1000, // 24 hours
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: false, // Wards là static data
     })
 }
 
@@ -33,7 +32,7 @@ export function useSportsOptions() {
         queryFn: getSports,
         staleTime: 24 * 60 * 60 * 1000, // 24 hours (match Next.js ISR)
         gcTime: 48 * 60 * 60 * 1000, // 48 hours
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: false, // Sports là static data
         refetchOnReconnect: false,
     })
 }

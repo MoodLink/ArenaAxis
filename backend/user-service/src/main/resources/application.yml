@@ -8,6 +8,7 @@ server:
 
 logging:
   level:
+    org.hibernate.orm.jdbc.bind: TRACE
     com.zaxxer.hikari: DEBUG
     org.hibernate.SQL: DEBUG
     org.springframework.jdbc: DEBUG
@@ -79,7 +80,7 @@ spring:
 
 jwt:
   signer_key: ${SIGNER_KEY:IHaHOQ54XZLuTaMb/lNoo0GOuJhvOsmF!gEDaNj/iTyJ1STa=3XLDi!qip3xGavT}
-  token_valid_duration: 3600
+  token_valid_duration: 360000
   token_refreshable_duration: 360000
   password_valid_duration: 300
 

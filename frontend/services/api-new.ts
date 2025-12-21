@@ -34,6 +34,7 @@ import {
   OptionalPlanPurchaseResponse
 } from '@/types';
 import { getMyProfile } from './get-my-profile';
+import { compressImage, compressImages, formatFileSize } from '@/utils/image-compression';
 
 // Import mock data for stores - TEMPORARY: File is empty, will use inline fallback
 // import { mockStoreSearchItems, mockStoreDetails } from '@/data/mockStores';
@@ -636,11 +637,71 @@ export async function searchStores(
   }
 }
 
+// Admin search stores với thêm filter approvable
+// Backend: POST /stores/admin-search với filters: name, wardId, provinceId, sportId, approvable
+export async function adminSearchStores(
+  searchRequest: {
+    name?: string;
+    wardId?: string;
+    provinceId?: string;
+    sportId?: string;
+    approvable?: boolean;
+  },
+  page: number = 0,
+  perPage: number = 12
+): Promise<StoreSearchItemResponse[]> {
+  try {
+    const token = getToken();
+    if (!token) {
+      console.error('No auth token for admin search');
+      return [];
+    }
+
+    // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
+    const backendPage = page + 1;
+    const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+
+    const response = await fetch(
+      `/api/store/admin-search?page=${backendPage}&perPage=${perPage}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': bearerToken,
+        },
+        body: JSON.stringify(searchRequest),
+      }
+    );
+
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`);
+      console.warn('Backend not available, returning empty array');
+      return [];
+    }
+
+    const stores: StoreSearchItemResponse[] = await response.json();
+    console.log(`Admin Search: Found ${stores.length} stores from API (page ${backendPage})`);
+
+    return stores;
+
+  } catch (error) {
+    console.error('Error searching stores (admin):', error);
+    console.warn('Backend not available, returning empty array');
+    return [];
+  }
+}
+
 export async function getStoreById(id: string): Promise<StoreClientDetailResponse | null> {
   try {
+    const token = getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
+
+    // Thêm Authorization header nếu có token
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(
       `/api/store/${id}`,
@@ -650,21 +711,20 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
       }
     );
 
-    const data = await response.json();
-
-    if (data.success === false || data.error) {
-      console.error(`API error: ${data.status || response.status} - ${data.message}`, {
+    // Kiểm tra response status trước
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`, {
         storeId: id,
         url: `/api/store/${id}`
       });
       return null;
     }
 
-    // Kiểm tra response status bình thường
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`, {
+    const data = await response.json();
+
+    if (data.success === false || data.error) {
+      console.error(`API error: ${data.status || response.status} - ${data.message}`, {
         storeId: id,
-        error: data,
         url: `/api/store/${id}`
       });
       return null;
@@ -764,6 +824,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
       endTime: request.endTime,
       wardId: request.wardId,
       linkGoogleMap: request.linkGoogleMap || null,
+      utilities: request.amenities || [],
       // latitude: request.latitude || null,
       // longitude: request.longitude || null
     };
@@ -811,6 +872,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
 
     const createdStore = await createResponse.json();
     const storeId = createdStore.id;
+    const newToken = createdStore.newToken; // Backend trả về token mới với role CLIENT
 
     // NOTE: Images will be uploaded in a separate step (Step 2) using updateStoreImages()
     // This allows users to skip image upload or update images later using "Cập nhật sau" button
@@ -819,7 +881,8 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
       success: true,
       message: 'Store registration submitted successfully',
       storeId: storeId,
-      status: 'pending'
+      status: 'pending',
+      newToken: newToken // Trả về token mới để frontend có thể dùng cho các API calls tiếp theo
     };
   } catch (error) {
     console.error('Error registering store:', error);
@@ -831,6 +894,7 @@ export async function registerStore(request: StoreRegistrationRequest): Promise<
 }
 
 // Upload/Update ảnh cho Store (gọi riêng sau khi tạo store)
+// IMPROVED: Tự động nén ảnh trước khi upload để tránh 413 error
 export async function updateStoreImages(
   storeId: string,
   images: {
@@ -838,49 +902,138 @@ export async function updateStoreImages(
     coverImage?: File;
     businessLicenseImage?: File;
     medias?: File[];
-  }
+  },
+  explicitToken?: string  // ✅ NEW: Accept token as parameter to use fresh token after role change
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     // SỬ DỤNG PROXY để bypass CORS
-    const token = getToken();
+    // Prioritize explicit token over localStorage (important after USER → CLIENT role change)
+    const token = explicitToken || getToken();
     if (!token) {
-      console.error('No authentication token');
+      console.error('❌ No authentication token');
       return {
         success: false,
         message: 'Vui lòng đăng nhập'
       };
     }
 
-    console.log('Token:', token.substring(0, 20) + '...');
-    console.log('Store ID:', storeId);
+    console.log('🔐 Token:', token.substring(0, 20) + '...');
+    console.log('🏪 Store ID:', storeId);
 
     const hasFiles = images.avatar || images.coverImage || images.businessLicenseImage || (images.medias && images.medias.length > 0);
     if (!hasFiles) {
-      console.warn('No files provided to upload');
+      console.warn('⚠️  No files provided to upload');
       return {
         success: false,
         message: 'Vui lòng chọn ít nhất một ảnh để upload'
       };
     }
 
+    // =======================
+    // STEP 1: COMPRESS IMAGES
+    // =======================
+    console.log('🗜️  Starting image compression...');
+    const compressedImages = { ...images };
+    const compressionStats = {
+      totalOriginal: 0,
+      totalCompressed: 0,
+      filesCompressed: 0
+    };
+
+    // Compress avatar
+    if (images.avatar) {
+      try {
+        console.log(`  Processing Avatar: ${images.avatar.name} (${formatFileSize(images.avatar.size)})`);
+        const result = await compressImage(images.avatar, { quality: 75, maxSizeKB: 1024 });
+        compressedImages.avatar = result.file;
+        compressionStats.totalOriginal += result.originalSize;
+        compressionStats.totalCompressed += result.compressedSize;
+        compressionStats.filesCompressed++;
+      } catch (error) {
+        console.warn(`⚠️  Avatar compression failed, using original:`, error);
+        // Continue with original if compression fails
+      }
+    }
+
+    // Compress cover image
+    if (images.coverImage) {
+      try {
+        console.log(`  Processing Cover: ${images.coverImage.name} (${formatFileSize(images.coverImage.size)})`);
+        const result = await compressImage(images.coverImage, { quality: 75, maxSizeKB: 1024 });
+        compressedImages.coverImage = result.file;
+        compressionStats.totalOriginal += result.originalSize;
+        compressionStats.totalCompressed += result.compressedSize;
+        compressionStats.filesCompressed++;
+      } catch (error) {
+        console.warn(`⚠️  Cover compression failed, using original:`, error);
+      }
+    }
+
+    // Compress business license
+    if (images.businessLicenseImage) {
+      try {
+        console.log(`  Processing License: ${images.businessLicenseImage.name} (${formatFileSize(images.businessLicenseImage.size)})`);
+        const result = await compressImage(images.businessLicenseImage, { quality: 75, maxSizeKB: 1024 });
+        compressedImages.businessLicenseImage = result.file;
+        compressionStats.totalOriginal += result.originalSize;
+        compressionStats.totalCompressed += result.compressedSize;
+        compressionStats.filesCompressed++;
+      } catch (error) {
+        console.warn(`⚠️  License compression failed, using original:`, error);
+      }
+    }
+
+    // Compress media files
+    if (images.medias && images.medias.length > 0) {
+      const compressedMedias: File[] = [];
+      for (const media of images.medias) {
+        try {
+          console.log(`  Processing Media: ${media.name} (${formatFileSize(media.size)})`);
+          const result = await compressImage(media, { quality: 75, maxSizeKB: 1024 });
+          compressedMedias.push(result.file);
+          compressionStats.totalOriginal += result.originalSize;
+          compressionStats.totalCompressed += result.compressedSize;
+          compressionStats.filesCompressed++;
+        } catch (error) {
+          console.warn(`⚠️  Media compression failed for ${media.name}, using original:`, error);
+          compressedMedias.push(media); // Use original if compression fails
+        }
+      }
+      compressedImages.medias = compressedMedias;
+    }
+
+    // Log compression summary
+    if (compressionStats.filesCompressed > 0) {
+      const saved = compressionStats.totalOriginal - compressionStats.totalCompressed;
+      const ratio = ((saved / compressionStats.totalOriginal) * 100).toFixed(1);
+      console.log(`✅ Image compression complete:`);
+      console.log(`   Files processed: ${compressionStats.filesCompressed}`);
+      console.log(`   Original total: ${formatFileSize(compressionStats.totalOriginal)}`);
+      console.log(`   Compressed total: ${formatFileSize(compressionStats.totalCompressed)}`);
+      console.log(`   Space saved: ${formatFileSize(saved)} (${ratio}%)`);
+    }
+
+    // =======================
+    // STEP 2: UPLOAD IMAGES
+    // =======================
     const formData = new FormData();
 
-    if (images.avatar) {
-      formData.append('avatar', images.avatar);
-      console.log(`Avatar: ${images.avatar.name} (${(images.avatar.size / 1024).toFixed(1)}KB)`);
+    if (compressedImages.avatar) {
+      formData.append('avatar', compressedImages.avatar);
+      console.log(`📤 Avatar: ${compressedImages.avatar.name} (${formatFileSize(compressedImages.avatar.size)})`);
     }
-    if (images.coverImage) {
-      formData.append('coverImage', images.coverImage);
-      console.log(`Cover: ${images.coverImage.name} (${(images.coverImage.size / 1024).toFixed(1)}KB)`);
+    if (compressedImages.coverImage) {
+      formData.append('coverImage', compressedImages.coverImage);
+      console.log(`📤 Cover: ${compressedImages.coverImage.name} (${formatFileSize(compressedImages.coverImage.size)})`);
     }
-    if (images.businessLicenseImage) {
-      formData.append('businessLicenceImage', images.businessLicenseImage);
-      console.log(`License: ${images.businessLicenseImage.name} (${(images.businessLicenseImage.size / 1024).toFixed(1)}KB)`);
+    if (compressedImages.businessLicenseImage) {
+      formData.append('businessLicenceImage', compressedImages.businessLicenseImage);
+      console.log(`📤 License: ${compressedImages.businessLicenseImage.name} (${formatFileSize(compressedImages.businessLicenseImage.size)})`);
     }
-    if (images.medias && images.medias.length > 0) {
-      images.medias.forEach((media, index) => {
+    if (compressedImages.medias && compressedImages.medias.length > 0) {
+      compressedImages.medias.forEach((media, index) => {
         formData.append('medias', media);
-        console.log(`Media ${index + 1}: ${media.name} (${(media.size / 1024).toFixed(1)}KB)`);
+        console.log(`📤 Media ${index + 1}: ${media.name} (${formatFileSize(media.size)})`);
       });
     }
 
@@ -890,8 +1043,8 @@ export async function updateStoreImages(
         totalSize += value.size;
       }
     }
-    console.log(`Total upload size: ${(totalSize / (1024 * 1024)).toFixed(2)}MB`);
-    console.log(' Uploading to:', `/api/store/images?storeId=${storeId}`);
+    console.log(`\n📊 Total upload size: ${formatFileSize(totalSize)}`);
+    console.log(`🌐 Uploading to: /api/store/images?storeId=${storeId}`);
 
     const response = await fetch(`/api/store/images?storeId=${storeId}`, {
       method: 'PUT',
@@ -901,9 +1054,7 @@ export async function updateStoreImages(
       body: formData
     });
 
-    console.log(' Response status:', response.status);
-    console.log(' Response statusText:', response.statusText);
-    console.log(' Response headers:', Object.fromEntries(response.headers.entries()));
+    console.log(`📬 Response status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       let errorMessage = 'Có lỗi xảy ra khi upload ảnh';
@@ -911,7 +1062,7 @@ export async function updateStoreImages(
 
       try {
         errorBody = await response.text();
-        console.error('Error response body:', errorBody);
+        console.error('❌ Error response body:', errorBody);
 
         // Kiểm tra xem response có phải JSON không
         const contentType = response.headers.get('content-type');
@@ -919,7 +1070,7 @@ export async function updateStoreImages(
           try {
             const jsonError = JSON.parse(errorBody);
             errorMessage = jsonError.message || jsonError.error || errorMessage;
-            console.error('Error details:', jsonError);
+            console.error('❌ Error details:', jsonError);
           } catch (e) {
             console.error('Failed to parse JSON error:', e);
           }
@@ -941,7 +1092,10 @@ export async function updateStoreImages(
           } else if (response.status === 400) {
             errorMessage = 'Dữ liệu không hợp lệ. ' + errorBody;
           } else if (response.status === 413) {
-            errorMessage = 'Kích thước file quá lớn. Vui lòng chọn file nhỏ hơn (max 2MB mỗi ảnh)';
+            errorMessage = '❌ File quá lớn! Hệ thống tự động nén ảnh rồi nhưng vẫn quá lớn.\n' +
+              '• Vui lòng chọn ảnh nhỏ hơn (dưới 5MB gốc)\n' +
+              '• Hoặc giảm số lượng ảnh đẩy lên\n' +
+              '• Hoặc thử upload từng ảnh một thay vì tất cả cùng lúc';
           } else if (response.status === 415) {
             errorMessage = 'Định dạng file không được hỗ trợ. Vui lòng chọn file ảnh (JPG, PNG, WebP)';
           } else if (response.status === 500) {
@@ -949,9 +1103,10 @@ export async function updateStoreImages(
             if (errorBody.includes('MaxUploadSizeExceededException') ||
               errorBody.includes('upload size exceeded') ||
               errorBody.includes('maximum upload size')) {
-              errorMessage = 'File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB. Vui lòng:\n' +
-                '• Chọn ảnh nhỏ hơn (< 2MB)\n' +
-                '• Hoặc nén ảnh trước khi upload';
+              errorMessage = '❌ File quá lớn! Backend chỉ cho phép upload file tối đa 1-2MB.\n' +
+                '• Hệ thống đã cố gắng nén ảnh\n' +
+                '• Vui lòng chọn ảnh nhỏ hơn (dưới 5MB gốc)\n' +
+                '• Hoặc thử upload từng ảnh một';
             } else if (errorBody.includes('AuthorizationDeniedException') ||
               errorBody.includes('Access Denied')) {
               errorMessage = 'Lỗi phân quyền!\n' +
@@ -969,7 +1124,7 @@ export async function updateStoreImages(
         console.error('Error parsing error response:', parseError);
       }
 
-      console.error('Upload failed:', errorMessage);
+      console.error('❌ Upload failed:', errorMessage);
       return {
         success: false,
         message: errorMessage
@@ -989,14 +1144,14 @@ export async function updateStoreImages(
       data = {};
     }
 
-    console.log('Upload request accepted! Backend will process images asynchronously. Response:', data);
+    console.log('✅ Upload request accepted! Backend will process images asynchronously. Response:', data);
     return {
       success: true,
       message: 'Upload ảnh thành công (xử lý ở background)',
       data
     };
   } catch (error) {
-    console.error('Error uploading store images:', error);
+    console.error('❌ Error uploading store images:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi upload ảnh'
@@ -1153,9 +1308,14 @@ export async function getMainPlans(): Promise<any[]> {
   }
 }
 
-export async function purchaseMainPlan(storeId: string, planId: string): Promise<{ success: boolean; message: string; data?: any }> {
+export async function purchaseMainPlan(
+  storeId: string,
+  planId: string,
+  explicitToken?: string  // ✅ NEW: Accept token as parameter to use fresh token after role change
+): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    const token = getToken();
+    // Prioritize explicit token over localStorage (important after USER → CLIENT role change)
+    const token = explicitToken || getToken();
     console.log(`Auth token present: ${!!token}`)
 
     const body = {
@@ -1492,7 +1652,24 @@ export async function getMyBankAccount(): Promise<BankAccountResponse> {
       }
     });
 
-    const data = await response.json();
+    // Check if response has content
+    const text = await response.text();
+
+    if (!text || text.trim() === '') {
+      // Empty response - treat as no bank account found
+      const error = new Error('Bank account not found');
+      (error as any).status = 404;
+      throw error;
+    }
+
+    // Try to parse JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', text);
+      throw new Error('Invalid response from server');
+    }
 
     if (data.error) {
       if (data.status === 404) {
@@ -1504,8 +1681,11 @@ export async function getMyBankAccount(): Promise<BankAccountResponse> {
     }
 
     return data;
-  } catch (error) {
-    console.error('Error checking bank account:', error);
+  } catch (error: any) {
+    // Don't log 404 errors as they're expected when user has no bank account
+    if (error?.status !== 404) {
+      console.error('Error checking bank account:', error);
+    }
     throw error;
   }
 }
@@ -1527,7 +1707,21 @@ export async function updateMyBankAccount(request: { name: string; number: strin
       body: JSON.stringify(request)
     });
 
-    const data = await response.json();
+    // Check if response has content
+    const text = await response.text();
+
+    if (!text || text.trim() === '') {
+      throw new Error('Empty response from server');
+    }
+
+    // Try to parse JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', text);
+      throw new Error('Invalid response from server');
+    }
 
     if (data.error) {
       throw new Error(data.error || data.message || 'Cập nhật tài khoản ngân hàng thất bại');
@@ -1560,7 +1754,21 @@ export async function deleteMyBankAccount(): Promise<BankAccountResponse> {
       }
     });
 
-    const data = await response.json();
+    // Check if response has content
+    const text = await response.text();
+
+    if (!text || text.trim() === '') {
+      throw new Error('Empty response from server');
+    }
+
+    // Try to parse JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse JSON response:', text);
+      throw new Error('Invalid response from server');
+    }
 
     if (data.error) {
       throw new Error(data.error || data.message || 'Xóa tài khoản ngân hàng thất bại');
@@ -2054,7 +2262,7 @@ export const getBookingStatusMap = async (): Promise<Record<string, string>> => 
 // =================
 
 /**
- * Lấy danh sách tất cả Trung tâm thể thao yêu thích của người dùng (có caching)
+ * Lấy danh sách tất cả Trung tâm thể thao yêu thích của người dùng
  * GET /api/favourites (proxy route - bypass CORS)
  */
 export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
@@ -2062,13 +2270,6 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
   if (!token) {
     console.warn('Không có token, không thể lấy danh sách yêu thích');
     return [];
-  }
-
-  // Check cache
-  const now = Date.now();
-  if (favouritesCache && (now - favouritesCacheTime) < CACHE_DURATION) {
-    console.log('Sử dụng cache yêu thích');
-    return favouritesCache;
   }
 
   try {
@@ -2092,10 +2293,6 @@ export async function getFavourites(): Promise<StoreSearchItemResponse[]> {
 
     const data = await response.json();
     console.log('Danh sách yêu thích đã được tải:', Array.isArray(data) ? data.length : 'N/A');
-
-    // Update cache
-    favouritesCache = data;
-    favouritesCacheTime = now;
 
     return data;
   } catch (error: any) {
@@ -2129,10 +2326,11 @@ export async function isFavourite(storeId: string): Promise<boolean> {
  * POST /api/favourites (proxy route - bypass CORS)
  */
 export async function addFavourite(storeId: string): Promise<StoreClientDetailResponse | null> {
+  const { NotAuthenticatedError } = await import('@/lib/errors');
   const token = getToken();
   if (!token) {
     console.error('Không có token, không thể thêm yêu thích');
-    throw new Error('Vui lòng đăng nhập để thêm yêu thích');
+    throw new NotAuthenticatedError('Vui lòng đăng nhập để thêm vào yêu thích');
   }
 
   try {
@@ -2154,9 +2352,6 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
     const data = await response.json();
     console.log('Đã thêm vào yêu thích:', storeId);
 
-    // Invalidate cache
-    favouritesCache = null;
-
     return data;
   } catch (error: any) {
     console.error('Lỗi khi thêm yêu thích:', error.message);
@@ -2169,10 +2364,11 @@ export async function addFavourite(storeId: string): Promise<StoreClientDetailRe
  * DELETE /api/favourites/[storeId] (proxy route - bypass CORS)
  */
 export async function removeFavourite(storeId: string): Promise<void> {
+  const { NotAuthenticatedError } = await import('@/lib/errors');
   const token = getToken();
   if (!token) {
     console.error('Không có token, không thể xóa yêu thích');
-    throw new Error('Vui lòng đăng nhập để xóa yêu thích');
+    throw new NotAuthenticatedError('Vui lòng đăng nhập để xóa khỏi yêu thích');
   }
 
   try {
@@ -2190,7 +2386,6 @@ export async function removeFavourite(storeId: string): Promise<void> {
     // Thành công: 204 No Content hoặc 200 OK
     if (response.ok || response.status === 204) {
       console.log('Đã xóa khỏi yêu thích:', storeId);
-      favouritesCache = null;
       return;
     }
 
@@ -2220,28 +2415,29 @@ export async function removeFavourite(storeId: string): Promise<void> {
   }
 }
 
-// Cache for favourites list
-let favouritesCache: StoreSearchItemResponse[] | null = null;
-let favouritesCacheTime = 0;
-const CACHE_DURATION = 5000; // 5 seconds
-
 /**
  * Toggle favourite - Thêm hoặc xóa
  * Xóa sử dụng workaround: DELETE /all + re-add những cái còn lại
  */
 export async function toggleFavourite(storeId: string): Promise<boolean> {
+  const { NotAuthenticatedError } = await import('@/lib/errors');
+  const token = getToken();
+
+  // Kiểm tra token trước khi gọi isFavourite
+  if (!token) {
+    throw new NotAuthenticatedError('Vui lòng đăng nhập để sử dụng chức năng yêu thích');
+  }
+
   // Check xem đã favourite chưa
   const isFav = await isFavourite(storeId);
 
   if (!isFav) {
     // Chưa favourite -> ADD
     await addFavourite(storeId);
-    favouritesCache = null;
     return true;
   } else {
     // Đã favourite -> DELETE
     await removeFavourite(storeId);
-    favouritesCache = null;
     return false;
   }
 }
@@ -2262,30 +2458,38 @@ export async function createRating(request: {
   comment: string;
   mediaFiles?: File[];
 }): Promise<any> {
+  const { NotAuthenticatedError } = await import('@/lib/errors');
   const token = getToken();
   if (!token) {
-    throw new Error('Vui lòng đăng nhập để đánh giá');
+    throw new NotAuthenticatedError('Vui lòng đăng nhập để đánh giá');
   }
 
   try {
     // Create FormData for multipart upload
     const formData = new FormData();
 
-    // Append rating request fields individually (not as JSON string)
-    // Backend expects individual form fields, not a JSON object
-    formData.append('ratingRequest', new Blob([JSON.stringify({
-      storeId: request.storeId,
-      sportId: request.sportId,
-      star: request.star,
-      comment: request.comment
-    })], { type: 'application/json' }));
+    // Append form fields directly (backend expects these as form parameters)
+    formData.append('storeId', request.storeId);
+    formData.append('sportId', request.sportId);
+    formData.append('star', request.star.toString());
+    formData.append('comment', request.comment);
 
     // Append media files if any
     if (request.mediaFiles && request.mediaFiles.length > 0) {
-      request.mediaFiles.forEach((file) => {
+      console.log(`Uploading ${request.mediaFiles.length} media files for rating`);
+      request.mediaFiles.forEach((file, index) => {
+        console.log(`Adding file ${index}: ${file.name} (${file.size} bytes)`);
         formData.append('medias', file);
       });
     }
+
+    console.log('Creating rating with:', {
+      storeId: request.storeId,
+      sportId: request.sportId,
+      star: request.star,
+      comment: request.comment,
+      mediaCount: request.mediaFiles?.length || 0
+    });
 
     const response = await fetch(`/api/ratings`, {
       method: 'POST',
@@ -2296,20 +2500,25 @@ export async function createRating(request: {
       body: formData
     });
 
+    console.log('Rating API response status:', response.status);
+
     if (!response.ok) {
       let errorMsg = 'Không thể gửi đánh giá';
       try {
         const errorData = await response.json();
         errorMsg = errorData.message || errorMsg;
+        console.error('Backend error response:', errorData);
       } catch (e) {
         const text = await response.text();
-        console.error('Backend error:', text);
+        console.error('Backend error text:', text);
         errorMsg = text || errorMsg;
       }
       throw new Error(errorMsg);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Rating created successfully:', result);
+    return result;
   } catch (error: any) {
     console.error('Error creating rating:', error);
     throw error;
@@ -2412,7 +2621,6 @@ export async function getStoreRatings(
   perPage: number = 20
 ): Promise<any[]> {
   try {
-    //  FIX: Pass Authorization token if available
     const token = getToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -2431,7 +2639,18 @@ export async function getStoreRatings(
       }
     );
 
+    if (!response.ok) {
+      console.warn(`Failed to fetch store ratings: ${response.status}`);
+      return [];
+    }
+
     const data = await response.json();
+
+    // Handle empty array response (endpoint not implemented)
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.log(`No ratings found for store ${storeId}`);
+      return [];
+    }
 
     if (data.success === false || data.error) {
       console.warn('Cannot fetch store ratings');
@@ -2442,6 +2661,50 @@ export async function getStoreRatings(
   } catch (error: any) {
     console.error('Error fetching store ratings:', error);
     return [];
+  }
+}
+
+// ============= STORE APPROVAL =============
+
+/**
+ * Phê duyệt store (Admin only)
+ * @param storeId - ID của store cần phê duyệt
+ */
+export async function approveStore(storeId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('Vui lòng đăng nhập để phê duyệt Trung tâm thể thao');
+    }
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const response = await fetch('/api/store/approve', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ storeId })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Lỗi không xác định' }));
+      const errorMessage = error?.message || error?.error || `Lỗi ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      message: result?.message || 'Phê duyệt Trung tâm thể thao thành công'
+    };
+  } catch (error: any) {
+    console.error('Error approving store:', error);
+    return {
+      success: false,
+      message: error?.message || 'Có lỗi xảy ra khi phê duyệt Trung tâm thể thao'
+    };
   }
 }
 

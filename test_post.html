@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WS Post Apply Tester</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; max-width: 900px; margin: 20px auto; }
+    .row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+    input, button, textarea { padding:8px; font-size:14px; }
+    input[type="text"]{width:260px;}
+    textarea { width:100%; height:140px; resize:vertical; }
+    .box { border:1px solid #ddd; padding:12px; border-radius:6px; background:#fafafa; }
+    .log { height:260px; overflow:auto; background:#111; color:#eee; padding:8px; border-radius:6px; font-family: monospace; font-size:13px; }
+    .green { color:#0a0 } .red { color:#a00 }
+  </style>
+</head>
+<body>
+
+<h2>WebSocket Post Apply Tester</h2>
+
+<div class="box">
+  <!-- Connection -->
+  <div class="row">
+    <label>WS URL</label>
+    <!-- <input id="wsUrl" value="ws://www.executexan.store/ws/messages" /> -->
+    <input id="wsUrl" value="ws://localhost:8082/ws/messages" />
+
+    <label>Token</label>
+    <input id="tokenInput" placeholder="JWT token..." />
+
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+
+    <span id="status" class="red">DISCONNECTED</span>
+  </div>
+
+  <!-- Register -->
+  <div class="row">
+    <label>UserId</label>
+    <input id="userIdInput" placeholder="user_123" />
+    <button id="registerBtn" disabled>Register</button>
+  </div>
+
+  <hr/>
+
+  <!-- Apply Post -->
+  <div class="row">
+    <label>PostId</label>
+    <input id="postIdInput" placeholder="post_abc" />
+  </div>
+
+  <div class="row">
+    <label>Number</label>
+    <input id="numberInput" type="number" min="1" value="1" />
+  </div>
+
+  <div class="row">
+    <button id="applyBtn" disabled>Apply Post</button>
+  </div>
+
+  <div>
+    <strong>Last outgoing JSON</strong>
+    <textarea id="lastOutgoing" readonly></textarea>
+  </div>
+
+  <div>
+    <strong>Logs</strong>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script>
+  const wsUrl = document.getElementById('wsUrl');
+  const tokenInput = document.getElementById('tokenInput');
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  const registerBtn = document.getElementById('registerBtn');
+  const applyBtn = document.getElementById('applyBtn');
+  const status = document.getElementById('status');
+
+  const userIdInput = document.getElementById('userIdInput');
+  const postIdInput = document.getElementById('postIdInput');
+  const numberInput = document.getElementById('numberInput');
+
+  const lastOutgoing = document.getElementById('lastOutgoing');
+  const log = document.getElementById('log');
+
+  let ws = null;
+
+  function logLine(type, text) {
+    const el = document.createElement('div');
+    el.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+    el.style.color = type === 'out' ? '#9ec7ff' : '#8fd19e';
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  connectBtn.onclick = () => {
+    let url = wsUrl.value.trim();
+    const token = tokenInput.value.trim();
+
+    if (token) url += '?token=' + encodeURIComponent(token);
+
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      status.textContent = 'CONNECTED';
+      status.className = 'green';
+      connectBtn.disabled = true;
+      disconnectBtn.disabled = false;
+      registerBtn.disabled = false;
+      applyBtn.disabled = false;
+      logLine('in', 'Connected');
+    };
+
+    ws.onmessage = e => logLine('in', `RECV ${e.data}`);
+    ws.onclose = () => location.reload();
+  };
+
+  disconnectBtn.onclick = () => ws && ws.close();
+
+  registerBtn.onclick = () => {
+    const payload = {
+      type: 'register',
+      userId: userIdInput.value.trim()
+    };
+    send(payload);
+  };
+
+  applyBtn.onclick = () => {
+    const payload = {
+      type: 'post.apply',
+      data: {
+        postId: postIdInput.value.trim(),
+        number: Number(numberInput.value)
+      }
+    };
+    send(payload);
+  };
+
+  function send(payload) {
+    const s = JSON.stringify(payload);
+    ws.send(s);
+    lastOutgoing.value = s;
+    logLine('out', `SENT ${s}`);
+  }
+</script>
+
+</body>
+</html>

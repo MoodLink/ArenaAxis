@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderDetailClientResponse {
   String fieldId;
-  String fieldName;
+  String name;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
   LocalDateTime startTime;
@@ -24,6 +24,5 @@ public class OrderDetailClientResponse {
 
   Long price;
 
-  @Builder.Default
-  String sportId = "football";
+  String sportId;
 }

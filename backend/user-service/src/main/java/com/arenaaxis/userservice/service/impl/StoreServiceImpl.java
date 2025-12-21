@@ -1,6 +1,5 @@
 package com.arenaaxis.userservice.service.impl;
 
-import com.arenaaxis.userservice.client.service.OrderClientService;
 import com.arenaaxis.userservice.dto.request.SearchStoreAdminRequest;
 import com.arenaaxis.userservice.dto.request.SearchStoreRequest;
 import com.arenaaxis.userservice.dto.request.StoreCreateRequest;
@@ -18,10 +17,12 @@ import com.arenaaxis.userservice.exception.ErrorCode;
 import com.arenaaxis.userservice.mapper.SportMapper;
 import com.arenaaxis.userservice.mapper.StoreMapper;
 import com.arenaaxis.userservice.mapper.WardRepository;
+import com.arenaaxis.userservice.repository.RatingStoreSportRepository;
 import com.arenaaxis.userservice.repository.StoreRepository;
 import com.arenaaxis.userservice.repository.StoreViewHistoryRepository;
 import com.arenaaxis.userservice.service.*;
 import com.arenaaxis.userservice.service.event.StoreApprovedEvent;
+import com.arenaaxis.userservice.service.helper.RatingSummary;
 import com.arenaaxis.userservice.specification.StoreSpecification;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
@@ -43,11 +44,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +55,7 @@ public class StoreServiceImpl implements StoreService {
 
   StoreRepository storeRepository;
   WardRepository wardRepository;
+  RatingStoreSportRepository ratingStoreSportRepository;
   StoreViewHistoryRepository storeViewHistoryRepository;
 
   StoreHasSportService storeHasSportService;
@@ -68,8 +66,6 @@ public class StoreServiceImpl implements StoreService {
   MediaService mediaService;
   AuthenticationService authenticationService;
   SportMapper sportMapper;
-
-  OrderClientService orderClientService;
 
   @Override
   @PreAuthorize("hasRole('ROLE_USER') or hasRole('ROLE_CLIENT')")
@@ -153,9 +149,16 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
-  public List<StoreSearchItemResponse> getInPagination(int page, int perPage) {
+  public List<StoreSearchItemResponse> getInPagination(User current, int page, int perPage) {
     Pageable pageable = PageRequest.of(page - 1, perPage);
-    Page<Store> storePage = storeRepository.findAll(pageable);
+    Page<Store> storePage;
+
+    if (current == null ||  !Role.ADMIN.equals(current.getRole())) {
+      Specification<Store> spec = StoreSpecification.defaultSearch();
+      storePage = storeRepository.findAll(spec, pageable);
+    } else {
+      storePage = storeRepository.findAll(pageable);
+    }
 
     return storePage.getContent().stream()
         .map(storeMapper::toStoreSearchItemResponse)
@@ -174,7 +177,6 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
-  @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_CLIENT')")
   public List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser) {
     if (!currentUser.getId().equals(ownerId) && !currentUser.getRole().isAdmin()) {
       throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -192,16 +194,23 @@ public class StoreServiceImpl implements StoreService {
     Pageable pageable = PageRequest.of(page - 1, perPage, Sort.by(Sort.Direction.DESC, "createdAt"));
     Specification<Store> spec = StoreSpecification.adminSearchStores(request);
     Page<Store> storePage = storeRepository.findAll(spec, pageable);
-    return storePage.getContent().stream()
-      .map(storeMapper::toStoreAdminSearchItemResponse).toList();
+
+    return toAdminSearchResponse(storePage.getContent());
   }
 
   @Override
   @PreAuthorize("hasRole('ROLE_CLIENT') or hasRole('ROLE_ADMIN')")
   public StoreAdminDetailResponse suspendStore(String storeId, User currentUser) {
-    Store store = getStore(storeId, currentUser);
-
     return null;
+  }
+
+  @Override
+  public void increaseOrderCount(String storeId) {
+    Store store = storeRepository.findById(storeId)
+      .orElseThrow(() -> new AppException(ErrorCode.STORE_NOT_FOUND));
+
+    store.increaseOrderCount();
+    storeRepository.save(store);
   }
 
   @Override
@@ -301,5 +310,35 @@ public class StoreServiceImpl implements StoreService {
       log.info("Invalid Google Maps link: {}", e.getMessage());
     }
     return coordinates;
+  }
+
+  private List<StoreAdminSearchItemResponse> toAdminSearchResponse(List<Store> stores) {
+    if (stores.isEmpty()) return List.of();
+
+    List<String> ids = stores.stream().map(Store::getId).toList();
+    List<Object[]> ratingRows = ratingStoreSportRepository.findRatingSummary(ids);
+
+    Map<String, RatingSummary> ratingMap = new HashMap<>();
+    for (Object[] row : ratingRows) {
+      String storeId = (String) row[0];
+      Long ratingCount = (Long) row[1];
+
+      ratingMap.put(storeId, new RatingSummary(ratingCount));
+    }
+
+    return stores.stream()
+      .map(store -> {
+        StoreAdminSearchItemResponse res =
+          storeMapper.toStoreAdminSearchItemResponse(store);
+
+        RatingSummary summary = ratingMap.get(store.getId());
+        if (summary != null) {
+          res.setRatingCount(summary.ragingCount().intValue());
+        } else {
+          res.setRatingCount(0);
+        }
+        return res;
+      })
+      .toList();
   }
 }

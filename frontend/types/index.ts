@@ -101,32 +101,143 @@ export interface ChatParticipant {
     isOnline: boolean
 }
 
-// Interface cho tin nhắn trong chat
-export interface ChatMessage {
-    id: string // Thay đổi từ number sang string
-    text: string // Thay đổi từ content sang text
-    senderId: string // Thay đổi từ sender sang senderId
-    roomId: string // Thêm roomId
-    timestamp: Date // Thay đổi từ time sang timestamp
-    type: "text" | "image" | "file" // Thêm type
+// WebSocket message types
+
+// User info sent with messages
+export interface UserInfo {
+    id: string
+    name: string
+    email: string
+    avatarUrl: string | null
 }
 
-// Interface cho phòng chat
-export interface ChatRoom {
-    id: string // Thay đổi từ number sang string
-    name: string
-    type: "group" | "private" // Thêm type
-    participants: ChatParticipant[] // Thay đổi structure
-    lastMessage: {
-        id: string
-        text: string
-        senderId: string
-        timestamp: Date
-    } // Thay đổi structure
-    unreadCount: number // Thay đổi từ unread sang unreadCount
-    hasUnread: boolean // Thêm hasUnread
-    memberCount: number // Thêm memberCount
+// Payload for sending message to server
+export interface WebSocketMessagePayload {
+    senderId: string
+    receiverId: string
+    content: string
+    conversationId?: string
 }
+
+// Payload for receiving message from server
+export interface WebSocketReceivedMessageData {
+    sender: UserInfo
+    content: string
+    conversationId: string
+    status: "RECEIVED"
+    timestamp: string
+}
+
+// Payload for message acknowledgment (when sender receives confirmation)
+export interface WebSocketMessageAckData {
+    sender: UserInfo
+    content: string
+    conversationId: string
+    status: "RECEIVED" | "SENT"
+    timestamp: string
+}
+
+// Register message to connect WebSocket
+export interface WebSocketRegisterMessage {
+    type: "register"
+    userId: string
+}
+
+// Send message to server
+export interface WebSocketSendMessage {
+    type: "message.send"
+    data: WebSocketMessagePayload
+}
+
+// Incoming message from server (message.receive type)
+export interface WebSocketIncomingMessage {
+    type: "message.receive"
+    data: WebSocketReceivedMessageData
+}
+
+// Acknowledgment message from server (message.send.ack type)
+export interface WebSocketAckMessage {
+    type: "message.send.ack"
+    data: WebSocketMessageAckData
+}
+
+// Post apply related types
+export interface PostApplyPayload {
+    postId: string
+    number: number // số lượng người chơi muốn apply
+}
+
+export interface WebSocketPostApplyMessage {
+    type: "post.apply"
+    data: PostApplyPayload
+}
+
+export interface PostApplyApplierData {
+    id: string
+    name: string
+    email: string
+    avatarUrl: string | null
+}
+
+export interface PostApplyPostData {
+    id: string
+    title: string
+    poster: PostApplyApplierData
+    timestamp: string
+    store: {
+        id: string
+        name: string
+        address: string
+    }
+    participantIds: string[] | null
+}
+
+export interface PostApplyNotificationData {
+    applier: PostApplyApplierData
+    post: PostApplyPostData
+    number: number
+    timestamp: string
+}
+
+export interface WebSocketPostApplyNotification {
+    type: "message.apply"
+    data: PostApplyNotificationData
+}
+
+// Union type for all incoming WebSocket messages
+export type WebSocketMessage =
+    | WebSocketIncomingMessage
+    | WebSocketAckMessage
+    | WebSocketPostApplyNotification
+    | { type: "pong" }
+    | { type: "ping" }
+
+// Interface cho tin nhắn trong chat (Map từ API response)
+export interface ChatMessage {
+    id: string
+    conversationId: string
+    senderId: string
+    content: string
+    status: "SEND" | "RECEIVED" // Status từ server
+    timestamp: string // Format: "HH:mm:ss dd/MM/yyyy"
+    type?: "text" | "image" | "file" // Optional, default là text
+}
+
+// Interface cho phòng chat / Conversation
+export interface ChatRoom {
+    id: string
+    name: string
+    avatarUrl: string | null
+    seen: boolean
+    participants: ConversationParticipant[]
+    lastMessage: ChatMessage | null
+    lastMessageAt: string // Format: "HH:mm:ss dd/MM/yyyy"
+    createdAt: string // Format: "HH:mm:ss dd/MM/yyyy"
+    memberCount?: number
+}
+
+// Alias cho compatibility
+export type Conversation = ChatRoom
 
 // Interface cho author trong community
 export interface CommunityAuthor {
@@ -470,32 +581,18 @@ export interface MainPlan {
     description?: string;
 }
 
-// Interface cho Message (từ Message.java entity)
-export interface Message {
-    id: string;
-    content?: string;
-    sender?: ConversationParticipant;
-    conversation?: Conversation;
-    createdAt?: string;
-}
 
-// Interface cho ConversationParticipant (từ ConversationParticipant.java entity)
+
+// Interface cho ConversationParticipant (từ API response)
 export interface ConversationParticipant {
-    id: string;
-    user?: User;
-    conversation?: Conversation;
-    createdAt?: string; // LocalDateTime -> string
+    id: string
+    name: string
+    email?: string
+    avatarUrl?: string | null
+    user?: User
 }
 
-// Interface cho Conversation (từ Conversation.java entity)
-export interface Conversation {
-    id: string;
-    name?: string;
-    createdAt?: string; // LocalDateTime -> string
-    type?: string; // ConversationType enum -> string
-    participants?: ConversationParticipant[];
-    messages?: Message[];
-}
+
 
 // Interface cho Rating (từ Rating.java entity)
 export interface Rating {
@@ -604,6 +701,11 @@ export interface MediaResponse {
 }
 
 
+// Interface cho Utility Type (từ UtilityType enum)
+export interface Utility {
+    type: 'WC' | 'CAMERA' | 'CANTEEN' | 'WIFI' | 'WATER' | 'PARKING';
+}
+
 // Interface cho Store Client Detail Response (từ StoreClientDetailResponse DTO)
 export interface StoreClientDetailResponse {
     id: string;
@@ -622,8 +724,11 @@ export interface StoreClientDetailResponse {
     coverImageUrl?: string;
     mediaUrls?: string[]; // List<String>
     sports?: Sport[]; //  List<SportResponse> từ backend
+    utilities?: Utility[]; // Danh sách tiện ích từ backend
     latitude?: number; // Float -> number
     longitude?: number; // Float -> number
+    ward?: WardResponse; // Xã/Phường
+    province?: ProvinceResponse; // Tỉnh/Thành phố
 }
 
 // Interface cho Ward Response (từ WardResponse DTO)
@@ -707,8 +812,11 @@ export interface StoreSearchItemResponse {
     averageRating?: number; // Float -> number
     orderCount?: number; // Long -> number
     viewCount?: number; // Long -> number
+    approved?: boolean; // Approval status
+    approvable?: boolean; // Whether store can be approved
     ward?: WardResponse;
     province?: ProvinceResponse;
+    status?: "approved" | "pending"; // Approval status
 }
 
 // Interface cho Store Registration Request
@@ -736,6 +844,7 @@ export interface StoreRegistrationResponse {
     message: string;
     storeId?: string;
     status?: "pending" | "approved" | "rejected";
+    newToken?: string; // Token mới với role CLIENT sau khi tạo store thành công
 }
 
 // Interface cho Optional Plan Purchase Request

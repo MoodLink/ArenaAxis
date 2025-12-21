@@ -25,18 +25,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { LogOut, User, Settings as SettingsIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
 const sidebarItems = [
-  {
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/admin',
+  // {
+  //   title: 'Dashboard',
+  //   icon: LayoutDashboard,
+  //   href: '/admin',
 
-  },
+  // },
   {
     title: 'Quản lý Users',
     icon: Users,
@@ -85,12 +88,12 @@ const sidebarItems = [
   //   href: '/admin/revenue',
 
   // },
-  // {
-  //   title: 'Đánh giá',
-  //   icon: Star,
-  //   href: '/admin/reviews',
+  {
+    title: 'Đánh giá',
+    icon: Star,
+    href: '/admin/reviews',
 
-  // },
+  },
   // {
   //   title: 'Báo cáo',
   //   icon: FileText,
@@ -151,6 +154,49 @@ function Sidebar({ className = '' }: { className?: string }) {
   )
 }
 
+function AdminProfileMenu() {
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // Clear auth token
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+      localStorage.removeItem('authToken')
+    }
+    // Redirect to login
+    router.push('/login')
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="flex items-center space-x-2 hover:bg-gray-100">
+          <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-medium">A</span>
+          </div>
+          <div className="hidden sm:block text-left">
+            <p className="text-sm font-medium text-gray-900">Admin</p>
+            <p className="text-xs text-gray-500">Quản trị viên</p>
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem disabled>
+          <User className="h-4 w-4 mr-2" />
+          <span>Admin</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+          <LogOut className="h-4 w-4 mr-2" />
+          <span>Đăng xuất</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -200,22 +246,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Notifications and Profile */}
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
-                  3
-                </Badge>
-              </Button>
-
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">A</span>
-                </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">Admin</p>
-                  <p className="text-xs text-gray-500">Quản trị viên</p>
-                </div>
-              </div>
+              <AdminProfileMenu />
             </div>
           </div>
         </div>

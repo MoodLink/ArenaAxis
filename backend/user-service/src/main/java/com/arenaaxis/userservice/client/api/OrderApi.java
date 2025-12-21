@@ -30,8 +30,8 @@ public class OrderApi {
       orderWebClient.get()
         .uri(uriBuilder -> {
           uriBuilder.path("/orders/store/{storeId}");
-          if (startTime != null) uriBuilder.queryParam("start_time", startTime);
-          if (endTime != null) uriBuilder.queryParam("end_time", endTime);
+          if (startTime != null) uriBuilder.queryParam("play_date_start", startTime);
+          if (endTime != null) uriBuilder.queryParam("play_date_end", endTime);
           return uriBuilder.build(request.getStoreId());
         })
         .retrieve()

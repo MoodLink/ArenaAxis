@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -115,6 +116,15 @@ public class MediaServiceImpl implements MediaService {
 
     Media media = mediaUtility.upload(file);
     return mediaRepository.save(media);
+  }
+
+  @Async
+  @Override
+  public CompletableFuture<Media> createMediaAsync(MultipartFile file) {
+    Media media = mediaUtility.upload(file);
+    return CompletableFuture.completedFuture(
+      mediaRepository.save(media)
+    );
   }
 
   private void handleSingleStoreMedia(Store store, StoreImageType type, Media newMedia) {

@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, MapPin, Clock, Star, ShoppingCart, Eye, User, CheckCircle, XCircle, ChevronDown, ChevronLeft, ChevronRight, Play, Pause, MessageCircle, Wifi, Shield, Camera, Lightbulb, Droplets, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, MapPin, Clock, Star, ShoppingCart, Eye, User, CheckCircle, XCircle, ChevronDown, ChevronLeft, ChevronRight, Play, Pause, MessageCircle, Wifi, Shield, Camera, Lightbulb, Droplets, AlertCircle, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { StoreClientDetailResponse } from '@/types'
-import { getStoreById, getSports } from '@/services/api-new'
+import { getSports } from '@/services/api-new'
+import { useStoreDetail, adminQueryKeys } from '@/hooks/admin-queries'
 
 interface AdminStoreDetailProps {
     storeId: string
@@ -15,39 +16,14 @@ interface AdminStoreDetailProps {
 
 export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
     const router = useRouter()
-    const [store, setStore] = useState<StoreClientDetailResponse | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
     const [isAutoPlaying, setIsAutoPlaying] = useState(true)
     const [isRatingDropdownOpen, setIsRatingDropdownOpen] = useState(false)
     const [sports, setSports] = useState<any[]>([])
     const [sportsLoading, setSportsLoading] = useState(false)
 
-    useEffect(() => {
-        const fetchStore = async () => {
-            try {
-                setLoading(true)
-                setError(null)
-                const data = await getStoreById(storeId)
-
-                if (data) {
-                    setStore(data)
-                } else {
-                    setError('Không tìm thấy Trung tâm thể thao')
-                }
-            } catch (err) {
-                console.error('Error fetching store:', err)
-                setError('Lỗi khi tải thông tin Trung tâm thể thao')
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        if (storeId) {
-            fetchStore()
-        }
-    }, [storeId])
+    // Fetch store with React Query
+    const { data: store, isLoading, error } = useStoreDetail(storeId)
 
     // Fetch sports when dropdown opens
     useEffect(() => {
@@ -88,7 +64,7 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
         return () => clearInterval(interval)
     }, [isAutoPlaying, store, currentSlideIndex])
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -107,7 +83,7 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
                     Quay lại
                 </Button>
                 <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-                    {error || 'Không tìm thấy Trung tâm thể thao'}
+                    {error instanceof Error ? error.message : 'Không tìm thấy Trung tâm thể thao'}
                 </div>
             </div>
         )
@@ -156,11 +132,35 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
 
     return (
         <div className="space-y-6">
-            {/* Back Button */}
-            <Button variant="outline" onClick={() => router.back()}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Quay lại
-            </Button>
+            {/* Back Button and Actions */}
+            <div className="flex items-center justify-between gap-4">
+                <Button variant="outline" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Quay lại
+                </Button>
+                <div className="flex gap-2">
+                    {store && store.approved !== undefined && !store.approved && (
+                        <Button
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => {
+                                console.log('Approve store:', storeId)
+                                // TODO: Implement approve functionality with API call
+                            }}
+                        >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Phê duyệt
+                        </Button>
+                    )}
+                    <Button
+                        variant="outline"
+                        onClick={() => router.push(`/admin/stores/${storeId}/edit`)}
+                    >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Chỉnh sửa
+                    </Button>
+                </div>
+            </div>
 
             {/* Cover and Profile Section */}
             <div className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-lg">
@@ -507,9 +507,7 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                                            Đặt
-                                        </Button>
+
                                     </div>
                                 ))
                             ) : (
@@ -518,18 +516,14 @@ export default function AdminStoreDetail({ storeId }: AdminStoreDetailProps) {
                                 </div>
                             )}
                         </div>
-                        <Button className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white h-12 font-bold text-base">
-                            🛒 Đặt sân ngay
-                        </Button>
+
                     </div>
                 </div>
 
                 {/* Right Column - Stats & Actions */}
                 <div className="space-y-6">
                     {/* Booking Button */}
-                    <Button className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white h-12 font-bold text-base">
-                        🛒 Đặt sân ngay
-                    </Button>
+
 
                     {/* Owner Info */}
                     {store.owner && (

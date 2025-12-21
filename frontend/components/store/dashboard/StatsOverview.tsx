@@ -37,11 +37,8 @@ function StatCard({ title, value, color = 'blue' }: StatCardProps) {
 
 export default function StatsOverview({ storeCount = 0 }: StatsOverviewProps) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-                title="Doanh thu tháng 11"
-                value="25.000.000đ"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
             <StatCard
                 title="Tổng số Trung tâm thể thao"
                 value={storeCount.toString()}

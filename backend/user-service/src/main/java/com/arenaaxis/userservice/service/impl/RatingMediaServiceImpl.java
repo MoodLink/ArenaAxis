@@ -1,6 +1,7 @@
 package com.arenaaxis.userservice.service.impl;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import com.arenaaxis.userservice.repository.MediaRepository;
 import org.springframework.scheduling.annotation.Async;
@@ -31,12 +32,22 @@ public class RatingMediaServiceImpl implements RatingMediaService {
   public void createMultiple(Rating rating, List<MultipartFile> files) {
     if (files == null || files.isEmpty()) return;
 
-    files.stream().map(mediaService::createMedia).forEach(media -> {
-      RatingMedia rm = RatingMedia.builder()
-                                  .media(media)
-                                  .rating(rating)
-                                  .build();
-      ratingMediaRepository.save(rm);
+    List<CompletableFuture<Media>> futures = files.stream()
+      .map(mediaService::createMediaAsync)
+      .toList();
+
+    CompletableFuture.allOf(
+      futures.toArray(new CompletableFuture[0])
+    ).join();
+
+    futures.forEach(f -> {
+      Media media = f.join();
+      ratingMediaRepository.save(
+        RatingMedia.builder()
+          .media(media)
+          .rating(rating)
+          .build()
+      );
     });
   }
 

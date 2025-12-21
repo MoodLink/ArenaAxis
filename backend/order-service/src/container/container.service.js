@@ -11,6 +11,7 @@ import { getOrdersByStoreService } from "../services/order.service.js";
 import { getOrdersByUserService } from "../services/order.service.js";
 import { mergeContinuous } from "../utils/time.util.js";
 import { mergeOrderDetails } from "../utils/time.util.js";
+import { increaseOrderCountForStore } from "../services/store.service.js";
 
 import { Field } from "../models/field.model.js";
 import { create, update, remove } from "../services/field.service.js";
@@ -45,6 +46,7 @@ export const orderServices = {
     OrderDetail,
     payOS,
     mergeContinuous,
+    increaseOrderCountForStore
   }),
   payosWebhookHandler: payosWebhookHandler({
     Order,

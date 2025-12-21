@@ -9,45 +9,56 @@ import {
     Users,
     Utensils,
 } from "lucide-react"
-import type { StoreClientDetailResponse } from "@/types"
+import type { StoreClientDetailResponse, Utility } from "@/types"
 
 interface StoreAmenitiesProps {
     store: StoreClientDetailResponse
 }
 
-const getAmenityIcon = (amenityName: string) => {
-    const name = amenityName.toLowerCase()
-    if (name.includes('wifi')) return Wifi
-    if (name.includes('parking') || name.includes('bãi đỗ')) return Car
-    if (name.includes('security') || name.includes('camera')) return Shield
-    if (name.includes('shower') || name.includes('water')) return Droplets
-    if (name.includes('locker') || name.includes('tủ')) return Lock
-    if (name.includes('lighting') || name.includes('đèn')) return Lightbulb
-    if (name.includes('seat') || name.includes('capacity')) return Users
-    if (name.includes('food') || name.includes('drink') || name.includes('canteen')) return Utensils
-    return Shield
+// Mapping utility type to display name and icon
+const utilityMap: Record<string, { name: string; icon: any }> = {
+    'WC': { name: 'Nhà vệ sinh', icon: Droplets },
+    'CAMERA': { name: 'Camera an ninh', icon: Shield },
+    'CANTEEN': { name: 'Căn tin ', icon: Utensils },
+    'WIFI': { name: 'Wifi miễn phí', icon: Wifi },
+    'WATER': { name: 'Nước uống miễn phí', icon: Droplets },
+    'PARKING': { name: 'Bãi đỗ xe', icon: Car },
+}
+
+const getAmenityIcon = (utilityType: string) => {
+    return utilityMap[utilityType]?.icon || Shield
+}
+
+const getAmenityName = (utilityType: string) => {
+    return utilityMap[utilityType]?.name || utilityType
 }
 
 export default function StoreAmenities({ store }: StoreAmenitiesProps) {
-    // Default amenities if not provided
-    const amenities = [
-        'Wifi miễn phí',
-        'Bãi đỗ xe rộng rãi',
-        'Phòng thay đồ',
-        'Nhà vệ sinh',
-        'Đèn chiếu sáng',
-        'Căng tin',
-        'Camera an ninh',
-        'Nước uống miễn phí',
-    ]
+    // Use utilities from store data, fallback to empty array
+    const amenities: Utility[] = store.utilities || []
+
+    // Show message if no utilities
+    if (amenities.length === 0) {
+        return (
+            <Card className="shadow-lg border-0">
+                <CardContent className="p-6">
+                    <h2 className="text-2xl font-bold mb-6 text-gray-800">Tiện ích & Cơ sở vật chất</h2>
+                    <div className="text-center py-8 text-gray-500">
+                        <p>Chưa có thông tin tiện ích</p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card className="shadow-lg border-0">
             <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6 text-gray-800">Tiện ích & Cơ sở vật chất</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {amenities.map((amenityName, index) => {
-                        const IconComponent = getAmenityIcon(amenityName)
+                    {amenities.map((utility, index) => {
+                        const IconComponent = getAmenityIcon(utility.type)
+                        const displayName = getAmenityName(utility.type)
                         return (
                             <div
                                 key={index}
@@ -58,7 +69,7 @@ export default function StoreAmenities({ store }: StoreAmenitiesProps) {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <span className="font-medium text-gray-900 block truncate">
-                                        {amenityName}
+                                        {displayName}
                                     </span>
                                     <div className="text-xs text-emerald-600 font-medium">Có sẵn</div>
                                 </div>

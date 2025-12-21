@@ -28,11 +28,14 @@ import {
   Heart,
 } from 'lucide-react';
 import { toggleFavourite, isFavourite, createRating, getCurrentUser } from '@/services/api-new';
+import { isNotAuthenticatedError } from '@/lib/errors';
 import type { StoreClientDetailResponse, UserResponse } from '@/types';
 import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
 import StoreSportsList from '@/components/store/StoreSportsList';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
+import StoreRatingsSection from '@/components/store/StoreRatingsSection';
+import { LoginPromptDialog } from '@/components/common/LoginPromptDialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-sync';
@@ -54,6 +57,7 @@ export default function StoreDetailPage() {
   const [isSportModalOpen, setIsSportModalOpen] = useState(false);
   const [isFav, setIsFav] = useState(false);
   const [isLoadingFav, setIsLoadingFav] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [sports, setSports] = useState<any[]>([]);
   const [sportsLoading, setSportsLoading] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
@@ -185,11 +189,16 @@ export default function StoreDetailPage() {
         description: `"${store?.name}"`,
       });
     } catch (error: any) {
-      toast({
-        title: ' Lỗi',
-        description: error?.message || 'Không thể cập nhật yêu thích',
-        variant: 'destructive',
-      });
+      // Kiểm tra nếu là lỗi không đăng nhập
+      if (isNotAuthenticatedError(error)) {
+        setShowLoginDialog(true);
+      } else {
+        toast({
+          title: ' Lỗi',
+          description: error?.message || 'Không thể cập nhật yêu thích',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoadingFav(false);
     }
@@ -203,11 +212,7 @@ export default function StoreDetailPage() {
 
   const handleRatingClick = (sport: any) => {
     if (!currentUser) {
-      toast({
-        title: ' Vui lòng đăng nhập',
-        description: 'Bạn cần đăng nhập để đánh giá sân',
-        variant: 'destructive',
-      });
+      setShowLoginDialog(true);
       return;
     }
     setSelectedSportForRating(sport);
@@ -274,6 +279,10 @@ export default function StoreDetailPage() {
 
       await createRating(request);
 
+      // Chờ 2 giây để backend kịp xử lý async media upload
+      // (vì backend dùng @Async cho RatingMediaService.createMultiple)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       toast({
         title: ' Cảm ơn bạn!',
         description: 'Đánh giá của bạn đã được gửi thành công',
@@ -287,11 +296,16 @@ export default function StoreDetailPage() {
       setRatingImages([]);
       setRatingImagePreviews([]);
     } catch (error: any) {
-      toast({
-        title: ' Lỗi',
-        description: error?.message || 'Không thể gửi đánh giá',
-        variant: 'destructive',
-      });
+      // Kiểm tra nếu là lỗi không đăng nhập
+      if (isNotAuthenticatedError(error)) {
+        setShowLoginDialog(true);
+      } else {
+        toast({
+          title: ' Lỗi',
+          description: error?.message || 'Không thể gửi đánh giá',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsSubmittingRating(false);
     }
@@ -440,7 +454,7 @@ export default function StoreDetailPage() {
                     <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     <div className="text-left">
                       <div className="text-sm text-gray-600">Đánh giá</div>
-                      <div className="text-2xl font-bold text-gray-900">0.0</div>
+
                     </div>
                   </div>
                   <ChevronDown
@@ -495,7 +509,7 @@ export default function StoreDetailPage() {
             </div>
 
             {/* Quick Info - Below Profile */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 text-gray-600 mb-2">
                   <ShoppingCart className="w-4 h-4 text-green-500" />
@@ -523,15 +537,7 @@ export default function StoreDetailPage() {
                   {formatTime(store.startTime)} - {formatTime(store.endTime)}
                 </p>
               </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4 text-red-500" />
-                  <span className="text-sm">Khoảng cách</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  ~2.5 km
-                </p>
-              </div>
+
             </div>
           </div>
         </div>
@@ -682,7 +688,13 @@ export default function StoreDetailPage() {
               />
             )}
 
-            {/* Block 6: Ratings List - Removed */}
+            {/* Block 6: Ratings Section */}
+            {store && (
+              <StoreRatingsSection
+                storeId={storeId}
+                sports={store.sports}
+              />
+            )}
 
           </div>
 
@@ -709,13 +721,17 @@ export default function StoreDetailPage() {
                     </span>
                     <button
                       onClick={() => {
-                        alert('Chức năng chat đang được phát triển');
+                        if (store.owner?.id && store.owner?.name) {
+                          router.push(`/chat?owner_id=${store.owner.id}&owner_name=${encodeURIComponent(store.owner.name)}`);
+                        }
                       }}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Chat với chủ sân"
                     >
-                      <MessageCircle className="w-5 h-5 text-emerald-600 hover:text-emerald-700" />
+                      <MessageCircle className="w-5 h-5 text-emerald-600 hover:text-emerald-700" /> Chat với chủ sân
+
                     </button>
+
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -743,17 +759,7 @@ export default function StoreDetailPage() {
 
                   {/* Chat and Favorite Buttons */}
                   <div className="space-y-2 pt-4 border-t">
-                    <Button
-                      onClick={() => {
-                        alert('Chức năng chat đang được phát triển');
-                      }}
-                      variant="outline"
-                      className="w-full border-2"
-                      size="sm"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Chat ngay
-                    </Button>
+
 
                     <Button
                       onClick={handleToggleFavourite}
@@ -958,6 +964,15 @@ export default function StoreDetailPage() {
             </Card>
           </div>
         )}
+
+        {/* Login Prompt Dialog */}
+        <LoginPromptDialog
+          open={showLoginDialog}
+          onOpenChange={setShowLoginDialog}
+          title="Yêu cầu đăng nhập"
+          description="Bạn cần đăng nhập để sử dụng chức năng đánh giá."
+          action="Đăng nhập"
+        />
       </div>
     </div>
   );

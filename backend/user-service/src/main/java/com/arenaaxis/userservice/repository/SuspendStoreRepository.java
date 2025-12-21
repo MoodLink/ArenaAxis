@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -20,25 +20,25 @@ public interface SuspendStoreRepository extends JpaRepository<SuspendStore, Stri
     "AND s.startAt <= :time " +
     "AND s.endAt >= :time"
   )
-  boolean existsByStore_IdAndTime(String storeId, LocalDateTime time);
+  boolean existsByStore_IdAndTime(String storeId, LocalDate time);
 
   @Query("""
       SELECT s
       FROM SuspendStore s
       WHERE s.store.id = :storeId
         AND (
-              (:end IS NULL AND s.endAt IS NULL)
-           OR (:end IS NULL AND s.startAt <= CURRENT_TIMESTAMP)
-           OR (s.startAt <= :end)
+          (:end IS NULL AND s.endAt IS NULL)
+          OR (:end IS NULL AND s.startAt <= CURRENT_DATE)
+          OR (s.startAt <= :end)
         )
         AND (s.endAt IS NULL OR s.endAt >= :start)
       ORDER BY s.startAt ASC
   """)
   List<SuspendStore> findSuspendStore(
-    @Param("storeId") String storeId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end
+    @Param("storeId") String storeId, @Param("start") LocalDate start, @Param("end") LocalDate end
   );
 
   default boolean isStoreSuspendedNow(String storeId) {
-    return existsByStore_IdAndTime(storeId, LocalDateTime.now());
+    return existsByStore_IdAndTime(storeId, LocalDate.now());
   }
 }

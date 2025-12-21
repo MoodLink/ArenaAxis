@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import { OrderDetail } from "../models/order-detail.model.js";
 
 const RETURN_URL =
   process.env.RETURN_URL || "http://localhost:3000/payment/success";
@@ -11,6 +12,7 @@ export const createOrderService = ({
   OrderDetail,
   payOS,
   mergeContinuous,
+  increaseOrderCountForStore
 }) => {
   return async (paymentData) => {
     try {
@@ -78,14 +80,15 @@ export const createOrderService = ({
         const startDateTime = new Date(`${item.date}T${item.start_time}:00`);
         const endDateTime = new Date(`${item.date}T${item.end_time}:00`);
 
-        return OrderDetail({
-          orderId: order._id,
-          fieldId: item.field_id,
-          startTime: startDateTime,
-          endTime: endDateTime,
-          price: item.price,
-        });
+      return OrderDetail({
+        orderId: order._id,
+        storeId: store_id,
+        fieldId: item.field_id,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        price: item.price,
       });
+    });
 
       const savedOrderDetails = await OrderDetail.insertMany(orderDetails);
       console.log("OrderDetails saved:", savedOrderDetails);
@@ -106,20 +109,21 @@ export const createOrderService = ({
 
       console.log("Request Data:", requestData);
 
-      const paymentResponse = await payOS.paymentRequests.create(requestData);
-      console.log("Payment Response:", paymentResponse);
-      const data = {
-        orderCode: paymentResponse.orderCode,
-        amount: paymentResponse.amount,
-        checkoutUrl: paymentResponse.checkoutUrl,
-        description: paymentResponse.description,
-      };
-      console.log("Returning Data:", data);
-      return data;
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  };
+    const paymentResponse = await payOS.paymentRequests.create(requestData);
+    console.log("Payment Response:", paymentResponse);
+    const data = {
+      orderCode: paymentResponse.orderCode,
+      amount: paymentResponse.amount,
+      checkoutUrl: paymentResponse.checkoutUrl,
+      description: paymentResponse.description,
+    };
+    console.log("Returning Data:", data);
+    increaseOrderCountForStore(store_id);
+    return data;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
 };
 
 export const payosWebhookHandler = ({ Order }) => {
@@ -235,19 +239,34 @@ export const getOrdersByStoreService = ({
   OrderDetail,
   mergeOrderDetails,
 }) => {
-  return async (storeId, startTime, endTime) => {
-    try {
-      const filter = {
-        storeId: storeId,
-        statusPayment: "PAID",
+  return async (storeId, startTime, endTime, playDateStart, playDateEnd) => {
+  try {
+    const filter = {
+      storeId: storeId,
+      statusPayment: "PAID",
+    };
+    if (startTime && endTime) {
+      filter.createdAt = {
+        $gte: startOfDay(startTime),
+        $lte: endOfDay(endTime),
       };
-      if (startTime && endTime) {
-        filter.createdAt = {
-          $gte: new Date(startTime).setHours(0, 0, 0, 0),
-          $lte: new Date(endTime).setHours(23, 59, 59, 999),
-        };
+    }
+
+    if (playDateStart && playDateEnd) {
+      const orderIds = await getOrderIdsByPlayDate(
+        storeId,
+        playDateStart,
+        playDateEnd
+      );
+
+      if (!orderIds || orderIds.length === 0) {
+        return [];
       }
-      const orders = await Order.find(filter).sort({ createdAt: -1 });
+
+      filter._id = { $in: orderIds };
+    }
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
 
       for (let order of orders) {
         const orderDetails = await OrderDetail.find({ orderId: order._id });
@@ -288,3 +307,21 @@ export const getOrdersByUserService = ({
     }
   };
 };
+
+async function getOrderIdsByPlayDate(storeId, playDateStart, playDateEnd) {
+  return await OrderDetail.distinct("orderId", {
+    storeId,
+    startTime: {
+      $lte: endOfDay(playDateEnd),
+    },
+    endTime: {
+      $gte: startOfDay(playDateStart),
+    },
+  });
+}
+
+const startOfDay = (date) =>
+  new Date(new Date(date).setHours(0, 0, 0, 0));
+
+const endOfDay = (date) =>
+  new Date(new Date(date).setHours(23, 59, 59, 999));

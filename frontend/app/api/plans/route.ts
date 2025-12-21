@@ -2,7 +2,6 @@
 // Proxy API cho main plans và optional plans
 
 import { NextRequest, NextResponse } from 'next/server';
-import { CACHE_TIMES } from '@/lib/cache-utils';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -20,12 +19,8 @@ export async function GET(request: NextRequest) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            // Next.js caching - cache plans for 24 hours (static data)
-            cache: 'force-cache',
-            next: {
-                revalidate: 86400, // 24 hours = 86400 seconds
-                tags: ['plans', type],
-            } as any,
+            // No caching - rely on React Query
+            cache: 'no-cache',
         });
 
         const data = await response.json();
@@ -37,12 +32,8 @@ export async function GET(request: NextRequest) {
 
         console.log(`[API Proxy]  Plans retrieved for type=${type}`);
 
-        const responseHeaders = new Headers();
-        responseHeaders.set('Cache-Control', `public, s-maxage=86400, stale-while-revalidate=172800`);
-
         return NextResponse.json(data, {
             status: 200,
-            headers: responseHeaders,
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch plans';
