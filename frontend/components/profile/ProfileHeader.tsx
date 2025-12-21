@@ -158,20 +158,7 @@ export default function ProfileHeader({ user, showEditButton = true }: ProfileHe
                             )}
 
                             {/* Quick Stats */}
-                            <div className="flex flex-wrap justify-center md:justify-start gap-6 text-green-50">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold">{user.stats?.totalBookings || 0}</div>
-                                    <div className="text-sm">Lượt đặt sân</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold">{user.stats?.totalTournaments || 0}</div>
-                                    <div className="text-sm">Giải đấu</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold">{user.stats?.totalPosts || 0}</div>
-                                    <div className="text-sm">Bài viết</div>
-                                </div>
-                            </div>
+                            {/* Removed */}
                         </div>
 
                         {/* Action Buttons */}

@@ -1,10 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { StoreAdminDetailResponse } from '@/types'
+import { StoreAdminDetailResponse, StoreSearchItemResponse } from '@/types'
 import { getMyProfile } from '@/services/get-my-profile'
 import { useStoresByOwner } from '@/hooks/use-store-by-owner'
+import { getStores } from '@/services/api-new'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +19,7 @@ interface OwnerStoresListProps {
 
 export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
     const [currentOwnerId, setCurrentOwnerId] = useState<string | null>(null)
+    const [currentUserName, setCurrentUserName] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
     const [error, setError] = useState<string | null>(null)
 
@@ -32,6 +35,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                     return
                 }
                 resolvedOwnerId = currentUser.id
+                setCurrentUserName(currentUser.name || currentUser.email)
             }
 
             setCurrentOwnerId(resolvedOwnerId)
@@ -42,15 +46,74 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         }
     }, [ownerId])
 
-    // Fetch stores using React Query hook (with automatic caching & deduplication)
-    const queryResult = useStoresByOwner(currentOwnerId || '')
-    const stores = (queryResult.data || []) as StoreAdminDetailResponse[]
-    const { isLoading, isError } = queryResult
+    // Fetch ALL stores from public endpoint (has averageRating)
+    // Then filter by owner - this way we get rating data
+    const { data: allStores = [], isLoading, isError } = useQuery({
+        queryKey: ['allStoresForOwner', currentOwnerId],
+        queryFn: async () => {
+            if (!currentOwnerId) return []
+
+            // Fetch multiple pages to ensure we get all stores
+            let allStoreData: StoreSearchItemResponse[] = []
+            let page = 0
+            let hasMore = true
+
+            while (hasMore && page < 10) { // Limit to 10 pages to avoid infinite loops
+                try {
+                    const pageStores = await getStores(page, 50)
+                    if (pageStores.length === 0) {
+                        hasMore = false
+                        break
+                    }
+                    allStoreData = [...allStoreData, ...pageStores]
+                    page++
+                } catch (err) {
+                    console.error(`Error fetching stores page ${page}:`, err)
+                    hasMore = false
+                }
+            }
+
+            return allStoreData
+        },
+        staleTime: 1000 * 60 * 3, // 3 minutes
+        gcTime: 1000 * 60 * 15,
+        enabled: !!currentOwnerId,
+        refetchOnWindowFocus: false,
+    })
+
+    // Filter stores by current owner
+    const stores = useMemo(() => {
+        if (!currentOwnerId || !allStores.length) return []
+
+        return allStores.filter(store => {
+            // Check if store owner matches
+            // Note: StoreSearchItemResponse doesn't have owner info, so we match by owner ID from backend
+            // For now, fallback to using original hook for admin stores
+            return true // Will be filtered below
+        })
+    }, [allStores, currentOwnerId])
+
+    // Also fetch owner-specific stores for admin details (status, etc.)
+    const adminQueryResult = useStoresByOwner(currentOwnerId || '')
+    const adminStores = (adminQueryResult.data || []) as StoreAdminDetailResponse[]
+
+    // Merge data: use admin store data as base, add rating from public store data
+    const mergedStores = useMemo(() => {
+        return adminStores.map(adminStore => {
+            const publicStore = allStores.find(s => s.id === adminStore.id)
+            return {
+                ...adminStore,
+                averageRating: publicStore?.averageRating ?? adminStore.averageRating ?? 0,
+                orderCount: publicStore?.orderCount ?? adminStore.orderCount ?? 0,
+                viewCount: publicStore?.viewCount ?? adminStore.viewCount ?? 0,
+            } as StoreAdminDetailResponse & { averageRating?: number }
+        })
+    }, [adminStores, allStores])
 
     // Save stores to localStorage when loaded
     useEffect(() => {
-        if (stores && stores.length > 0) {
-            const primaryStore = stores[0]
+        if (mergedStores && mergedStores.length > 0) {
+            const primaryStore = mergedStores[0]
             localStorage.setItem('storeId', primaryStore.id)
             localStorage.setItem('storeName', primaryStore.name)
             console.log('Saved primary store to localStorage:', {
@@ -58,7 +121,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                 storeName: primaryStore.name
             })
         }
-    }, [stores])
+    }, [mergedStores])
 
     const formatTime = (time?: string) => {
         if (!time) return '--:--';
@@ -75,7 +138,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         })
     };
 
-    if (isLoading && !stores.length) {
+    if (isLoading && !mergedStores.length && !adminStores.length) {
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -95,7 +158,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
         )
     }
 
-    if (!stores || stores.length === 0) {
+    if (!mergedStores || mergedStores.length === 0) {
         return (
             <div className="text-center py-20">
                 <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md mx-auto">
@@ -157,7 +220,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                 <div className="flex items-center justify-center gap-2">
                     <Star className="w-4 h-4 text-yellow-500" />
                     <span className="font-semibold text-gray-900">
-                        <ClientOnly>{(store as any).averageRating?.toFixed(1) || '0.0'}</ClientOnly>
+                        <ClientOnly>{(store.averageRating ?? 0)?.toFixed(1) || '0.0'}</ClientOnly>
                     </span>
                 </div>
             </td>
@@ -202,7 +265,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                     <h2 className="text-2xl font-bold text-gray-900">
                         Trung tâm thể thao của bạn
                     </h2>
-                    <p className="text-gray-600 mt-1">Quản lý {stores.length} trung tâm thể thao</p>
+                    <p className="text-gray-600 mt-1">Quản lý {mergedStores.length} trung tâm thể thao</p>
                 </div>
 
                 {/* View Mode Toggle */}
@@ -231,7 +294,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
             {/* Card View */}
             {viewMode === 'card' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {stores.map((store) => (
+                    {mergedStores.map((store) => (
                         <Card
                             key={store.id}
                             className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-2 hover:border-primary h-[520px] flex flex-col"
@@ -325,7 +388,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                                         <div className="bg-yellow-50 p-2 rounded">
                                             <Star className="w-4 h-4 text-yellow-500 mx-auto mb-1" />
                                             <p className="text-xs font-semibold text-gray-900">
-                                                <ClientOnly>{(store as any).averageRating?.toFixed(1) || '0.0'}</ClientOnly>
+                                                <ClientOnly>{(store.averageRating ?? 0)?.toFixed(1) || '0.0'}</ClientOnly>
                                             </p>
                                         </div>
                                         <div className="bg-green-50 p-2 rounded">
@@ -378,7 +441,7 @@ export default function OwnerStoresList({ ownerId }: OwnerStoresListProps) {
                             </tr>
                         </thead>
                         <tbody>
-                            {stores.map((store) => (
+                            {mergedStores.map((store) => (
                                 <TableRow key={store.id} store={store} />
                             ))}
                         </tbody>

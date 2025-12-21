@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { User, Trophy } from "lucide-react"
 import { User as UserType } from "@/types"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import ProfileStats from "./ProfileStats"
 
 interface ProfileOverviewProps {
     user: UserType
@@ -77,9 +75,8 @@ export default function ProfileOverview({ user }: ProfileOverviewProps) {
                 </Card>
             </div>
 
-            {/* Right Column - Stats & Activity */}
+            {/* Right Column - Notifications */}
             <div className="space-y-6">
-                <ProfileStats user={user} />
 
                 {/* Notification Settings Preview */}
                 <Card>

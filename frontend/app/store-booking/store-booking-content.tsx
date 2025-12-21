@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Calendar, MapPin, ArrowLeft } from "lucide-react"
 import { getFieldBookingGrid } from "@/services/api"
+import { getStoreById } from "@/services/api-new"
 import { FieldService } from "@/services/field.service"
+import { checkStoreSuspendStatus } from "@/services/suspend.service"
 import type { Field as FieldServiceType } from "@/services/field.service"
 import type { StoreClientDetailResponse, Sport } from "@/types"
 import PageHeader from "@/components/layout/PageHeader"
@@ -62,6 +64,8 @@ export default function StoreBookingContent() {
     const [fieldPricings, setFieldPricings] = useState<{
         [fieldId: string]: any[]
     }>({})
+    const [isSuspended, setIsSuspended] = useState(false)
+    const [suspendReason, setSuspendReason] = useState<string | null>(null)
 
     //  Helper function to refresh booking data from statusField - DEFINED FIRST before useEffects that use it
     const refreshBookingData = useCallback(async () => {
@@ -206,16 +210,12 @@ export default function StoreBookingContent() {
                 const activeFields = (fieldsResponse.data || []).filter((f: FieldServiceType) => f.activeStatus)
                 setFields(activeFields)
 
-                // Lấy store info từ field đầu tiên (tất cả field trong cùng 1 store)
-                const storeData = activeFields.length > 0 ? {
-                    _id: activeFields[0].storeId,
-                    name: activeFields[0].name?.split(' ').slice(0, -1).join(' ') || 'Store',
-                    address: activeFields[0].address || 'Address',
-                    startTime: '05:00',
-                    endTime: '24:00',
-                    avatarUrl: activeFields[0].avatar,
-                    coverImageUrl: activeFields[0].cover_image,
-                } : null
+                // Lấy store info từ API sử dụng storeId từ field
+                let storeData: StoreClientDetailResponse | null = null
+                if (activeFields.length > 0) {
+                    console.log('📦 Fetching store data from backend with storeId:', activeFields[0].storeId)
+                    storeData = await getStoreById(activeFields[0].storeId)
+                }
 
                 // Lấy sport info từ field đầu tiên
                 const sportData = activeFields.length > 0 ? {
@@ -223,7 +223,7 @@ export default function StoreBookingContent() {
                     name: activeFields[0].sport_name || 'Sport',
                 } : null
 
-                console.log('📦 Extracted Store data:', storeData)
+                console.log('📦 Store data from backend:', storeData)
                 console.log('⚽ Extracted Sport data:', sportData)
 
                 if (!storeData || !sportData) {
@@ -232,7 +232,7 @@ export default function StoreBookingContent() {
                     return
                 }
 
-                setStore(storeData as any)
+                setStore(storeData)
                 setSport(sportData as any)
 
                 // Extract pricing from field response
@@ -243,10 +243,11 @@ export default function StoreBookingContent() {
                 })
                 setFieldPricings(pricingMap)
 
-                // Generate time slots based on store opening hours
+                // Generate time slots based on store opening hours from backend
                 const slots: string[] = []
                 const startHour = storeData?.startTime ? parseInt(storeData.startTime.split(':')[0]) : 5
                 const endHour = storeData?.endTime ? parseInt(storeData.endTime.split(':')[0]) : 24
+                console.log('⏰ Store opening hours from backend:', { startTime: storeData?.startTime, endTime: storeData?.endTime, startHour, endHour })
 
                 for (let hour = startHour; hour < endHour; hour++) {
                     slots.push(`${hour.toString().padStart(2, "0")}:00`)
@@ -295,35 +296,61 @@ export default function StoreBookingContent() {
         fetchInitialData()
     }, [storeId, sportId, selectedDate])
 
-    // Update booking data when date changes
+    // Check suspend status when date changes
     useEffect(() => {
-        if (fields.length > 0 && selectedDate) {
-            const fetchBookingData = async () => {
-                console.log('📅 Fetching booking for date:', selectedDate)
-                const bookingMap: { [fieldId: string]: any } = {}
-
-                await Promise.all(
-                    fields.map(async (field: FieldServiceType) => {
-                        try {
-                            const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
-                            const flatBookingData: { [timeSlot: string]: string } = {}
-                            Object.values(fieldBookingData).forEach((courtData: any) => {
-                                Object.assign(flatBookingData, courtData)
-                            })
-                            bookingMap[field._id] = flatBookingData
-                        } catch (error) {
-                            console.warn(` Failed to fetch booking for field ${field._id}:`, error)
-                            bookingMap[field._id] = {}
-                        }
-                    })
-                )
-
-                setBookingData(bookingMap)
-            }
-
-            fetchBookingData()
+        if (!storeId || !selectedDate) {
+            return
         }
-    }, [selectedDate, fields])
+
+        const checkSuspendAndFetchData = async () => {
+            try {
+                console.log('🔍 Checking suspend status for date:', selectedDate)
+                const suspendStatus = await checkStoreSuspendStatus(storeId, selectedDate)
+
+                if (suspendStatus.suspended) {
+                    console.log('⛔ Store is suspended on this date:', suspendStatus.reason)
+                    setIsSuspended(true)
+                    setSuspendReason(suspendStatus.reason || 'Cơ sở này đang bị tạm ngưng')
+                    // Clear booking data since store is suspended
+                    setBookingData({})
+                    return
+                }
+
+                setIsSuspended(false)
+                setSuspendReason(null)
+
+                // Only fetch booking data if store is not suspended
+                if (fields.length > 0) {
+                    console.log('📅 Fetching booking for date:', selectedDate)
+                    const bookingMap: { [fieldId: string]: any } = {}
+
+                    await Promise.all(
+                        fields.map(async (field: FieldServiceType) => {
+                            try {
+                                const fieldBookingData = await getFieldBookingGrid(field._id, selectedDate)
+                                const flatBookingData: { [timeSlot: string]: string } = {}
+                                Object.values(fieldBookingData).forEach((courtData: any) => {
+                                    Object.assign(flatBookingData, courtData)
+                                })
+                                bookingMap[field._id] = flatBookingData
+                            } catch (error) {
+                                console.warn(` Failed to fetch booking for field ${field._id}:`, error)
+                                bookingMap[field._id] = {}
+                            }
+                        })
+                    )
+
+                    setBookingData(bookingMap)
+                }
+            } catch (error) {
+                console.error('Error checking suspend status:', error)
+                setIsSuspended(false)
+                setSuspendReason(null)
+            }
+        }
+
+        checkSuspendAndFetchData()
+    }, [selectedDate, storeId, fields.length])
 
     //  Trigger refresh when fields are first loaded
     useEffect(() => {
@@ -519,6 +546,62 @@ export default function StoreBookingContent() {
                     >
                         ← Quay lại trang store
                     </button>
+                </div>
+            </div>
+        )
+    }
+
+    if (isSuspended) {
+        return (
+            <div className="min-h-screen bg-gray-50">
+                <div className="container mx-auto px-4 py-8">
+                    <PageHeader
+                        title={`Đặt sân ${sport.name}`}
+                        subtitle={`Chọn thời gian phù hợp tại ${store.name}`}
+                        breadcrumbs={[
+                            { label: 'Danh sách Trung tâm thể thao', href: '/list-store' },
+                            { label: store.name, href: `/list-store/${storeId}` },
+                            { label: `Đặt sân ${sport.name}`, isActive: true }
+                        ]}
+                        gradientFrom="emerald-500"
+                        gradientTo="blue-600"
+                        icon={<Calendar className="w-6 h-6" />}
+                        badge={`${fields.length} sân`}
+                    />
+
+                    <BookingDateSelector
+                        selectedDate={selectedDate}
+                        onDateChange={setSelectedDate}
+                    />
+
+                    <div className="mt-8 max-w-2xl mx-auto">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="text-red-600 mt-0.5">
+                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-red-900 mb-2">Cơ sở bị tạm ngưng</h3>
+                                    <p className="text-red-700 mb-2">
+                                        Rất tiếc, {store.name} đang bị tạm ngưng vào ngày <strong>{selectedDate}</strong>
+                                    </p>
+                                    {suspendReason && (
+                                        <p className="text-red-600 text-sm mb-4">
+                                            Lý do: {suspendReason}
+                                        </p>
+                                    )}
+                                    <button
+                                        onClick={handleBackToStore}
+                                        className="text-red-600 hover:text-red-700 font-medium"
+                                    >
+                                        ← Quay lại trang store
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         )

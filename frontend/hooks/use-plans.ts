@@ -21,10 +21,9 @@ export function usePlans(type?: string) {
             }
             return response.json();
         },
-        staleTime: 1000 * 60 * 60 * 24, // 24 hours - static data
-        gcTime: 1000 * 60 * 60 * 48, // 48 hours garbage collection
-        refetchOnWindowFocus: false,
+        staleTime: 24 * 60 * 60 * 1000, // 24 hours - static data
+        gcTime: 48 * 60 * 60 * 1000, // 48 hours garbage collection
+        refetchOnWindowFocus: false, // Plans là static, không cần refetch
         refetchOnReconnect: false,
-        refetchOnMount: false,
     });
 }

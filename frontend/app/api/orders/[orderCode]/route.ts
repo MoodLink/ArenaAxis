@@ -19,7 +19,7 @@ export async function GET(
         console.log(' [API Proxy] Fetching order:', orderId);
 
         // Get ORDER_SERVICE_URL from environment
-        const orderServiceUrl = process.env.ORDER_SERVICE_DOMAIN || 'https://arena-axis.vercel.app/api/v1';
+        const orderServiceUrl = process.env.ORDER_SERVICE_DOMAIN || 'http://www.executexan.store/api/v1';
 
         // Forward request to order-service
         const response = await fetch(`${orderServiceUrl}/orders/${orderId}`, {

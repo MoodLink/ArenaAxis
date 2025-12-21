@@ -20,10 +20,11 @@ export function useFieldDetail(fieldId: string) {
             const data = await response.json();
             return data.data || data;
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: true, // ✅ Refetch khi quay lại tab
+        refetchOnReconnect: true, // ✅ Refetch khi reconnect
+        refetchInterval: 60 * 1000, // ✅ Polling: 60 giây check 1 lần
         enabled: !!fieldId, // Only fetch when fieldId exists
     });
 }

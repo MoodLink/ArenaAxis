@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         console.log('   Full body:', JSON.stringify(body, null, 2));
 
         // Get ORDER_SERVICE_URL from environment
-        const orderServiceUrl = process.env.ORDER_SERVICE_DOMAIN || 'https://arena-axis.vercel.app/api/v1';
+        const orderServiceUrl = process.env.ORDER_SERVICE_DOMAIN || 'http://www.executexan.store/api/v1';
         const targetUrl = `${orderServiceUrl}/orders/create-payment`;
 
         console.log('🔗 [API Proxy] Target URL:', targetUrl);

@@ -34,9 +34,13 @@ import StoreSportsList from '@/components/store/StoreSportsList1';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
 import StoreLayout from '@/components/store/StoreLayout';
 import StoreEditDialog from '@/components/store/StoreEditDialog';
+import SuspendDialog from '@/components/store/SuspendDialog';
+import SuspendConflictDialog from '@/components/store/SuspendConflictDialog';
+import SuspendList from '@/components/store/SuspendList';
 import { useStoreDetail } from '@/hooks/use-store-detail';
 import { useStoreRatings } from '@/hooks/use-store-ratings';
 import { usePlans } from '@/hooks/use-plans';
+import { SuspendStoreRecord } from '@/services/suspend.service';
 
 export default function StoreOwnerDetailPage() {
     const params = useParams();
@@ -61,6 +65,11 @@ export default function StoreOwnerDetailPage() {
     const [userRating, setUserRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+    const [suspendConflicts, setSuspendConflicts] = useState<SuspendStoreRecord[]>([]);
+    const [isSuspendConflictOpen, setIsSuspendConflictOpen] = useState(false);
+    const [suspendRefreshTrigger, setSuspendRefreshTrigger] = useState(0);
 
     // Fetch sports when rating dropdown opens
     useEffect(() => {
@@ -171,6 +180,27 @@ export default function StoreOwnerDetailPage() {
         console.log('Store updated:', updatedStore);
         // Note: In a production app, you'd invalidate the query cache here using:
         // queryClient.invalidateQueries({ queryKey: ['storeDetail', storeId] })
+    };
+
+    const handleSuspendClick = () => {
+        setIsSuspendDialogOpen(true);
+    };
+
+    const handleSuspendSuccess = (record: SuspendStoreRecord) => {
+        console.log('Store suspended successfully:', record);
+        // Trigger refresh of suspend list
+        setSuspendRefreshTrigger((prev) => prev + 1);
+    };
+
+    const handleSuspendConflict = (conflicts: SuspendStoreRecord[]) => {
+        setSuspendConflicts(conflicts);
+        setIsSuspendConflictOpen(true);
+    };
+
+    const handleForceRetry = () => {
+        setIsSuspendConflictOpen(false);
+        setIsSuspendDialogOpen(true);
+        // You could also set force=true automatically here if desired
     };
 
     if (loading) {
@@ -311,6 +341,12 @@ export default function StoreOwnerDetailPage() {
                                     onClick={handleEditClick}
                                 >
                                     Chỉnh sửa thông tin
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleSuspendClick}
+                                >
+                                    Tạm dừng
                                 </Button>
                             </div>
                         </div>
@@ -502,6 +538,12 @@ export default function StoreOwnerDetailPage() {
                                 onBookClick={handleBookingClick}
                             />
                         )}
+
+                        {/* Block 6: Suspend History */}
+                        <SuspendList
+                            storeId={storeId}
+                            refreshTrigger={suspendRefreshTrigger}
+                        />
                     </div>
 
                     {/* Right Column - Sidebar */}
@@ -528,6 +570,15 @@ export default function StoreOwnerDetailPage() {
                                     onClick={handleEditClick}
                                 >
                                     Chỉnh sửa thông tin
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    asChild
+                                >
+                                    <a href={`/store/ratings/${storeId}`}>
+                                        Quản lý đánh giá
+                                    </a>
                                 </Button>
                                 <Button variant="outline" className="w-full justify-start" asChild>
                                     <a href={`/store/bookings?store_id=${storeId}`}>
@@ -597,6 +648,24 @@ export default function StoreOwnerDetailPage() {
                     onClose={() => setIsEditDialogOpen(false)}
                     store={store}
                     onSave={handleEditSave}
+                />
+
+                {/* Suspend Dialog */}
+                <SuspendDialog
+                    isOpen={isSuspendDialogOpen}
+                    onClose={() => setIsSuspendDialogOpen(false)}
+                    storeId={storeId}
+                    storeName={store.name}
+                    onSuccess={handleSuspendSuccess}
+                    onConflict={handleSuspendConflict}
+                />
+
+                {/* Suspend Conflict Dialog */}
+                <SuspendConflictDialog
+                    isOpen={isSuspendConflictOpen}
+                    onClose={() => setIsSuspendConflictOpen(false)}
+                    conflicts={suspendConflicts}
+                    onForceRetry={handleForceRetry}
                 />
             </div>
         </StoreLayout>

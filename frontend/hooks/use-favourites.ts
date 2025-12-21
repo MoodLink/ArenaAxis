@@ -23,10 +23,11 @@ export function useFavourites() {
                 return [];
             }
         },
-        staleTime: 5 * 60 * 1000, // Cache 5 minutes
-        gcTime: 30 * 60 * 1000, // Keep in garbage collection for 30 minutes
-        refetchOnWindowFocus: false, // Don't refetch when user switches tabs
-        refetchOnReconnect: false, // Don't refetch on network reconnect
+        staleTime: 3 * 1000, // Cache 3 giây
+        gcTime: 2 * 1000, // 2 seconds
+        refetchOnWindowFocus: false, // ❌ Không cần refetch khi quay lại tab (dữ liệu hầu như không thay đổi)
+        refetchOnReconnect: true, // ✅ Chỉ refetch khi reconnect
+        refetchInterval: false, // ❌ Không polling (không cần - ít thay đổi)
         placeholderData: (previousData) => previousData, // Show stale data while fetching
         // Silent failure - return empty array if not logged in
         retry: false,

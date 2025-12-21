@@ -2,6 +2,7 @@
 // Cho phép người dùng xem thông tin chi tiết và tương tác
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,199 +17,179 @@ import {
     Star,
     TrendingUp,
     CheckCircle,
-    Zap
+    Zap,
+    Send
 } from "lucide-react"
-import { CommunityPost } from "@/types"
+import { CommunityPost } from "@/services/posts.service"
 
 interface CommunityPostCardProps {
     post: CommunityPost // Props nhận thông tin bài viết
-    onLike?: (postId: string) => void // Callback khi like bài viết (optional)
     onComment?: (postId: string) => void // Callback khi comment (optional)
     onJoin?: (postId: string) => void // Callback khi tham gia (optional)
 }
 
 export default function CommunityPostCard({
     post,
-    onLike,
     onComment,
     onJoin
 }: CommunityPostCardProps) {
+    const router = useRouter()
+
+    const handleChatWithOwner = () => {
+        // Redirect to chat page with post owner ID as query param
+        router.push(`/chat?userId=${post.poster?.id}`)
+    }
+
     // Helper functions để derive các giá trị từ CommunityPost data
-    const getSportColor = (sport: string) => {
-        const sportLower = sport.toLowerCase()
-        if (sportLower.includes("bóng đá")) return "bg-green-500"
+    const getSportColor = (sportName: string) => {
+        const sportLower = sportName.toLowerCase()
+        if (sportLower.includes("bóng đá") || sportLower.includes("football")) return "bg-green-500"
         if (sportLower.includes("tennis")) return "bg-blue-500"
-        if (sportLower.includes("cầu lông")) return "bg-purple-500"
-        if (sportLower.includes("bóng rổ")) return "bg-orange-500"
+        if (sportLower.includes("cầu lông") || sportLower.includes("badminton")) return "bg-purple-500"
+        if (sportLower.includes("bóng rổ") || sportLower.includes("basketball")) return "bg-orange-500"
         return "bg-gray-500"
     }
 
-    const formatTimeAgo = (createdAt: string) => {
-        const now = new Date()
-        const created = new Date(createdAt)
-        const diffInMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60))
+    const formatTimeAgo = (timestamp: string) => {
+        try {
+            // Handle format like "21:04:10 16/12/2025"
+            const now = new Date()
+            let created: Date
 
-        if (diffInMinutes < 1) return "Vừa xong"
-        if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
-        if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} giờ trước`
-        return `${Math.floor(diffInMinutes / 1440)} ngày trước`
+            if (timestamp.includes('/')) {
+                // Format: "21:04:10 16/12/2025"
+                const parts = timestamp.split(' ')
+                if (parts.length === 2) {
+                    const [day, month, year] = parts[1].split('/')
+                    created = new Date(`${year}-${month}-${day}T${parts[0]}`)
+                } else {
+                    created = new Date(timestamp)
+                }
+            } else {
+                created = new Date(timestamp)
+            }
+
+            const diffInMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60))
+
+            if (diffInMinutes < 1) return "Vừa xong"
+            if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+            if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} giờ trước`
+            return `${Math.floor(diffInMinutes / 1440)} ngày trước`
+        } catch {
+            return "Chưa xác định"
+        }
     }
 
     const getAuthorAvatar = (name: string) => {
         return name.charAt(0).toUpperCase()
     }
 
-    // Use actual data from CommunityPost interface
-    const location = post.location || "Chưa xác định"
-    const time = post.time || "Chưa xác định"
-    const level = post.level || "Tất cả"
-    const cost = post.cost || "Miễn phí"
-    const participants = post.participants || 0
-    const maxParticipants = post.maxParticipants || 0
-    const isHot = post.status === "hot"
-    const isUrgent = post.urgency === "urgent" || post.urgency === "today"
-
-    // Calculate duration from createdAt
-    const calculateDuration = (createdAt: string) => {
-        const now = new Date()
-        const created = new Date(createdAt)
-        const diffInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24))
-        if (diffInDays < 1) return "Hôm nay"
-        if (diffInDays === 1) return "1 ngày trước"
-        return `${diffInDays} ngày trước`
-    }
-    const duration = calculateDuration(post.createdAt)
+    // Get first match info
+    const firstMatch = post.matches && post.matches.length > 0 ? post.matches[0] : null
+    const matchDate = firstMatch?.date ? new Date(firstMatch.date).toLocaleDateString('vi-VN') : "Chưa xác định"
+    const matchTime = firstMatch?.startTime || "Chưa xác định"
+    const location = post.store?.address || "Chưa xác định"
+    const sportName = post.sport?.name || "Chưa xác định"
+    const participants = post.currentNumber || 0
+    const maxParticipants = post.requiredNumber || 0
+    const pricePerPerson = post.pricePerPerson || 0
+    const comments = post.comments?.length || 0
 
     return (
-        <Card className="hover:shadow-lg transition-all duration-300 bg-white border border-gray-200 hover:border-green-300 group">
-            <CardContent className="p-0">
-                {/* Modern header with author info */}
-                <div className="p-6 pb-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            {/* Modern Avatar */}
-                            <Avatar className="w-12 h-12 ring-2 ring-green-100">
-                                <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-bold">
-                                    {getAuthorAvatar(post.author.name)}
-                                </AvatarFallback>
-                            </Avatar>
+        <Card className="hover:shadow-md transition-all duration-300 bg-white border border-gray-200 hover:border-green-300 group">
+            <CardContent className="p-6">
+                <div className="flex gap-6">
+                    {/* Left section - Avatar */}
+                    <div className="flex-shrink-0">
+                        <Avatar className="w-14 h-14 ring-2 ring-green-100">
+                            <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-bold">
+                                {getAuthorAvatar(post.poster?.name || 'U')}
+                            </AvatarFallback>
+                        </Avatar>
+                    </div>
 
-                            {/* Author info */}
+                    {/* Middle section - Main content */}
+                    <div className="flex-grow min-w-0">
+                        {/* Header with author and time */}
+                        <div className="flex items-start justify-between gap-3 mb-2">
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-gray-900 hover:text-green-600 cursor-pointer">
-                                        {post.author.name}
-                                    </h4>
-                                    <CheckCircle className="w-4 h-4 text-blue-500" />
-                                    {isHot && (
-                                        <Badge className="bg-red-500 text-white text-xs px-2 py-0.5">
-                                            <TrendingUp className="w-3 h-3 mr-1" />
-                                            Hot
-                                        </Badge>
-                                    )}
+                                    <h4 className="font-semibold text-gray-900">{post.poster?.name || 'Unknown'}</h4>
+                                    <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                                 </div>
-                                <p className="text-sm text-gray-500">{formatTimeAgo(post.createdAt)}</p>
+                                <p className="text-xs text-gray-500">{formatTimeAgo(post.timestamp || new Date().toISOString())}</p>
                             </div>
-                        </div>
-
-                        {/* Status badges */}
-                        <div className="flex items-center gap-2">
-                            {/* {isUrgent && (
-                                <Badge className="bg-orange-500 text-white animate-pulse">
-                                    <Zap className="w-3 h-3 mr-1" />
-                                    Gấp
-                                </Badge>
-                            )} */}
-                            <Badge className={`${getSportColor(post.sport)} text-white border-0`}>
-                                {post.sport}
+                            <Badge className={`${getSportColor(sportName)} text-white border-0 flex-shrink-0`}>
+                                {sportName}
                             </Badge>
                         </div>
-                    </div>
 
-                    {/* Post title - clickable */}
-                    <Link href={`/community/${post.id}`}>
-                        <h3 className="text-xl font-bold mb-3 text-gray-900 hover:text-green-600 cursor-pointer transition-colors group-hover:text-green-700 line-clamp-2">
-                            {post.title}
-                        </h3>
-                    </Link>
+                        {/* Post title */}
+                        <Link href={`/community/${post.id}`}>
+                            <h3 className="text-base font-bold text-gray-900 hover:text-green-600 transition-colors line-clamp-1 mb-2">
+                                {post.title}
+                            </h3>
+                        </Link>
 
-                    {/* Quick info row */}
-                    <div className="flex items-center gap-4 mb-4 text-sm flex-wrap">
-                        <div className="flex items-center gap-1 text-gray-600">
-                            <Calendar className="w-4 h-4 text-blue-500" />
-                            <span>Hôm nay</span>
+                        {/* Description */}
+                        <p className="text-sm text-gray-700 line-clamp-2 mb-3">{post.description}</p>
+
+                        {/* Quick info row */}
+                        <div className="flex items-center gap-4 text-xs text-gray-600 mb-3 flex-wrap">
+                            <div className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                                <span>{matchDate}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-purple-500" />
+                                <span>{matchTime}</span>
+                            </div>
+                            {location && location !== "Chưa xác định" && (
+                                <div className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5 text-red-500" />
+                                    <span className="truncate max-w-[150px]">{location}</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1 text-gray-600">
-                            <Clock className="w-4 h-4 text-purple-500" />
-                            <span>{time}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-600">
-                            <MapPin className="w-4 h-4 text-red-500" />
-                            <span className="truncate max-w-[120px]">{location}</span>
-                        </div>
-                    </div>
 
-                    {/* Content preview */}
-                    <p className="text-gray-700 mb-4 leading-relaxed line-clamp-2">{post.content}</p>
-
-                    {/* Activity details card */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Trình độ</div>
-                            <Badge variant="outline" className="text-xs">{level}</Badge>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Chi phí</div>
-                            <span className="text-green-600 font-medium text-sm">50k</span>
-                        </div>
-                        {/* <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Tham gia</div>
-                            <span className="text-blue-600 font-medium text-sm">{participants}/{maxParticipants || '∞'}</span>
-                        </div> */}
-                        <div className="text-center">
-                            <div className="text-sm text-gray-500 mb-1">Thời gian</div>
-                            <span className="text-orange-600 font-medium text-sm">{duration}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Modern action bar */}
-                <div className="px-6 py-4 bg-gray-50 border-t">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            {/* Like button */}
-                            <button
-                                onClick={() => onLike?.(post.id)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-red-500 hover:bg-red-50 transition-all duration-200 group"
-                            >
-                                <Heart className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                <span className="font-medium">{post.likes}</span>
-                            </button>
-
-                            {/* Comment button */}
-                            <button
-                                onClick={() => onComment?.(post.id)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-all duration-200 group"
-                            >
-                                <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                <span className="font-medium">{post.comments}</span>
-                            </button>
-
-                            {/* Participants indicator */}
-                            {/* <div className="flex items-center gap-2 px-3 py-2 text-gray-600">
+                        {/* Stats inline */}
+                        <div className="flex items-center gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-600">Giá:</span>
+                                <span className="font-semibold text-green-600">{pricePerPerson > 0 ? `${pricePerPerson.toLocaleString()}đ` : 'Miễn phí'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-green-500" />
-                                <span className="text-sm font-medium">{participants} tham gia</span>
-                            </div> */}
+                                <span className="font-semibold text-blue-600">{participants}/{maxParticipants}</span>
+                            </div>
                         </div>
+                    </div>
 
-                        {/* Join button */}
+                    {/* Right section - Actions */}
+                    <div className="flex flex-col gap-2 items-end flex-shrink-0">
                         <Button
                             size="sm"
                             onClick={() => onJoin?.(post.id)}
-                            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-6 py-2 font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium px-4 whitespace-nowrap"
                         >
-                            Liên hệ với chủ sân
+                            Tham gia
                         </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleChatWithOwner}
+                            className="flex items-center gap-1 px-3 whitespace-nowrap text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                            <Send className="w-4 h-4" />
+                            <span>Chat</span>
+                        </Button>
+                        <button
+                            onClick={() => onComment?.(post.id)}
+                            className="flex items-center gap-1 px-3 py-1 rounded text-gray-600 hover:text-blue-500 hover:bg-blue-50 transition-all duration-200 text-sm"
+                        >
+                            <MessageCircle className="w-4 h-4" />
+                            <span>{comments}</span>
+                        </button>
                     </div>
                 </div>
             </CardContent>

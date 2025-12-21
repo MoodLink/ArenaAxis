@@ -21,7 +21,6 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=600'
       }
     });
   } catch (error) {

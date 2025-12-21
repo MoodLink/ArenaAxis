@@ -18,7 +18,8 @@ import {
 	User,
 	Settings,
 	LogOut,
-	BarChart3
+	BarChart3,
+	MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +72,12 @@ const sidebarItems = [
 		title: 'Đánh giá',
 		icon: Star,
 		href: '/store/reviews',
+
+	},
+	{
+		title: 'Chat',
+		icon: MessageCircle,
+		href: '/store/chat',
 
 	},
 	// {

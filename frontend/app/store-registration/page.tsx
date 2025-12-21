@@ -15,35 +15,15 @@ import { useRouter } from "next/navigation"
 
 type RegistrationStep = 1 | 2 | 3
 
-// Danh sách tiện ích có sẵn - Tiếng Việt
+// Danh sách tiện ích với code tương ứng
 const AVAILABLE_AMENITIES = [
-    "Wifi miễn phí",
-    "Bãi đỗ xe rộng rãi",
-    "Phòng thay đồ",
-    "Nhà vệ sinh",
-    "Đèn chiếu sáng",
-    "Căng tin",
-    "Camera an ninh",
-    "Nước uống miễn phí",
-    "Thiết bị cho thuê",
-    "Huấn luyện viên sẵn có",
-    "Trung tâm thể thao dụng cụ",
-    "Phòng y tế",
+    { code: 'WIFI', label: 'Wifi miễn phí', icon: Wifi },
+    { code: 'PARKING', label: 'Bãi đỗ xe ', icon: Car },
+    { code: 'WC', label: 'Nhà vệ sinh', icon: Droplets },
+    { code: 'CANTEEN', label: 'Có căng tin', icon: Utensils },
+    { code: 'CAMERA', label: 'Có camera', icon: Shield },
+    { code: 'WATER', label: 'Nước uống miễn phí', icon: Droplets },
 ]
-
-// Hàm lấy icon cho tiện ích
-const getAmenityIcon = (amenityName: string) => {
-    const name = amenityName.toLowerCase()
-    if (name.includes('wifi')) return Wifi
-    if (name.includes('parking') || name.includes('bãi đỗ') || name.includes('xe')) return Car
-    if (name.includes('security') || name.includes('camera') || name.includes('an ninh')) return Shield
-    if (name.includes('shower') || name.includes('water') || name.includes('nước uống') || name.includes('vệ sinh')) return Droplets
-    if (name.includes('locker') || name.includes('tủ') || name.includes('thay đồ')) return Lock
-    if (name.includes('lighting') || name.includes('đèn')) return Lightbulb
-    if (name.includes('seat') || name.includes('capacity') || name.includes('huấn luyện')) return Users
-    if (name.includes('food') || name.includes('drink') || name.includes('canteen') || name.includes('căng tin')) return Utensils
-    return Shield
-}
 
 export default function StoreRegistrationPage() {
     const router = useRouter()
@@ -80,6 +60,7 @@ export default function StoreRegistrationPage() {
         businessLicense?: File
         coverImage?: File
         avatar?: File
+        medias?: File[]
     }>({})
 
     const [provinces, setProvinces] = useState<ProvinceResponse[]>([])
@@ -185,18 +166,23 @@ export default function StoreRegistrationPage() {
         }))
     }
 
-    const handleAmenityToggle = (amenity: string) => {
+    const handleAmenityToggle = (amenityCode: string) => {
         setSelectedAmenities(prev => {
-            if (prev.includes(amenity)) {
-                return prev.filter(a => a !== amenity)
+            if (prev.includes(amenityCode)) {
+                return prev.filter(a => a !== amenityCode)
             } else {
-                return [...prev, amenity]
+                return [...prev, amenityCode]
             }
         })
     }
 
-    const handleFileChange = (field: 'businessLicense' | 'coverImage' | 'avatar', file: File | null) => {
-        if (file) {
+    const handleFileChange = (field: 'businessLicense' | 'coverImage' | 'avatar' | 'medias', file: File | null | FileList) => {
+        if (field === 'medias' && file instanceof FileList) {
+            setFiles(prev => ({
+                ...prev,
+                medias: [...(prev.medias || []), ...Array.from(file)]
+            }))
+        } else if (file && !(file instanceof FileList)) {
             setFiles(prev => ({
                 ...prev,
                 [field]: file
@@ -207,9 +193,16 @@ export default function StoreRegistrationPage() {
     const removeFile = (field: 'businessLicense' | 'coverImage' | 'avatar') => {
         setFiles(prev => {
             const updated = { ...prev }
-            delete updated[field]
+            delete updated[field as keyof typeof updated]
             return updated
         })
+    }
+
+    const removeMediaFile = (index: number) => {
+        setFiles(prev => ({
+            ...prev,
+            medias: prev.medias?.filter((_, i) => i !== index) || []
+        }))
     }
 
     const validateStep1 = (): boolean => {
@@ -296,12 +289,13 @@ export default function StoreRegistrationPage() {
         setLoading(true)
         try {
             // Bước 2: Upload ảnh nếu có (sau khi tạo store thành công)
-            if (storeId && !skipImages && (files.avatar || files.coverImage || files.businessLicense)) {
+            if (storeId && !skipImages && (files.avatar || files.coverImage || files.businessLicense || files.medias?.length)) {
                 console.log(' Starting image upload...')
                 const uploadResult = await updateStoreImages(storeId, {
                     avatar: files.avatar,
                     coverImage: files.coverImage,
-                    businessLicenseImage: files.businessLicense
+                    businessLicenseImage: files.businessLicense,
+                    medias: files.medias
                 })
 
                 if (!uploadResult.success) {
@@ -705,11 +699,11 @@ export default function StoreRegistrationPage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         {AVAILABLE_AMENITIES.map((amenity) => {
-                                            const IconComponent = getAmenityIcon(amenity)
+                                            const IconComponent = amenity.icon
                                             return (
                                                 <label
-                                                    key={amenity}
-                                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAmenities.includes(amenity)
+                                                    key={amenity.code}
+                                                    className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAmenities.includes(amenity.code)
                                                         ? 'border-emerald-500 bg-emerald-50 shadow-md'
                                                         : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50 hover:border-emerald-300'
                                                         }`}
@@ -719,14 +713,14 @@ export default function StoreRegistrationPage() {
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <span className="font-medium text-gray-900 block whitespace-nowrap">
-                                                            {amenity}
+                                                            {amenity.label}
                                                         </span>
                                                         <div className="text-xs text-emerald-600 font-medium">Có sẵn</div>
                                                     </div>
                                                     <input
                                                         type="checkbox"
-                                                        checked={selectedAmenities.includes(amenity)}
-                                                        onChange={() => handleAmenityToggle(amenity)}
+                                                        checked={selectedAmenities.includes(amenity.code)}
+                                                        onChange={() => handleAmenityToggle(amenity.code)}
                                                         className="w-5 h-5 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                                                     />
                                                 </label>
@@ -908,6 +902,51 @@ export default function StoreRegistrationPage() {
                                                     />
                                                 </label>
                                             )}
+                                        </div>
+                                    </div>
+
+                                    {/* Medias - Ảnh thêm */}
+                                    <div>
+                                        <Label htmlFor="medias">Ảnh thêm của Trung tâm (tùy chọn)</Label>
+                                        <p className="text-xs text-gray-500 mt-1">Max: 2MB/ảnh, có thể chọn nhiều ảnh</p>
+                                        <div className="mt-2 space-y-3">
+                                            {files.medias && files.medias.length > 0 && (
+                                                <div className="space-y-2">
+                                                    {files.medias.map((file, index) => (
+                                                        <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-green-50">
+                                                            <CheckCircle className="w-5 h-5 text-green-500" />
+                                                            <div className="flex-1">
+                                                                <p className="text-sm">{file.name}</p>
+                                                                <p className="text-xs text-gray-500">
+                                                                    {(file.size / 1024).toFixed(1)} KB
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => removeMediaFile(index)}
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <div className="text-center">
+                                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                    <p className="text-sm text-gray-500">Tải lên ảnh thêm</p>
+                                                    <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP - Chọn một hoặc nhiều ảnh</p>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => handleFileChange('medias', e.target.files)}
+                                                />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>

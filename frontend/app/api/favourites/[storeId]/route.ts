@@ -2,7 +2,6 @@
 // Proxy API cho dynamic favourites endpoints - BYPASS CORS
 
 import { NextResponse } from 'next/server';
-import { revalidateTag } from 'next/cache';
 
 const API_BASE_URL = process.env.USER_SERVICE_DOMAIN;
 
@@ -70,9 +69,6 @@ export async function DELETE(
         }
 
         console.log(`[API Proxy] Remove favourite successful`);
-
-        // Invalidate favourites cache after deletion
-        revalidateTag('favourites');
 
         return NextResponse.json({ success: true, ...data }, {
             status: 200,

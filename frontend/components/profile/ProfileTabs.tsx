@@ -2,7 +2,6 @@
 
 import {
     User,
-    Activity,
     Award,
     Settings,
     Store
@@ -17,7 +16,6 @@ interface ProfileTabsProps {
 export default function ProfileTabs({ activeTab, onTabChange, hasStores = false }: ProfileTabsProps) {
     const tabs = [
         { id: "overview", label: "Tổng quan", icon: User },
-        { id: "activities", label: "Hoạt động", icon: Activity },
         ...(hasStores ? [{ id: "stores", label: "Trung tâm thể thao", icon: Store }] : []),
         // { id: "achievements", label: "Thành tựu", icon: Award },
         { id: "settings", label: "Cài đặt", icon: Settings }

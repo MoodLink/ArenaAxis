@@ -55,8 +55,8 @@ export async function getSportsNews(
 
         const response = await fetch(url, {
             method: 'GET',
-            // Cache trong 5 phút
-            next: { revalidate: 300 }
+            // No caching - rely on React Query
+            cache: 'no-cache'
         })
 
         if (!response.ok) {
@@ -92,7 +92,8 @@ export async function searchSportsNews(
 
         const response = await fetch(url, {
             method: 'GET',
-            next: { revalidate: 300 }
+            // No caching - rely on React Query
+            cache: 'no-cache'
         })
 
         if (!response.ok) {

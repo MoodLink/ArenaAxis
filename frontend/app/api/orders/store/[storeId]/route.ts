@@ -24,7 +24,7 @@ export async function GET(
             )
         }
 
-        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'https://arena-axis.vercel.app/api/v1'
+        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'http://www.executexan.store/api/v1'
         const url = `${BACKEND_URL}/orders/store/${storeId}?start_time=${startTime}&end_time=${endTime}`
 
         console.log(' Fetching orders from backend:', url)
@@ -36,12 +36,8 @@ export async function GET(
                     'Content-Type': 'application/json',
                 },
                 signal: AbortSignal.timeout(5000), // 5 second timeout
-                // Add ISR caching
-                cache: 'force-cache',
-                next: {
-                    revalidate: 120, // Revalidate every 2 minutes (120 seconds)
-                    tags: ['orders', storeId, startTime, endTime], // Tag for manual invalidation
-                } as any,
+                // No caching - rely on React Query
+                cache: 'no-cache',
             })
 
             if (!response.ok) {
@@ -57,11 +53,7 @@ export async function GET(
             const data = await response.json()
             console.log(' Orders fetched from backend:', data)
 
-            return NextResponse.json(data, {
-                headers: {
-                    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240',
-                }
-            })
+            return NextResponse.json(data)
         } catch (fetchError) {
             console.warn(' Backend fetch failed, returning empty orders array:', fetchError)
             // Return empty orders array when backend is not available

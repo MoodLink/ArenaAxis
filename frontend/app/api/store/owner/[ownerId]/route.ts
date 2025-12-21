@@ -32,11 +32,8 @@ export async function GET(
         const response = await fetch(`${API_BASE_URL}/stores/owner/${ownerId}`, {
             method: 'GET',
             headers,
-            // Add Next.js caching - cache 5 minutes
-            next: {
-                revalidate: 300, // 5 minutes
-                tags: ['owner-stores', ownerId], // Tag for selective invalidation
-            } as any,
+            // No caching - rely on React Query
+            cache: 'no-cache',
         });
 
         const data = await response.json();
@@ -52,12 +49,9 @@ export async function GET(
 
         console.log(`[API Proxy] Stores by owner retrieved: ${Array.isArray(data) ? data.length : 0} items`);
 
-        // Add Cache-Control headers for browser
+        // Return data without cache headers
         return NextResponse.json(data, {
             status: 200,
-            headers: {
-                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-            },
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stores by owner';
