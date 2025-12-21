@@ -149,9 +149,16 @@ public class StoreServiceImpl implements StoreService {
   }
 
   @Override
-  public List<StoreSearchItemResponse> getInPagination(int page, int perPage) {
+  public List<StoreSearchItemResponse> getInPagination(User current, int page, int perPage) {
     Pageable pageable = PageRequest.of(page - 1, perPage);
-    Page<Store> storePage = storeRepository.findAll(pageable);
+    Page<Store> storePage;
+
+    if (current == null ||  !Role.ADMIN.equals(current.getRole())) {
+      Specification<Store> spec = StoreSpecification.defaultSearch();
+      storePage = storeRepository.findAll(spec, pageable);
+    } else {
+      storePage = storeRepository.findAll(pageable);
+    }
 
     return storePage.getContent().stream()
         .map(storeMapper::toStoreSearchItemResponse)

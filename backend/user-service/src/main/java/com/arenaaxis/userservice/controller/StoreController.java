@@ -38,7 +38,8 @@ public class StoreController {
   public ResponseEntity<List<StoreSearchItemResponse>> getPageStores(
     @RequestParam(value = "page", defaultValue = "1") int page,
     @RequestParam(value = "perPage", defaultValue = "12") int perPage) {
-    return ResponseEntity.ok(storeService.getInPagination(page, perPage));
+    User currentUser = currentUserService.getCurrentUser();
+    return ResponseEntity.ok(storeService.getInPagination(currentUser, page, perPage));
   }
 
   @PostMapping("/search")
