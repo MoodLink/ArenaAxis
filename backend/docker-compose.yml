@@ -68,6 +68,7 @@ services:
       - MESSAGE_MONGODB_URL=${MESSAGE_MONGODB_URL}
       - MESSAGE_MONGODB_DATABASE=${MESSAGE_MONGODB_DATABASE}
       - USER_SERVICE_URL=http://user-service:8081
+      - ORDER_SERVICE_URL=http://order-service:3000/api/v1
     networks:
       - arena-network
     restart: unless-stopped
