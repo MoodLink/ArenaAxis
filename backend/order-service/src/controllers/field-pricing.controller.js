@@ -1,7 +1,4 @@
-import { createFieldPricing } from "../services/field-pricing.service.js";
-import { getFieldPricingsByFieldId } from "../services/field-pricing.service.js";
-import { createFieldPricingSpecial } from "../services/field-pricing.service.js";
-import { getFieldSpecialPricingsByFieldId } from "../services/field-pricing.service.js";
+import { fieldPricingServices } from "../container/container.service.js";
 
 // [POST] /field-pricings/create
 export const create = async (req, res) => {
@@ -14,7 +11,7 @@ export const create = async (req, res) => {
       specialPrice: req.body.price,
     };
 
-    const data = await createFieldPricing(body);
+    const data = await fieldPricingServices.createFieldPricing(body);
     res
       .status(201)
       .send({ message: "Field pricing created successfully", data });
@@ -33,7 +30,7 @@ export const createSpecial = async (req, res) => {
       specialPrice: req.body.price,
     };
 
-    const data = await createFieldPricingSpecial(body);
+    const data = await fieldPricingServices.createFieldPricingSpecial(body);
     res
       .status(201)
       .send({ message: "Field special pricing created successfully", data });
@@ -46,7 +43,7 @@ export const createSpecial = async (req, res) => {
 export const getPriceByFieldId = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
-    const data = await getFieldPricingsByFieldId(fieldId);
+    const data = await fieldPricingServices.getFieldPricingsByFieldId(fieldId);
     if (!data) {
       res.status(404).json({
         message: "No pricing data found for this field",
@@ -64,7 +61,7 @@ export const getPriceByFieldId = async (req, res) => {
 export const getSpecialPriceByFieldId = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
-    const data = await getFieldSpecialPricingsByFieldId(fieldId);
+    const data = await fieldPricingServices.getFieldSpecialPricingsByFieldId(fieldId);
     if (!data) {
       res.status(404).json({
         message: "No special pricing data found for this field",

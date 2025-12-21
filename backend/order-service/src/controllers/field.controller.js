@@ -1,9 +1,5 @@
-import { create as createField } from "../services/field.service.js";
-import { getFields as getFieldsService } from "../services/field.service.js";
-import { getFieldById as getFieldByIdService } from "../services/field.service.js";
-import { update as updateField } from "../services/field.service.js";
-import { remove as removeField } from "../services/field.service.js";
 import { fieldSearch } from "../utils/search.util.js";
+import { fieldServices } from "../container/container.service.js";
 
 // [GET] /fields?sport_id=&store_id=&active_status=&keyword
 export const getFields = async (req, res) => {
@@ -22,7 +18,7 @@ export const getFields = async (req, res) => {
       filter.defaultPrice = objectSearch.regex;
     }
 
-    const data = await getFieldsService(filter, dateTime);
+    const data = await fieldServices.getFields(filter, dateTime);
     res.status(200).send({ message: "Fields retrieved successfully", data });
   } catch (error) {
     res.status(500).send({ message: error.message });
@@ -33,7 +29,7 @@ export const getFields = async (req, res) => {
 export const getFieldDetail = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
-    const data = await getFieldByIdService({ _id: fieldId });
+    const data = await fieldServices.getFieldById({ _id: fieldId });
     if (data.length === 0) {
       return res.status(404).send({ message: "Field not found" });
     }
@@ -56,7 +52,7 @@ export const create = async (req, res) => {
       createdAt: new Date(),
     };
 
-    const data = await createField(body, req);
+    const data = await fieldServices.create(body, req);
 
     res.status(201).send({ message: "Field created successfully", data });
   } catch (error) {
@@ -77,7 +73,7 @@ export const update = async (req, res) => {
     if (req.body.active_status !== undefined)
       updateData.activeStatus = req.body.active_status;
     updateData.updatedAt = new Date();
-    const data = await updateField(fieldId, updateData);
+    const data = await fieldServices.update(fieldId, updateData, req);
 
     if (!data) {
       return res.status(404).send({ message: "Field not found" });
@@ -93,7 +89,7 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   try {
     const fieldId = req.params.field_id;
-    const data = await removeField(fieldId);
+    const data = await fieldServices.remove(fieldId, req);
     if (!data) {
       return res.status(404).send({ message: "Field not found" });
     }
@@ -110,7 +106,7 @@ export const getStore = async (req, res) => {
     const filter = {};
     if (sportId) filter.sportId = sportId;
 
-    const data = await getFieldsService(filter);
+    const data = await fieldServices.getFields(filter);
     const storeIds = [...new Set(data.map((field) => field.storeId))];
 
     res
