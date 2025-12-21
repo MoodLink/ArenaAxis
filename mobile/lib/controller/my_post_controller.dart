@@ -38,52 +38,59 @@ class MyPostsController extends GetxController {
     // Load posts của user
     await loadMyPosts(isRefresh: true);
   }
-
-  /// Load posts của user hiện tại
-  Future<void> loadMyPosts({bool isRefresh = false}) async {
-    try {
-      if (isRefresh) {
-        isLoading.value = true;
-        currentPage.value = 0;
-        posts.clear();
-      } else {
-        isLoadingMore.value = true;
-      }
-      User? currentUser = await tokenStorage.getUserData();
-      _currentUserId = currentUser?.id;
-      errorMessage.value = null;
-
-      if (_currentUserId == null) {
-        throw Exception('Không tìm thấy thông tin người dùng');
-      }
-
-      final response = await _postService.getMyPosts(
-        userId: _currentUserId!,
-        page: currentPage.value,
-        perPage: perPage,
-        token: _token,
-      );
-
-      final List<dynamic> newPosts = response['data'] ?? [];
-
-      if (isRefresh) {
-        posts.assignAll(
-          newPosts.map((e) => e as Map<String, dynamic>).toList(),
-        );
-      } else {
-        posts.addAll(newPosts.map((e) => e as Map<String, dynamic>).toList());
-      }
-
-      // Check if there are more posts
-      hasMore.value = newPosts.length >= perPage;
-      isLoading.value = false;
-      isLoadingMore.value = false;
-    } catch (e) {
-      errorMessage.value = e.toString().replaceAll('Exception: ', '');
-      isLoading.value = false;
-      isLoadingMore.value = false;
+Future<void> loadMyPosts({bool isRefresh = false}) async {
+  try {
+    if (isRefresh) {
+      isLoading.value = true;
+      currentPage.value = 0;
+      posts.clear();
+    } else {
+      isLoadingMore.value = true;
     }
+
+    final user = await tokenStorage.getUserData();
+    final userId = user?.id;
+    if (userId == null) throw Exception('Không tìm thấy user');
+
+    final response = await _postService.searchPosts(
+      page: currentPage.value,
+      perPage: perPage,
+      token: _token,
+    );
+
+    final List<dynamic> allPosts = response['data'] ?? [];
+
+    final myPosts = filterMyPosts(allPosts, userId);
+
+    if (isRefresh) {
+      posts.assignAll(myPosts);
+    } else {
+      posts.addAll(myPosts);
+    }
+
+    hasMore.value = allPosts.length >= perPage;
+  } catch (e) {
+    errorMessage.value = e.toString();
+  } finally {
+    isLoading.value = false;
+    isLoadingMore.value = false;
   }
+}
+List<Map<String, dynamic>> filterMyPosts(
+  List<dynamic> allPosts,
+  String currentUserId,
+) {
+  return allPosts
+      .where((post) {
+        final posterId = post['poster']?['id'];
+        if (posterId == currentUserId) return true;
+
+        final participants = post['participants'] as List<dynamic>? ?? [];
+        return participants.any((p) => p['id'] == currentUserId);
+      })
+      .map((e) => e as Map<String, dynamic>)
+      .toList();
+}
 
   /// Load more posts (pagination)
   Future<void> loadMore() async {

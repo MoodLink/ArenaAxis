@@ -49,7 +49,6 @@ class PostController extends GetxController {
           response.map((e) => e as Map<String, dynamic>).toList(),
         );
       } else {
-
         matches.assignAll([]);
       }
 
