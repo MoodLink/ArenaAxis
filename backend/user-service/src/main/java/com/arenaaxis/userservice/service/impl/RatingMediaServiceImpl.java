@@ -30,7 +30,7 @@ public class RatingMediaServiceImpl implements RatingMediaService {
   @Async
   @Override
   public void createMultiple(Rating rating, List<MultipartFile> files) {
-    if (files.isEmpty()) return;
+    if (files == null || files.isEmpty()) return;
 
     List<CompletableFuture<Media>> futures = files.stream()
       .map(mediaService::createMediaAsync)
