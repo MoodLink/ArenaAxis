@@ -5,11 +5,14 @@ import {
     WebSocketIncomingMessage,
     WebSocketAckMessage,
     WebSocketMessage,
+    WebSocketPostApplyMessage,
+    WebSocketPostApplyNotification,
 } from '@/types'
 
 export interface UseMessageSocketOptions {
     userId?: string
     onMessageReceived?: (message: WebSocketIncomingMessage | WebSocketAckMessage) => void
+    onPostApplyNotification?: (notification: WebSocketPostApplyNotification) => void
     onConnectionChange?: (connected: boolean) => void
     autoReconnect?: boolean
     reconnectDelay?: number
@@ -25,6 +28,7 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
     const {
         userId,
         onMessageReceived,
+        onPostApplyNotification,
         onConnectionChange,
         autoReconnect = true,
         reconnectDelay = 3000,
@@ -131,7 +135,12 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
                         const ackMsg = rawMessage as WebSocketAckMessage
                         console.log('✅ [message.send.ack] Message status:', ackMsg.data.status)
                         onMessageReceived?.(ackMsg)
-                    } else if (rawMessage.type === 'message' || (!rawMessage.type && rawMessage.senderId)) {
+                    } else if (rawMessage.type === 'message.apply') {
+                        // Post apply notification - gửi cho những người đã apply và chủ bài
+                        const applyNotification = rawMessage as WebSocketPostApplyNotification
+                        console.log('🎯 [message.apply] Applier:', applyNotification.data.applier.name, 'joined post:', applyNotification.data.post.title)
+                        onPostApplyNotification?.(applyNotification)
+                    } else if (rawMessage.type === 'message' || rawMessage.type === 'message.send' || (!rawMessage.type && rawMessage.senderId)) {
                         // Old format or legacy: {senderId, receiverId, content, status}
                         // Convert to new message.receive format
                         console.log('📩 [OLD FORMAT] Received legacy message, converting...')
@@ -246,17 +255,21 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
             }
 
             try {
+                // Backend tự tìm conversation từ senderId + receiverId
+                // Không cần gửi conversationId
+                const messageData = {
+                    senderId: userId,
+                    receiverId: receiverId,
+                    content: content,
+                }
+
                 const message: WebSocketSendMessage = {
-                    type: 'message',
-                    data: {
-                        senderId: userId,
-                        receiverId: receiverId,
-                        content: content,
-                        conversationId: conversationId,
-                    },
+                    type: 'message.send',
+                    data: messageData,
                 }
                 socketRef.current.send(JSON.stringify(message))
                 console.log('✉️  Message sent via WebSocket:', message)
+                console.log('   Raw data being sent:', JSON.stringify(messageData))
                 return true
             } catch (error) {
                 console.error('❌ Error sending message:', error)
@@ -264,6 +277,45 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
             }
         },
         [userId]
+    )
+
+    // Gửi apply request cho một bài viết
+    const sendPostApply = useCallback(
+        (postId: string, number: number) => {
+            if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+                console.error('❌ WebSocket is not connected')
+                return false
+            }
+
+            if (!postId) {
+                console.error('❌ Post ID is not set')
+                return false
+            }
+
+            if (!number || number <= 0) {
+                console.error('❌ Number of players must be greater than 0')
+                return false
+            }
+
+            try {
+                const applyData = {
+                    postId: postId,
+                    number: number,
+                }
+
+                const applyMessage: WebSocketPostApplyMessage = {
+                    type: 'post.apply',
+                    data: applyData,
+                }
+                socketRef.current.send(JSON.stringify(applyMessage))
+                console.log('🎯 Post apply sent via WebSocket:', applyMessage)
+                return true
+            } catch (error) {
+                console.error('❌ Error sending post apply:', error)
+                return false
+            }
+        },
+        []
     )
 
     // Auto connect khi userId thay đổi
@@ -302,6 +354,7 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
     return {
         isConnected,
         sendMessage,
+        sendPostApply,
         disconnect,
         reconnect: connect,
     }

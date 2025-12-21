@@ -33,6 +33,7 @@ import StoreDescription from '@/components/store/StoreDescription';
 import StoreAmenities from '@/components/store/StoreAmenities';
 import StoreSportsList from '@/components/store/StoreSportsList';
 import SportSelectionModal from '@/components/store/SportSelectionModal';
+import StoreRatingsSection from '@/components/store/StoreRatingsSection';
 
 import { useToast } from '@/hooks/use-toast';
 import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-sync';
@@ -499,7 +500,7 @@ export default function StoreDetailPage() {
             </div>
 
             {/* Quick Info - Below Profile */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 text-gray-600 mb-2">
                   <ShoppingCart className="w-4 h-4 text-green-500" />
@@ -527,15 +528,7 @@ export default function StoreDetailPage() {
                   {formatTime(store.startTime)} - {formatTime(store.endTime)}
                 </p>
               </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4 text-red-500" />
-                  <span className="text-sm">Khoảng cách</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  ~2.5 km
-                </p>
-              </div>
+
             </div>
           </div>
         </div>
@@ -686,7 +679,13 @@ export default function StoreDetailPage() {
               />
             )}
 
-            {/* Block 6: Ratings List - Removed */}
+            {/* Block 6: Ratings Section */}
+            {store && (
+              <StoreRatingsSection
+                storeId={storeId}
+                sports={store.sports}
+              />
+            )}
 
           </div>
 

@@ -42,40 +42,21 @@ export default function SuspendDialog({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const formatDateTimeForInput = (dateString: string): string => {
-        if (!dateString) return '';
-        // Convert yyyy/MM/dd HH:mm:ss to datetime-local format (yyyy-MM-ddThh:mm)
-        const date = new Date(dateString.replace(/\//g, '-'));
-        if (isNaN(date.getTime())) return '';
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    };
-
-    const formatDateTimeForAPI = (inputValue: string): string => {
+    const formatDateForAPI = (inputValue: string): string => {
         if (!inputValue) return '';
-        // Convert datetime-local format (yyyy-MM-ddThh:mm) to yyyy/MM/dd HH:mm:ss
-        const [date, time] = inputValue.split('T');
-        const [year, month, day] = date.split('-');
-        const [hours, minutes] = time.split(':');
-        return `${year}/${month}/${day} ${hours}:${minutes}:00`;
+        // Convert date input format (yyyy-MM-dd) to API format (yyyy/MM/dd)
+        return inputValue.replace(/-/g, '/');
     };
 
     const handleSubmit = async () => {
         // Validation
-        if (!startAt || !endAt || !reason.trim()) {
+        if (!startAt || !reason.trim()) {
             setError('Vui lòng điền đầy đủ thông tin');
             return;
         }
 
-        const startDate = new Date(startAt);
-        const endDate = new Date(endAt);
-
-        if (startDate >= endDate) {
-            setError('Thời gian kết thúc phải sau thời gian bắt đầu');
+        if (endAt && startAt >= endAt) {
+            setError('Ngày kết thúc phải sau ngày bắt đầu');
             return;
         }
 
@@ -83,8 +64,8 @@ export default function SuspendDialog({
         setError(null);
 
         try {
-            const formattedStartAt = formatDateTimeForAPI(startAt);
-            const formattedEndAt = formatDateTimeForAPI(endAt);
+            const formattedStartAt = formatDateForAPI(startAt);
+            const formattedEndAt = endAt ? formatDateForAPI(endAt) : null;
 
             const response = await suspendStore({
                 storeId,
@@ -139,31 +120,31 @@ export default function SuspendDialog({
                 )}
 
                 <div className="space-y-4 py-4">
-                    {/* Start Time */}
+                    {/* Start Date */}
                     <div className="space-y-2">
                         <Label htmlFor="startAt">
-                            Thời gian bắt đầu <span className="text-red-500">*</span>
+                            Ngày bắt đầu <span className="text-red-500">*</span>
                         </Label>
                         <Input
                             id="startAt"
-                            type="datetime-local"
+                            type="date"
                             value={startAt}
                             onChange={(e) => setStartAt(e.target.value)}
                             disabled={isLoading}
                         />
                         <p className="text-xs text-gray-500">
-                            Định dạng: yyyy-MM-dd HH:mm
+                            Định dạng: yyyy-MM-dd
                         </p>
                     </div>
 
-                    {/* End Time */}
+                    {/* End Date */}
                     <div className="space-y-2">
                         <Label htmlFor="endAt">
-                            Thời gian kết thúc <span className="text-red-500">*</span>
+                            Ngày kết thúc
                         </Label>
                         <Input
                             id="endAt"
-                            type="datetime-local"
+                            type="date"
                             value={endAt}
                             onChange={(e) => setEndAt(e.target.value)}
                             disabled={isLoading}

@@ -145,7 +145,7 @@ export interface WebSocketRegisterMessage {
 
 // Send message to server
 export interface WebSocketSendMessage {
-    type: "message"
+    type: "message.send"
     data: WebSocketMessagePayload
 }
 
@@ -161,10 +161,54 @@ export interface WebSocketAckMessage {
     data: WebSocketMessageAckData
 }
 
+// Post apply related types
+export interface PostApplyPayload {
+    postId: string
+    number: number // số lượng người chơi muốn apply
+}
+
+export interface WebSocketPostApplyMessage {
+    type: "post.apply"
+    data: PostApplyPayload
+}
+
+export interface PostApplyApplierData {
+    id: string
+    name: string
+    email: string
+    avatarUrl: string | null
+}
+
+export interface PostApplyPostData {
+    id: string
+    title: string
+    poster: PostApplyApplierData
+    timestamp: string
+    store: {
+        id: string
+        name: string
+        address: string
+    }
+    participantIds: string[] | null
+}
+
+export interface PostApplyNotificationData {
+    applier: PostApplyApplierData
+    post: PostApplyPostData
+    number: number
+    timestamp: string
+}
+
+export interface WebSocketPostApplyNotification {
+    type: "message.apply"
+    data: PostApplyNotificationData
+}
+
 // Union type for all incoming WebSocket messages
 export type WebSocketMessage =
     | WebSocketIncomingMessage
     | WebSocketAckMessage
+    | WebSocketPostApplyNotification
     | { type: "pong" }
     | { type: "ping" }
 

@@ -16,6 +16,8 @@ import { ChatMessage, WebSocketIncomingMessage, ChatRoom, WebSocketAckMessage } 
 import { useMessageSocket } from "@/hooks/use-message-socket"
 import { useAuth } from "@/hooks/use-auth"
 import { useConversations, useConversationMessages } from "@/hooks/use-message-api"
+import { useGlobalNotifications } from "@/hooks/use-global-notifications"
+import { useCurrentPage } from "@/hooks/use-current-page"
 
 export default function ChatPage() {
   // Get query params
@@ -25,6 +27,10 @@ export default function ChatPage() {
 
   // Auth state
   const { user: currentUser, loading: authLoading } = useAuth()
+
+  // Notification hooks
+  const { notifyNewMessage } = useGlobalNotifications()
+  const pageInfo = useCurrentPage()
 
   // Chat state
   const [selectedConversation, setSelectedConversation] = useState<ChatRoom | null>(null)
@@ -46,18 +52,18 @@ export default function ChatPage() {
     ? getLastNameFromFullName(decodeURIComponent(ownerNameParam))
     : (searchQuery || undefined)  // Convert empty string to undefined
 
- 
+
   const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [newChatRecipientId, setNewChatRecipientId] = useState("")
   const [isCreatingConversation, setIsCreatingConversation] = useState(false)
 
- 
+
   const messagesContainerRef = useRef<HTMLDivElement>(null)
- 
+
   const conversationsRef = useRef<any[]>([])
   // Ref để access refetch function
   const refetchConversationsRef = useRef<(() => void) | null>(null)
-  
+
   const pendingMessagesRef = useRef<WebSocketIncomingMessage[]>([])
 
   const selectedConversationRef = useRef<ChatRoom | null>(null)
@@ -171,9 +177,17 @@ export default function ChatPage() {
     }
   }, [conversations, selectedConversation, conversationsLoading])
 
-  // Update selectedConversation ref & process pending messages
+  // Update selectedConversation ref & save to sessionStorage for notification logic
   useEffect(() => {
     selectedConversationRef.current = selectedConversation
+
+    // Save current conversation ID to sessionStorage để useCurrentPage hook có thể access
+    if (selectedConversation?.id) {
+      sessionStorage.setItem('currentChatConversationId', selectedConversation.id)
+      console.log('💾 [Chat Page] Saved conversation to sessionStorage:', selectedConversation.id)
+    } else {
+      sessionStorage.removeItem('currentChatConversationId')
+    }
 
     // Process pending messages when conversation is selected
     if (selectedConversation && pendingMessagesRef.current.length > 0) {
@@ -310,10 +324,32 @@ export default function ChatPage() {
       // Dùng ref để get selectedConversation hiện tại
       const currentSelectedConv = selectedConversationRef.current
       console.log('   Current selected conversation:', currentSelectedConv?.id)
+      console.log('   🔍 COMPARISON:', {
+        messageConvId: conversationId,
+        selectedConvId: currentSelectedConv?.id,
+        areEqual: currentSelectedConv?.id === conversationId,
+        messageConvType: typeof conversationId,
+        selectedConvType: typeof currentSelectedConv?.id
+      })
 
       // Check if conversation matches
       const isConvMatching = currentSelectedConv?.id === conversationId
       console.log('   Conversation match?', isConvMatching)
+
+      // LOGIC THÔNG BÁO: LUÔN hiển thị thông báo khi có tin nhắn mới
+      console.log('📢 [NOTIFICATION] Sending notification:', {
+        isOnChatPage: pageInfo.isOnChatPage,
+        isConvMatching: isConvMatching,
+        senderName: incomingMsg.data.sender.name,
+        content: incomingMsg.data.content
+      })
+      notifyNewMessage(
+        incomingMsg.data.sender.name,
+        senderId,
+        incomingMsg.data.content,
+        conversationId,
+        incomingMsg.data.timestamp
+      )
 
       // Nếu có conversation được select và khớp, thêm message
       if (currentSelectedConv && isConvMatching) {
@@ -364,10 +400,16 @@ export default function ChatPage() {
         console.log('   Message conversation:', conversationId)
 
         // Try to find conversation by ID
+        console.log('🔍 [SEARCH] Looking for conversation:', {
+          targetConvId: conversationId,
+          availableConvIds: conversationsRef.current?.map((c: any) => c.id),
+          conversationsCount: conversationsRef.current?.length
+        })
         let targetConv = conversationsRef.current?.find((conv: any) => conv.id === conversationId)
 
         if (!targetConv) {
           console.log('   Not in ref, checking conversations state...')
+          console.log('   State conversations:', conversations?.map((c: any) => c.id))
           targetConv = conversations?.find((conv: any) => conv.id === conversationId)
         }
 
@@ -408,12 +450,48 @@ export default function ChatPage() {
         timestamp: ackMsg.data.timestamp
       })
 
+      // CRITICAL: Nếu đang select temporary conversation, update thành real conversation ID
+      const currentSelectedConv = selectedConversationRef.current
+      if (currentSelectedConv?.id.startsWith('new-') && ackMsg.data.conversationId) {
+        console.log('🔄 [message.send.ack] Updating temporary conversation to real one:', {
+          from: currentSelectedConv.id,
+          to: ackMsg.data.conversationId
+        })
+
+        // Update selected conversation với real ID
+        const updatedConv = {
+          ...currentSelectedConv,
+          id: ackMsg.data.conversationId
+        }
+        setSelectedConversation(updatedConv)
+        selectedConversationRef.current = updatedConv
+
+        // Update tất cả messages trong state với conversationId mới
+        setMessages(prev =>
+          prev.map(msg => ({
+            ...msg,
+            conversationId: ackMsg.data.conversationId
+          }))
+        )
+
+        // Refetch conversations để load conversation mới từ backend
+        if (refetchConversationsRef.current) {
+          console.log('🔄 Refetching conversations after conversation creation')
+          refetchConversationsRef.current()
+        }
+      }
+
       // Update message status from SEND to RECEIVED
       setMessages(prev =>
         prev.map(msg => {
           if (msg.id.startsWith('temp-') && msg.content === ackMsg.data.content) {
             console.log('📤 Updated message status to:', ackMsg.data.status)
-            return { ...msg, status: ackMsg.data.status as any, id: `${Date.now()}` }
+            return {
+              ...msg,
+              status: ackMsg.data.status as any,
+              id: `${Date.now()}`,
+              conversationId: ackMsg.data.conversationId // Update với real conversationId
+            }
           }
           return msg
         })
@@ -568,7 +646,13 @@ export default function ChatPage() {
         userId: currentUser.id,
         content: messageContent,
         conversationId: conversationId,
-        wsConnected: wsConnected
+        conversationIdType: typeof conversationId,
+        wsConnected: wsConnected,
+        selectedConversation: {
+          id: selectedConversation.id,
+          name: selectedConversation.name,
+          participants: selectedConversation.participants?.map(p => ({ id: p.id, name: p.name }))
+        }
       })
 
       setMessages(prev => [...prev, optimisticMessage])
@@ -587,9 +671,27 @@ export default function ChatPage() {
 
           if (wsSuccess) {
             console.log('✅ [WebSocket] Message sent successfully, waiting for backend acknowledgment...')
+
+            // Set timeout để check nếu backend không response sau 5 giây
+            setTimeout(() => {
+              setMessages(prev => {
+                const stillPending = prev.find(m => m.id === messageId && m.status === 'SEND')
+                if (stillPending) {
+                  console.warn('⚠️ No acknowledgment from backend after 5s - message may not be delivered')
+                  console.log('⚠️ Possible issues:')
+                  console.log('   1. Backend not responding')
+                  console.log('   2. WebSocket connection dropped')
+                  console.log('   3. Backend error processing message')
+                  console.log('💡 Check backend logs for errors')
+                }
+                return prev
+              })
+            }, 5000)
           } else {
             console.error('❌ [WebSocket] Failed to send message via WebSocket')
           }
+        } else {
+          console.error('❌ [WebSocket] No receiver found in conversation')
         }
       } else if (!wsConnected) {
         console.warn('❌ WebSocket not connected, cannot send message')
@@ -721,11 +823,11 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden">
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
+            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 flex-shrink-0">
               <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center font-bold text-white">
                 {selectedConversation.avatarUrl ? (
                   <img src={selectedConversation.avatarUrl} alt={selectedConversation.name} className="w-10 h-10 rounded-full" />
@@ -747,7 +849,7 @@ export default function ChatPage() {
             {/* Messages Area */}
             <div
               ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50"
+              className="flex-1 overflow-y-auto p-6 space-y-3 bg-gray-50 min-h-0 pb-16"
             >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
@@ -781,7 +883,7 @@ export default function ChatPage() {
             </div>
 
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            <div className="bg-white border-t-2 border-gray-300 p-8 flex-shrink-0 shadow-lg">
               <div className="flex items-center gap-3">
                 <input
                   type="text"
@@ -794,16 +896,16 @@ export default function ChatPage() {
                       handleSendMessage()
                     }
                   }}
-                  className="flex-1 p-3 bg-gray-100 border-gray-200 rounded focus:bg-white focus:border-green-500 focus:ring-green-500 text-gray-900"
+                  className="flex-1 p-4 text-base bg-gray-100 border-2 border-gray-200 rounded-lg focus:bg-white focus:border-green-500 focus:ring-2 focus:ring-green-400 text-gray-900 transition-all"
                   disabled={!wsConnected}
                 />
 
                 <Button
-                  className="bg-green-600 hover:bg-green-700 h-10 px-6"
+                  className="bg-green-600 hover:bg-green-700 active:bg-green-800 h-12 px-8 rounded-lg font-medium transition-all shadow-md"
                   disabled={!wsConnected || !inputMessage.trim()}
                   onClick={handleSendMessage}
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-6 h-6" />
                 </Button>
               </div>
             </div>

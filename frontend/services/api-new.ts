@@ -710,21 +710,20 @@ export async function getStoreById(id: string): Promise<StoreClientDetailRespons
       }
     );
 
-    const data = await response.json();
-
-    if (data.success === false || data.error) {
-      console.error(`API error: ${data.status || response.status} - ${data.message}`, {
+    // Kiểm tra response status trước
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText}`, {
         storeId: id,
         url: `/api/store/${id}`
       });
       return null;
     }
 
-    // Kiểm tra response status bình thường
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`, {
+    const data = await response.json();
+
+    if (data.success === false || data.error) {
+      console.error(`API error: ${data.status || response.status} - ${data.message}`, {
         storeId: id,
-        error: data,
         url: `/api/store/${id}`
       });
       return null;

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,29 +24,9 @@ import {
     AlertCircle
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
-import { getStoresByOwnerId } from '@/services/api-new'
 import { getMyProfile } from '@/services/get-my-profile'
+import { RevenueService, RevenueResponse } from '@/services/revenue.service'
 import { StoreAdminDetailResponse } from '@/types'
-
-// Mock data - Revenue charts only
-const revenueData = [
-    { month: 'T1', revenue: 12000000, expense: 2000000, profit: 10000000 },
-    { month: 'T2', revenue: 15000000, expense: 2200000, profit: 12800000 },
-    { month: 'T3', revenue: 18000000, expense: 2500000, profit: 15500000 },
-    { month: 'T4', revenue: 14000000, expense: 2100000, profit: 11900000 },
-    { month: 'T5', revenue: 22000000, expense: 2800000, profit: 19200000 },
-    { month: 'T6', revenue: 25000000, expense: 3000000, profit: 22000000 }
-]
-
-const dailyRevenue = [
-    { day: '1', revenue: 850000 },
-    { day: '2', revenue: 920000 },
-    { day: '3', revenue: 780000 },
-    { day: '4', revenue: 1100000 },
-    { day: '5', revenue: 950000 },
-    { day: '6', revenue: 1200000 },
-    { day: '7', revenue: 1350000 }
-]
 
 // Types for store revenue data (combining API data with calculated revenue)
 interface StoreRevenueData {
@@ -137,36 +117,17 @@ function StoreRevenueCard({ store }: { store: StoreRevenueData }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 gap-4 mb-4">
                         <div className="bg-blue-50 rounded-lg p-3">
-                            <p className="text-sm text-blue-700">Tổng booking</p>
+                            <p className="text-sm text-blue-700">Tổng lượt đặt</p>
                             <p className="text-xl font-bold text-blue-900">{store.orderCount}</p>
                         </div>
-                        <div className="bg-green-50 rounded-lg p-3">
-                            <p className="text-sm text-green-700">Giá trị TB</p>
-                            <p className="text-xl font-bold text-green-900">{formatCurrency(store.avgBookingValue)}đ</p>
-                        </div>
+
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                        {/* <div className="flex justify-between">
-                            <span className="text-gray-600">Tỷ lệ sử dụng:</span>
-                            <span className="font-medium">{store.utilizationRate}%</span>
-                        </div> */}
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Doanh thu trung bình:</span>
-                            <span className="font-medium">{formatCurrency(store.monthlyRevenue / (store.orderCount || 1))}đ/booking</span>
-                        </div>
-                    </div>
 
-                    <div className="mt-4">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                style={{ width: `${store.utilizationRate}%` }}
-                            />
-                        </div>
-                    </div>
+
+
                 </CardContent>
             </Card>
         </Link>
@@ -174,6 +135,7 @@ function StoreRevenueCard({ store }: { store: StoreRevenueData }) {
 }
 
 export default function RevenueOverview() {
+    const mountedRef = useRef(false)
     const [timeRange, setTimeRange] = useState('6months')
     const [searchQuery, setSearchQuery] = useState('')
     const [sortBy, setSortBy] = useState('revenue')
@@ -183,62 +145,85 @@ export default function RevenueOverview() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    // Revenue API data
+    const [revenueData, setRevenueData] = useState<RevenueResponse['data'] | null>(null)
+    const [revenueLoading, setRevenueLoading] = useState(true)
+
     // Load stores from API
     useEffect(() => {
-        const loadStores = async () => {
+        mountedRef.current = true
+
+        const loadData = async () => {
             try {
                 setLoading(true)
                 setError(null)
 
                 // Get user profile
                 const profile = getMyProfile()
-                console.log('User profile:', profile)
+                if (!profile) {
+                    setError('Không tìm thấy thông tin người dùng')
+                    setMyStores([])
+                    return
+                }
 
-                // Get stores by owner ID
-                const stores = await getStoresByOwnerId(profile.id)
-                console.log('Stores from API:', stores)
-
-                // Transform API data to StoreRevenueData
-                const transformedStores: StoreRevenueData[] = stores.map(store => {
-                    // Calculate revenue from orderCount
-                    // Base price: 150,000đ per order (mock)
-                    const basePrice = 150000
-                    const monthlyRevenue = (store.orderCount || 0) * basePrice
-
-                    // // Random growth between -5% to +20%
-                    // const growth = Math.round((Math.random() * 25 - 5) * 10) / 10
-
-                    // Utilization rate: 30% to 90%
-                    const utilizationRate = Math.floor(Math.random() * 60 + 30)
-
-                    // Average booking value
-                    const avgBookingValue = basePrice
-
-                    return {
-                        id: store.id,
-                        name: store.name,
-                        address: store.address,
-                        orderCount: store.orderCount || 0,
-                        avatarUrl: store.avatarUrl,
-                        monthlyRevenue,
-                        avgBookingValue,
-                        // growth,
-                        utilizationRate
-                    }
+                // Load revenue data with store cards
+                const revenueResponse = await RevenueService.getOwnerRevenue(profile.id).catch(err => {
+                    console.warn('Failed to load revenue data:', err)
+                    return null
                 })
 
-                setMyStores(transformedStores)
+                console.log('Revenue data:', revenueResponse)
+
+                // Set revenue data if available
+                if (revenueResponse?.data) {
+                    setRevenueData(revenueResponse.data)
+
+                    // Transform store cards from revenue API to StoreRevenueData
+                    const transformedStores: StoreRevenueData[] = (revenueResponse.data.storeCards || []).map(storeCard => {
+                        // Use actual revenue and transactions from API
+                        const monthlyRevenue = storeCard.revenue || 0
+                        const orderCount = storeCard.transactions || 0
+
+                        // Utilization rate: 30% to 90%
+                        const utilizationRate = Math.floor(Math.random() * 60 + 30)
+
+                        // Average booking value
+                        const avgBookingValue = orderCount > 0 ? monthlyRevenue / orderCount : 0
+
+                        return {
+                            id: storeCard.id,
+                            name: storeCard.name,
+                            address: storeCard.address,
+                            orderCount,
+                            avatarUrl: undefined,
+                            monthlyRevenue,
+                            avgBookingValue,
+                            utilizationRate
+                        }
+                    })
+
+                    setMyStores(transformedStores)
+                } else {
+                    setError('Không thể tải dữ liệu doanh thu')
+                    setMyStores([])
+                }
             } catch (err) {
                 console.error('Error loading stores:', err)
                 setError(err instanceof Error ? err.message : 'Lỗi khi tải danh sách store')
                 setMyStores([])
             } finally {
                 setLoading(false)
+                setRevenueLoading(false)
             }
         }
 
-        loadStores()
+        loadData()
     }, [])
+
+    // Avoid hydration mismatch by not rendering until mounted
+    if (!mountedRef.current) {
+        return <div className="w-full h-96" />
+    }
 
     // Filter stores
     const filteredStores = myStores.filter((store: StoreRevenueData) => {
@@ -306,52 +291,90 @@ export default function RevenueOverview() {
     return (
         <div className="space-y-6">
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="w-40">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="7days">7 ngày qua</SelectItem>
-                            <SelectItem value="30days">30 ngày qua</SelectItem>
-                            <SelectItem value="6months">6 tháng qua</SelectItem>
-                            <SelectItem value="1year">1 năm qua</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <Button>
-                    <Download className="h-4 w-4 mr-2" />
-                    Xuất báo cáo
-                </Button>
-            </div>
+
 
             {/* Revenue Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard
-                    title={`Tổng doanh thu / ${filteredStores.length} store`}
-                    value={`${(totalRevenue / 1000000).toFixed(1)}M đ`}
+                {/* Total Revenue */}
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-3 bg-green-50 rounded-lg">
+                                    <DollarSign className="h-6 w-6 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">
+                                        Tổng doanh thu {revenueData ? `(${revenueData.storeCount} store)` : ''}
+                                    </p>
+                                    <p className="text-2xl font-bold text-green-600 mt-1">
+                                        {revenueLoading ? (
+                                            <Loader2 className="h-5 w-5 animate-spin inline" />
+                                        ) : revenueData ? (
+                                            `${formatCurrency(revenueData.totalRevenue)}đ`
+                                        ) : (
+                                            '0đ'
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    changeType="increase"
-                    icon={DollarSign}
+                {/* Revenue Today */}
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                    <Calendar className="h-6 w-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">
+                                        Doanh thu trung bình / ngày
+                                    </p>
+                                    <p className="text-2xl font-bold text-blue-600 mt-1">
+                                        {revenueLoading ? (
+                                            <Loader2 className="h-5 w-5 animate-spin inline" />
+                                        ) : revenueData ? (
+                                            `${formatCurrency(Math.round(revenueData.totalRevenueInCurrentDay / (revenueData.storeCount || 1)))}đ`
+                                        ) : (
+                                            '0đ'
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                />
-                <StatCard
-                    title="Doanh thu trung bình/ngày"
-                    value="3.533.000đ"
-
-
-                    icon={Calendar}
-
-                />
-                <StatCard
-                    title="Số giao dịch"
-                    value={totalBookings.toString()}
-
-
-                    icon={CreditCard}
-
-                />
+                {/* Total Transactions */}
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-3 bg-purple-50 rounded-lg">
+                                    <CreditCard className="h-6 w-6 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">
+                                        Tổng lượt đặt
+                                    </p>
+                                    <p className="text-2xl font-bold text-purple-600 mt-1">
+                                        {revenueLoading ? (
+                                            <Loader2 className="h-5 w-5 animate-spin inline" />
+                                        ) : revenueData ? (
+                                            revenueData.totalTransactions
+                                        ) : (
+                                            '0'
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
 
@@ -386,16 +409,7 @@ export default function RevenueOverview() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="w-40">
-                                    <SelectValue placeholder="Sắp xếp" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="revenue">Doanh thu</SelectItem>
-                                    <SelectItem value="bookings">Booking</SelectItem>
-                                    {/* <SelectItem value="growth">Tăng trưởng</SelectItem> */}
-                                </SelectContent>
-                            </Select>
+
                         </div>
                     </div>
                 </CardContent>

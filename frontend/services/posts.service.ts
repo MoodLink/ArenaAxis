@@ -53,37 +53,19 @@ export interface CommunityPostAuthor {
 }
 
 export interface CommunityPost {
-    // Match types/index.ts interface
     id: string;
     title: string;
-    content: string; // Maps from description
-    author: CommunityPostAuthor;
-    sport: string;
-    location?: string;
-    date?: string;
-    time?: string;
-    level?: string;
-    participants?: number; // Maps from currentNumber
-    maxParticipants?: number; // Maps from requiredNumber
-    cost?: string; // Maps from pricePerPerson
-    likes: number;
-    comments: number;
-    tags: string[];
-    createdAt: string; // Maps from timestamp
-    status?: string;
-    urgency?: string;
-
-    // Backend fields (for reference)
-    posterId?: string;
-    requiredNumber?: number;
-    currentNumber?: number;
-    pricePerPerson?: number;
-    timestamp?: string;
-    matches?: MatchInfo[];
-    matchIds?: string[];
-    active?: boolean;
-    sportId?: string;
-    store?: StoreInfo;
+    description: string;
+    poster: CommunityPostAuthor;
+    requiredNumber: number;
+    currentNumber: number;
+    participants: any[] | null;
+    matches: MatchInfo[];
+    pricePerPerson: number;
+    timestamp: string;
+    comments: any[] | null;
+    store: StoreInfo;
+    sport: SportInfo;
 }
 
 export interface CreatePostResponse {
@@ -155,22 +137,28 @@ export async function createPost(data: CreatePostRequest): Promise<CreatePostRes
 }
 
 /**
- * Get all community posts
+ * Get all community posts (no filters)
+ * @param page - Page number (0-indexed)
+ * @param perPage - Number of posts per page
  * @returns Array of posts
  */
-export async function getCommunityPosts(): Promise<CommunityPost[]> {
+export async function getCommunityPosts(page: number = 0, perPage: number = 12): Promise<CommunityPost[]> {
     try {
         const token = getToken();
-        const url = `/api/posts`;
+        // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
+        const backendPage = page;
+        const url = `/api/posts?page=${backendPage}&perPage=${perPage}`;
 
-        console.log('Fetching posts from:', url);
+        console.log('📋 Fetching posts (no filters)');
 
+        // Backend chỉ support POST, gửi empty filters
         const response = await fetch(url, {
-            method: 'GET',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...(token && { 'Authorization': `Bearer ${token}` }),
             },
+            body: JSON.stringify({}), // Empty filters
         });
 
         console.log('Posts response status:', response.status);
@@ -182,12 +170,66 @@ export async function getCommunityPosts(): Promise<CommunityPost[]> {
         }
 
         const data = await response.json();
-        console.log('Posts data received:', data);
         const posts = data.data || data || [];
-        console.log('Returning posts:', Array.isArray(posts) ? posts.length : 0, 'posts');
+        console.log('📋 Returning posts:', Array.isArray(posts) ? posts.length : 0, 'posts');
         return Array.isArray(posts) ? posts : [];
     } catch (error) {
         console.error('Error in getCommunityPosts:', error);
+        return [];
+    }
+}
+
+/**
+ * Search community posts with filters
+ * @param filters - Search filters including storeName, dates, location, sport
+ * @param page - Page number (0-indexed)
+ * @param perPage - Number of posts per page
+ * @returns Array of filtered posts
+ */
+export async function searchPosts(
+    filters: {
+        storeName?: string;
+        fromDate?: string;
+        toDate?: string;
+        provinceId?: string;
+        wardId?: string;
+        sportId?: string;
+    } = {},
+    page: number = 0,
+    perPage: number = 12
+): Promise<CommunityPost[]> {
+    try {
+        const token = getToken();
+        // Backend sử dụng 1-indexed pagination, frontend sử dụng 0-indexed
+        const backendPage = page;
+        const url = `/api/posts?page=${backendPage}&perPage=${perPage}`;
+
+        console.log('🔍 Searching posts (with filters)');
+        console.log('📍 Filters:', JSON.stringify(filters, null, 2));
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: JSON.stringify(filters),
+        });
+
+        console.log('Search response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error searching posts:', response.status, errorText);
+            return [];
+        }
+
+        const data = await response.json();
+        const posts = data.data || data || [];
+        console.log('🔍 Returning search results:', Array.isArray(posts) ? posts.length : 0, 'posts (page', backendPage, ')');
+        return Array.isArray(posts) ? posts : [];
+    } catch (error) {
+        console.error('Error in searchPosts:', error);
         return [];
     }
 }

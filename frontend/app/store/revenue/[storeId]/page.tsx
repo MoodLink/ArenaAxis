@@ -16,14 +16,16 @@ import {
     AlertCircle,
     MapPin
 } from 'lucide-react'
-import { FieldService, Field as APIField } from '@/services/field.service'
 import { getStoreById } from '@/services/api-new'
+import { RevenueService, StoreRevenueResponse } from '@/services/revenue.service'
 import { StoreClientDetailResponse } from '@/types'
 
 interface FieldRevenueData {
-    field: APIField
+    id: string
+    name: string
+    defaultPrice: string
     revenue: number
-    bookings: number
+    transactions: number
 }
 
 export default function StoreDetailPage() {
@@ -32,9 +34,11 @@ export default function StoreDetailPage() {
     const storeId = params.storeId as string
 
     const [store, setStore] = useState<StoreClientDetailResponse | null>(null)
+    const [storeRevenue, setStoreRevenue] = useState<StoreRevenueResponse['data'] | null>(null)
     const [fields, setFields] = useState<FieldRevenueData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [totalRevenue, setTotalRevenue] = useState(0)
 
     useEffect(() => {
         const loadData = async () => {
@@ -50,28 +54,17 @@ export default function StoreDetailPage() {
                 }
                 setStore(storeData)
 
-                // Get fields by store
-                const fieldsResponse = await FieldService.getFieldsByStore(storeId)
-                const fieldsList = fieldsResponse.data || []
-
-                // Transform fields to include revenue data
-                const fieldsWithRevenue: FieldRevenueData[] = fieldsList.map((field: APIField) => {
-                    // Calculate revenue: base price × mock bookings
-                    // Mock bookings: random between 10-50
-                    const mockBookings = Math.floor(Math.random() * 40 + 10)
-                    const defaultPrice = typeof field.defaultPrice === 'string'
-                        ? parseInt(field.defaultPrice) || 150000
-                        : field.defaultPrice || 150000
-                    const revenue = defaultPrice * mockBookings
-
-                    return {
-                        field,
-                        revenue,
-                        bookings: mockBookings
-                    }
+                // Get store revenue data
+                const revenueResponse = await RevenueService.getStoreRevenue(storeId).catch(err => {
+                    console.warn('Failed to load store revenue:', err)
+                    return null
                 })
 
-                setFields(fieldsWithRevenue)
+                if (revenueResponse?.data) {
+                    setStoreRevenue(revenueResponse.data)
+                    setTotalRevenue(revenueResponse.data.totalRevenue)
+                    setFields(revenueResponse.data.fieldCards)
+                }
             } catch (err) {
                 console.error('Error loading store detail:', err)
                 setError(err instanceof Error ? err.message : 'Lỗi khi tải dữ liệu')
@@ -113,9 +106,7 @@ export default function StoreDetailPage() {
         )
     }
 
-    // Calculate totals
-    const totalRevenue = fields.reduce((sum, f) => sum + f.revenue, 0)
-    const totalBookings = fields.reduce((sum, f) => sum + f.bookings, 0)
+    // Calculate totals - only from storeRevenue API data
     const avgRevenuePerField = fields.length > 0 ? totalRevenue / fields.length : 0
 
     // Format currency
@@ -164,7 +155,9 @@ export default function StoreDetailPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600 mb-1">Tổng doanh thu</p>
-                                    <p className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}đ</p>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        {storeRevenue ? `${formatCurrency(storeRevenue.totalRevenue)}đ` : '0đ'}
+                                    </p>
                                 </div>
                                 <div className="p-3 bg-green-50 rounded-lg">
                                     <DollarSign className="h-6 w-6 text-green-600" />
@@ -178,7 +171,9 @@ export default function StoreDetailPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600 mb-1">Tổng booking</p>
-                                    <p className="text-2xl font-bold text-blue-600">{totalBookings}</p>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        {storeRevenue ? storeRevenue.totalOrder : 0}
+                                    </p>
                                 </div>
                                 <div className="p-3 bg-blue-50 rounded-lg">
                                     <ShoppingCart className="h-6 w-6 text-blue-600" />
@@ -191,8 +186,10 @@ export default function StoreDetailPage() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600 mb-1">Doanh thu trung bình/sân</p>
-                                    <p className="text-2xl font-bold text-purple-600">{formatCurrency(avgRevenuePerField)}đ</p>
+                                    <p className="text-sm font-medium text-gray-600 mb-1">Doanh thu trung bình</p>
+                                    <p className="text-2xl font-bold text-purple-600">
+                                        {storeRevenue ? `${formatCurrency(Math.round(avgRevenuePerField))}đ` : '0đ'}
+                                    </p>
                                 </div>
                                 <div className="p-3 bg-purple-50 rounded-lg">
                                     <TrendingUp className="h-6 w-6 text-purple-600" />
@@ -217,35 +214,25 @@ export default function StoreDetailPage() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {fields.map((item) => (
-                                <Card key={item.field._id} className="hover:shadow-lg transition-shadow">
+                                <Card key={item.id} className="hover:shadow-lg transition-shadow">
                                     <CardContent className="p-5">
                                         <div className="flex items-start justify-between mb-3">
                                             <div>
-                                                <h3 className="font-semibold text-gray-900">{item.field.name}</h3>
-                                                {item.field.sport_name && (
-                                                    <p className="text-sm text-gray-500 mt-1">{item.field.sport_name}</p>
-                                                )}
+                                                <h3 className="font-semibold text-gray-900">{item.name}</h3>
                                             </div>
                                             <Badge className="bg-blue-100 text-blue-800">
-                                                {item.field.activeStatus ? 'Hoạt động' : 'Tạm ngừng'}
+                                                Hoạt động
                                             </Badge>
                                         </div>
-
-                                        {item.field.address && (
-                                            <div className="flex items-center text-sm text-gray-600 mb-3">
-                                                <MapPin className="h-3 w-3 mr-1" />
-                                                <span>{item.field.address}</span>
-                                            </div>
-                                        )}
 
                                         <div className="space-y-2 text-sm mb-4">
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Giá tiền:</span>
-                                                <span className="font-medium">{formatCurrency(typeof item.field.defaultPrice === 'string' ? parseInt(item.field.defaultPrice) || 0 : item.field.defaultPrice || 0)}đ</span>
+                                                <span className="font-medium">{formatCurrency(typeof item.defaultPrice === 'string' ? parseInt(item.defaultPrice) || 0 : item.defaultPrice || 0)}đ</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-gray-600">Booking:</span>
-                                                <span className="font-medium text-blue-600">{item.bookings}</span>
+                                                <span className="text-gray-600">Giao dịch:</span>
+                                                <span className="font-medium text-blue-600">{item.transactions}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Doanh thu:</span>
@@ -254,22 +241,9 @@ export default function StoreDetailPage() {
                                         </div>
 
                                         {/* Revenue Bar */}
-                                        <div className="mb-3">
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div
-                                                    className="bg-green-500 h-2 rounded-full"
-                                                    style={{ width: `${(item.revenue / totalRevenue) * 100}%` }}
-                                                />
-                                            </div>
-                                        </div>
 
-                                        <div className="flex gap-2">
-                                            <Link href={`/store/my-fields/${item.field._id}`} className="flex-1">
-                                                <Button variant="outline" size="sm" className="w-full">
-                                                    Chi tiết
-                                                </Button>
-                                            </Link>
-                                        </div>
+
+
                                     </CardContent>
                                 </Card>
                             ))}

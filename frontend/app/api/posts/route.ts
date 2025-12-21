@@ -1,5 +1,5 @@
 /**
- * POST /api/posts - Create a new community post
+ * POST /api/posts - Create a new community post / Search posts
  * GET /api/posts - Get all community posts
  */
 
@@ -14,89 +14,130 @@ interface CreatePostRequest {
     userId: string;
 }
 
+interface SearchPostsRequest {
+    storeName?: string;
+    fromDate?: string;
+    toDate?: string;
+    provinceId?: string;
+    wardId?: string;
+    sportId?: string;
+}
+
 /**
  * Transform backend Post data to frontend format
  * Maps backend fields to CommunityPost interface
  */
 function transformPost(post: any) {
     return {
-        // Required CommunityPost fields
-        id: post._id || post.id,
+        id: post.id || post._id,
         title: post.title,
-        content: post.description || '',
-        author: {
-            id: post.posterId || post.userId || '',
-            name: post.poster?.name || post.author?.name || 'Unknown',
-            email: post.poster?.email || post.author?.email || '',
-            avatarUrl: post.poster?.avatarUrl || post.author?.avatarUrl || null,
+        description: post.description || '',
+        poster: {
+            id: post.poster?.id || post.posterId || post.userId || '',
+            name: post.poster?.name || 'Unknown',
+            email: post.poster?.email || '',
+            avatarUrl: post.poster?.avatarUrl || null,
         },
-        sport: post.sport?.name || post.sportId || 'Unknown',
-        participants: post.currentNumber || 0,
-        maxParticipants: post.requiredNumber || 0,
-        cost: post.pricePerPerson ? `${post.pricePerPerson}đ` : '0đ',
-        likes: 0,
-        comments: post.comments?.length || 0,
-        tags: [],
-        createdAt: post.timestamp || new Date().toISOString(),
-
-        // Optional CommunityPost fields
-        location: post.store?.address || post.location,
-        status: post.active ? 'active' : 'inactive',
-
-        // Backend fields (for reference)
-        posterId: post.posterId,
-        requiredNumber: post.requiredNumber,
-        currentNumber: post.currentNumber,
-        pricePerPerson: post.pricePerPerson,
-        timestamp: post.timestamp,
-        matches: post.matches,
-        matchIds: post.matchIds,
-        active: post.active,
-        sportId: post.sportId,
-        store: post.store,
+        requiredNumber: post.requiredNumber || 0,
+        currentNumber: post.currentNumber || 0,
+        participants: post.participants || null,
+        matches: post.matches || [],
+        pricePerPerson: post.pricePerPerson || 0,
+        timestamp: post.timestamp || new Date().toISOString(),
+        comments: post.comments || null,
+        store: post.store || null,
+        sport: post.sport || null,
     };
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
     try {
-        let token = request.headers.get('authorization');
+        const { searchParams } = new URL(request.url);
+        const isSearchRequest = searchParams.has('page') || searchParams.has('perPage');
+
+        // Handle search request
+        if (isSearchRequest) {
+            return handleSearchPosts(request);
+        }
+
+        // Handle create post request
+        return handleCreatePost(request);
+    } catch (error) {
+        console.error('Error in POST /api/posts:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}
+
+async function handleSearchPosts(request: NextRequest) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const page = searchParams.get('page') || '0';
+        const perPage = searchParams.get('perPage') || '12';
+
+        const body: SearchPostsRequest = await request.json();
+        const token = request.headers.get('authorization');
         const backendUrl = process.env.USER_SERVICE_DOMAIN;
 
-        console.log('Fetching posts from backend:', `${backendUrl}/posts`);
+        // Build query parameters for backend
+        const queryParams = new URLSearchParams();
+        queryParams.append('page', page);
+        queryParams.append('perPage', perPage);
+
+        // Build request body - only include non-empty fields
+        const searchBody: any = {};
+        if (body.storeName?.trim()) searchBody.storeName = body.storeName;
+        if (body.fromDate?.trim()) searchBody.fromDate = body.fromDate;
+        if (body.toDate?.trim()) searchBody.toDate = body.toDate;
+        if (body.provinceId?.trim()) searchBody.provinceId = body.provinceId;
+        if (body.wardId?.trim()) searchBody.wardId = body.wardId;
+        if (body.sportId?.trim()) searchBody.sportId = body.sportId;
 
         const headers: any = {
             'Content-Type': 'application/json',
         };
 
         if (token) {
-            // Ensure Bearer prefix
             const authHeader = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
             headers['Authorization'] = authHeader;
         }
 
-        const response = await fetch(`${backendUrl}/posts`, {
-            method: 'GET',
+        console.log('🔍 Searching posts');
+        console.log('📍 Query params:', `page=${page}&perPage=${perPage}`);
+        console.log('📋 Search body:', JSON.stringify(searchBody, null, 2));
+
+        const backendSearchUrl = `${backendUrl}/posts/search?${queryParams.toString()}`;
+        console.log('📤 POST to backend:', backendSearchUrl);
+
+        const response = await fetch(backendSearchUrl, {
+            method: 'POST',
             headers,
+            body: JSON.stringify(searchBody),
         });
 
         if (!response.ok) {
-            console.error('Backend error:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('❌ Backend error:', response.status, response.statusText);
+            console.error('📨 Error response:', errorText);
+
             return NextResponse.json(
-                { error: 'Failed to fetch posts from backend' },
+                { error: 'Failed to search posts', details: errorText },
                 { status: response.status }
             );
         }
 
         const data = await response.json();
-        console.log('Posts data from backend:', data);
+        console.log('✅ Search results received:', Array.isArray(data) ? data.length : Array.isArray(data.data) ? data.data.length : 0, 'posts');
 
-        // Transform the data - handle both array and object with data property
+        // Transform posts if needed
         let posts = Array.isArray(data) ? data : data.data || [];
         posts = Array.isArray(posts) ? posts.map(transformPost) : [];
 
         return NextResponse.json({ data: posts });
     } catch (error) {
-        console.error('Error in GET /api/posts:', error);
+        console.error('Error in handleSearchPosts:', error);
         return NextResponse.json(
             { error: 'Internal server error', details: String(error) },
             { status: 500 }
@@ -104,7 +145,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+async function handleCreatePost(request: NextRequest) {
     try {
         let token = request.headers.get('authorization');
 
@@ -187,7 +228,7 @@ export async function POST(request: NextRequest) {
         console.log(`🎉 Post created successfully with ID: ${data.id || data._id || 'unknown'}\n`);
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in POST /api/posts:', error);
+        console.error('Error in handleCreatePost:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

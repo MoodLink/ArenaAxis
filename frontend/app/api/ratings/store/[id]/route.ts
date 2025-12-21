@@ -54,7 +54,15 @@ export async function GET(
             );
         }
 
-        const data = await response.json();
+        // Parse JSON safely - handle empty response body
+        let data;
+        try {
+            const responseText = await response.text();
+            data = responseText ? JSON.parse(responseText) : [];
+        } catch (parseError) {
+            console.error('[API Proxy] Failed to parse JSON response:', parseError);
+            data = [];
+        }
 
         return NextResponse.json(data, {
             status: 200,

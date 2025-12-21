@@ -571,6 +571,15 @@ export default function StoreOwnerDetailPage() {
                                 >
                                     Chỉnh sửa thông tin
                                 </Button>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    asChild
+                                >
+                                    <a href={`/store/ratings/${storeId}`}>
+                                        Quản lý đánh giá
+                                    </a>
+                                </Button>
                                 <Button variant="outline" className="w-full justify-start" asChild>
                                     <a href={`/store/bookings?store_id=${storeId}`}>
                                         Quản lý đặt sân

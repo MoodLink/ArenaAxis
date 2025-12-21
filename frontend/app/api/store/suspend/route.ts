@@ -37,6 +37,27 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Validate date format (yyyy/MM/dd)
+        const dateRegex = /^\d{4}\/\d{2}\/\d{2}$/;
+        if (!dateRegex.test(startAt)) {
+            return NextResponse.json(
+                {
+                    error: 'Invalid date format',
+                    message: 'startAt must be in format yyyy/MM/dd'
+                },
+                { status: 400 }
+            );
+        }
+        if (endAt && !dateRegex.test(endAt)) {
+            return NextResponse.json(
+                {
+                    error: 'Invalid date format',
+                    message: 'endAt must be in format yyyy/MM/dd'
+                },
+                { status: 400 }
+            );
+        }
+
         const bearerToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
 
         const headers: HeadersInit = {
@@ -45,6 +66,8 @@ export async function POST(request: NextRequest) {
         };
 
         console.log(`[API Proxy] POST /suspend-stores for store ${storeId}`);
+        console.log(`[API Proxy] Auth token present: ${!!token}`);
+        console.log(`[API Proxy] Bearer token: ${bearerToken.substring(0, 20)}...`);
         console.log(`[API Proxy] Request body:`, JSON.stringify(body, null, 2));
 
         const response = await fetch(`${API_BASE_URL}/suspend-stores`, {

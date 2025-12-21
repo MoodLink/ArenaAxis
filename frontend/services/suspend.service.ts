@@ -2,8 +2,8 @@
 
 export interface SuspendStoreRequest {
     storeId: string;
-    startAt: string; // yyyy/MM/dd HH:mm:ss
-    endAt: string; // yyyy/MM/dd HH:mm:ss
+    startAt: string; // yyyy/MM/dd
+    endAt?: string | null; // yyyy/MM/dd (optional)
     reason: string;
     force: boolean;
 }
@@ -101,5 +101,43 @@ export async function getSuspendRecords(storeId: string): Promise<SuspendStoreRe
     } catch (error) {
         console.error('Error fetching suspend records:', error);
         throw error;
+    }
+}
+
+export interface CheckSuspendResponse {
+    suspended: boolean;
+    reason?: string;
+    suspendRecord?: SuspendStoreRecord;
+}
+
+/**
+ * Check if a store is suspended on a specific date
+ * Calls: GET /stores/{storeId}/check-suspend?date={date}
+ * @param storeId - The store ID
+ * @param date - The date to check in format yyyy/MM/dd (e.g., 2025/12/01)
+ * @returns Promise<CheckSuspendResponse> - Indicates if store is suspended on that date
+ */
+export async function checkStoreSuspendStatus(storeId: string, date: string): Promise<CheckSuspendResponse> {
+    try {
+        // Format date to yyyy/MM/dd if it's in yyyy-MM-dd format
+        const formattedDate = date.includes('-') ? date.split('-').join('/') : date;
+
+        const response = await fetch(`/api/stores/${storeId}/check-suspend?date=${formattedDate}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to check store suspend status');
+        }
+
+        const data = await response.json();
+        return data.data || data;
+    } catch (error) {
+        console.error('Error checking store suspend status:', error);
+        // Return not suspended on error to avoid breaking the UI
+        return { suspended: false };
     }
 }

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -47,10 +47,14 @@ interface Match {
 
 export default function CreatePostPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const orderId = searchParams.get('orderId')
 
   // State for page flow
-  const [pageStep, setPageStep] = useState<'select-order' | 'select-matches' | 'create-post'>('select-order')
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null)
+  const [pageStep, setPageStep] = useState<'select-order' | 'select-matches' | 'create-post'>(
+    orderId ? 'select-matches' : 'select-order'
+  )
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(orderId)
   const [selectedMatches, setSelectedMatches] = useState<string[]>([])
 
   // State for form data
@@ -71,6 +75,48 @@ export default function CreatePostPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<string[]>([])
+
+  // Cache for store names and field names
+  const [storeNamesCache, setStoreNamesCache] = useState<Record<string, string>>({})
+  const [fieldNamesCache, setFieldNamesCache] = useState<Record<string, string>>({})
+
+  // Fetch store name by ID
+  const fetchStoreName = async (storeId: string): Promise<string> => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken')
+      const response = await fetch(`/api/store/${storeId}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        return data.data?.name || data.name || storeId
+      }
+    } catch (error) {
+      console.error('Error fetching store name:', error)
+    }
+    return storeId
+  }
+
+  // Fetch field name by ID
+  const fetchFieldName = async (fieldId: string): Promise<string> => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken')
+      const response = await fetch(`/api/fields/${fieldId}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        return data.data?.name || fieldId
+      }
+    } catch (error) {
+      console.error('Error fetching field name:', error)
+    }
+    return fieldId
+  }
 
   // Fetch user info on mount
   useEffect(() => {
@@ -130,6 +176,12 @@ export default function CreatePostPage() {
           const ordersList = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : []
           setOrders(ordersList)
           console.log('Orders set:', ordersList.length, 'orders')
+
+          // If orderId is provided, auto-select and fetch matches
+          if (orderId) {
+            console.log('Auto-selecting order from URL:', orderId)
+            handleSelectOrder(orderId)
+          }
         } else {
           const errorText = await response.text()
           console.error('Failed to fetch orders:', response.status, errorText)
@@ -144,7 +196,62 @@ export default function CreatePostPage() {
     }
 
     fetchOrders()
-  }, [userId])
+  }, [userId, orderId])
+
+  // Fetch all store names and field names once when orders are loaded
+  useEffect(() => {
+    if (orders.length === 0) return
+
+    const fetchAllNames = async () => {
+      // Get unique store IDs
+      const uniqueStoreIds = [...new Set(orders.map(order => order.storeId).filter(Boolean))] as string[]
+
+      // Get unique field IDs from all orderDetails
+      const uniqueFieldIds = [...new Set(
+        orders.flatMap(order =>
+          order.orderDetails?.map((d: any) => d.fieldId) || []
+        ).filter(Boolean)
+      )] as string[]
+
+      console.log('Fetching names for', uniqueStoreIds.length, 'stores and', uniqueFieldIds.length, 'fields')
+
+      // Fetch all store names in parallel
+      const storeNamePromises = uniqueStoreIds.map(async (storeId) => {
+        const name = await fetchStoreName(storeId)
+        return { id: storeId, name }
+      })
+
+      // Fetch all field names in parallel
+      const fieldNamePromises = uniqueFieldIds.map(async (fieldId) => {
+        const name = await fetchFieldName(fieldId)
+        return { id: fieldId, name }
+      })
+
+      // Wait for all to complete
+      const [storeResults, fieldResults] = await Promise.all([
+        Promise.all(storeNamePromises),
+        Promise.all(fieldNamePromises)
+      ])
+
+      // Build cache objects
+      const storeCache: Record<string, string> = {}
+      storeResults.forEach(result => {
+        storeCache[result.id] = result.name
+      })
+
+      const fieldCache: Record<string, string> = {}
+      fieldResults.forEach(result => {
+        fieldCache[result.id] = result.name
+      })
+
+      console.log('Names cached:', { stores: Object.keys(storeCache).length, fields: Object.keys(fieldCache).length })
+
+      setStoreNamesCache(storeCache)
+      setFieldNamesCache(fieldCache)
+    }
+
+    fetchAllNames()
+  }, [orders])
 
   // Handle order selection to fetch matches
   const handleSelectOrder = async (orderId: string) => {
@@ -295,7 +402,9 @@ export default function CreatePostPage() {
             {unpaidOrders.map((order) => {
               const firstDetail = order.orderDetails?.[0]
               const orderDate = new Date(firstDetail?.startTime)
-              const orderTime = new Date(firstDetail?.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+              const startTime = new Date(firstDetail?.startTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+              const endTime = new Date(firstDetail?.endTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+              const storeName = order.storeId ? (storeNamesCache[order.storeId] || 'Đang tải...') : 'Trung tâm thể thao'
 
               return (
                 <button
@@ -305,10 +414,10 @@ export default function CreatePostPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{firstDetail?.fieldId || 'Sân thể thao'}</h3>
+                      <h3 className="font-semibold text-gray-900">{storeName}</h3>
                       <p className="text-sm text-gray-600 mt-1 flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        {orderDate.toLocaleDateString('vi-VN')} - {orderTime}
+                        {orderDate.toLocaleDateString('vi-VN')} - {startTime} ~ {endTime}
                       </p>
                       <p className="text-sm text-gray-600 mt-1">Mã đơn: {order._id?.slice(0, 8)}</p>
                     </div>
@@ -371,7 +480,7 @@ export default function CreatePostPage() {
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
                       <MapPin className="w-4 h-4 inline mr-1" />
-                      Sân {match.field?.id}
+                      {fieldNamesCache[match.field?.id] || match.field?.name || match.field?.id || 'Sân'}
                     </p>
                   </div>
                 </label>

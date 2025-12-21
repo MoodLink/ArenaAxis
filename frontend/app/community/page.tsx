@@ -2,287 +2,279 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, TrendingUp, Star, Flame } from "lucide-react"
-import { getCommunityPosts, CommunityPost } from "@/services/posts.service"
-import { useCommunitySearchAndFilter } from "@/hooks/use-community-search-filter"
-import CommunitySearchBar from "@/components/community/CommunitySearchBar"
+import { Plus, TrendingUp, Star, Flame, Loader2 } from "lucide-react"
+import { searchPosts, CommunityPost } from "@/services/posts.service"
+import PostSearchFilters, { SearchFilters } from "@/components/community/PostSearchFilters"
 import CommunityStats from "@/components/community/CommunityStats"
-import CommunityResultsHeader from "@/components/community/CommunityResultsHeader"
 import CommunityEmptyState from "@/components/community/CommunityEmptyState"
 import CommunityPostCard from "@/components/community/CommunityPostCard"
-import CommunityPagination from "@/components/community/CommunityPagination"
+import PostApplyDialog from "@/components/community/PostApplyDialog"
+import { useUserId } from "@/hooks/use-user-id"
+import { useMessageSocket } from "@/hooks/use-message-socket"
+import { usePostApplyNotification } from "@/hooks/use-post-apply-notification"
+import { WebSocketPostApplyNotification } from "@/types"
 
 export default function CommunityPage() {
-  // State quản lý dữ liệu
-  const [posts, setPosts] = useState<CommunityPost[]>([])
-  const [featuredCommunities, setFeaturedCommunities] = useState<any[]>([])
-  const [trendingTopics, setTrendingTopics] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedFilters, setSelectedFilters] = useState<SearchFilters>({})
+  // Debounced filters - used for actual API calls
+  const [debouncedFilters, setDebouncedFilters] = useState<SearchFilters>({})
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
+  const [selectedPostForApply, setSelectedPostForApply] = useState<CommunityPost | null>(null)
+  const [isApplying, setIsApplying] = useState(false)
 
-  // Use custom hook for search and filtering
-  const {
-    searchQuery,
-    selectedFilters,
-    currentPage,
-    filteredPosts,
-    paginatedPosts,
-    totalPages,
-    totalFilteredItems,
-    startIndex,
-    endIndex,
-    handleSearchChange,
-    handleFiltersChange,
-    handlePageChange,
-    nextPage,
-    prevPage,
-    itemsPerPage
-  } = useCommunitySearchAndFilter(posts, 8)
+  const itemsPerPage = 12
 
-  // useEffect để fetch dữ liệu bài viết từ API khi component mount
+  // Get user ID từ authentication
+  const userId = useUserId()
+
+  // Setup socket connection cho post apply notifications
+  const handlePostApplyNotification = (notification: WebSocketPostApplyNotification) => {
+    console.log('📬 Post apply notification received:', notification)
+    // Có thể thêm logic để update UI, show toast, etc
+  }
+
+  const { handleNotification } = usePostApplyNotification({
+    enabled: true,
+    onNotification: handlePostApplyNotification,
+    autoShowToast: true,
+  })
+
+  // Setup WebSocket
+  const { sendPostApply } = useMessageSocket({
+    userId,
+    onPostApplyNotification: handleNotification,
+  })
+
+  // Debounce filters changes - 800ms để tránh gọi API quá nhiều lần
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const postsData = await getCommunityPosts()
+    const timer = setTimeout(() => {
+      setDebouncedFilters(selectedFilters)
+      setCurrentPage(1) // Reset về trang 1 khi filters thay đổi
+    }, 800) // Debounce 800ms như list-store
 
-        setPosts(Array.isArray(postsData) ? postsData : [])
-        // Featured communities and trending topics are not used right now, 
-        // but we'll keep them as empty arrays for future use
-        setFeaturedCommunities([])
-        setTrendingTopics([])
-      } catch (error) {
-        console.error('Error fetching community posts:', error)
-        // Set empty arrays on error
-        setPosts([])
-        setFeaturedCommunities([])
-        setTrendingTopics([])
-      } finally {
-        setLoading(false)
+    return () => clearTimeout(timer)
+  }, [selectedFilters])
+
+  // Helper: Clean filters - remove empty values
+  const cleanFilters = (filters: SearchFilters): SearchFilters => {
+    const cleaned: SearchFilters = {}
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== null) {
+        cleaned[key as keyof SearchFilters] = value
       }
+    })
+    return cleaned
+  }
+
+  const cleanedDebouncedFilters = cleanFilters(debouncedFilters)
+  const hasFilters = Object.keys(cleanedDebouncedFilters).length > 0
+
+  // Sử dụng React Query để fetch posts - luôn dùng searchPosts với cleaned filters
+  const { data: posts = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['posts', cleanedDebouncedFilters, currentPage],
+    queryFn: async () => {
+      console.log('🔍 Searching posts with filters:', cleanedDebouncedFilters)
+      const postsData = await searchPosts(cleanedDebouncedFilters, currentPage - 1, itemsPerPage)
+      return Array.isArray(postsData) ? postsData : []
+    },
+    staleTime: 3 * 1000, // Cache 3 giây
+    gcTime: 2 * 1000, // 2 seconds
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60 * 1000,
+    placeholderData: (previousData) => previousData,
+  })
+
+  // Fetch tất cả pages để lấy total count - tương tự như list-store
+  const { data: totalPosts = 0 } = useQuery({
+    queryKey: ['postsTotalCount', cleanedDebouncedFilters],
+    queryFn: async () => {
+      // Lấy page đầu tiên để tính total
+      const pageStores = await searchPosts(cleanedDebouncedFilters, 0, itemsPerPage)
+      const firstPageCount = Array.isArray(pageStores) ? pageStores.length : 0
+
+      // Nếu page đầu có < 12 items, đó chính là total
+      if (firstPageCount < itemsPerPage) {
+        return firstPageCount
+      }
+
+      // Nếu page đầu đầy, fetch thêm pages để tính total
+      // Giới hạn chỉ fetch tối đa 5 pages để tránh quá chậm
+      let total = firstPageCount
+      for (let i = 1; i < 5; i++) {
+        const nextPageStores = await searchPosts(cleanedDebouncedFilters, i, itemsPerPage)
+        const nextPageCount = Array.isArray(nextPageStores) ? nextPageStores.length : 0
+
+        if (nextPageCount === 0) break
+        total += nextPageCount
+
+        if (nextPageCount < itemsPerPage) break
+      }
+
+      console.log(`📊 Total posts: ${total}`)
+      return total
+    },
+    staleTime: 3 * 1000,
+    gcTime: 2 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60 * 1000,
+  })
+
+  // Tính tổng số trang
+  const totalPages = Math.ceil(totalPosts / itemsPerPage)
+
+  const handleFiltersChange = (filters: SearchFilters) => {
+    setSelectedFilters(filters)
+  }
+
+  const handleClearFilters = () => {
+    setSelectedFilters({})
+    setCurrentPage(1)
+  }
+
+  const handleJoinPost = (postId: string) => {
+    if (!userId) {
+      console.error('User not logged in')
+      return
     }
 
-    fetchData()
-  }, [])
-
-  // Xử lý like bài viết
-  const handleLike = (postId: string) => {
-    setPosts(currentPosts =>
-      currentPosts.map(post =>
-        post.id === postId
-          ? { ...post, likes: (post.likes || 0) + 1 }
-          : post
-      )
-    )
+    // Find the post from current posts
+    const post = posts.find(p => p.id === postId)
+    if (post) {
+      setSelectedPostForApply(post)
+      setApplyDialogOpen(true)
+    }
   }
 
-  // Xử lý comment bài viết
-  const handleComment = (postId: string) => {
-    // Navigate đến trang chi tiết hoặc mở modal comment
-    console.log('Comment on post:', postId)
+  const handleApplySubmit = async (numberOfPlayers: number) => {
+    if (!selectedPostForApply || !userId) {
+      return
+    }
+
+    setIsApplying(true)
+    try {
+      const result = sendPostApply(selectedPostForApply.id, numberOfPlayers)
+      if (result) {
+        console.log('✅ Post apply sent successfully for post:', selectedPostForApply.id)
+      } else {
+        console.error('❌ Failed to send post apply')
+        throw new Error('Failed to send post apply')
+      }
+    } finally {
+      setIsApplying(false)
+    }
   }
 
-  // Xử lý tham gia hoạt động
-  const handleJoin = (postId: string) => {
-    // Gọi API để tham gia hoạt động
-    console.log('Join activity:', postId)
-    // Có thể cập nhật số lượng participants hoặc navigate đến chat
-  }
-
-  // Hiển thị loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải bài viết...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const hasActiveFilters = !!searchQuery || selectedFilters.sport !== "Tất cả" || selectedFilters.distance !== "Tất cả"
-
-  // Render giao diện chính
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with Stats */}
-      <CommunityStats />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Create Post Button */}
-            <Card className="bg-gradient-to-r from-green-500 to-blue-500 text-white border-0">
-              <CardContent className="p-4">
-                <Link href="/community/create">
-                  <Button className="w-full bg-white text-green-600 hover:bg-gray-100 font-semibold h-12">
-                    <Plus className="w-5 h-5 mr-2" />
-                    Tạo hoạt bài viết mới
-                  </Button>
-                </Link>
-                <p className="text-sm text-green-100 mt-2 text-center">
-                  Chia sẻ niềm đam mê của bạn với cộng đồng!
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Featured Communities */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-500" />
-                  Bài viết nổi bật
-                </h3>
-                <div className="space-y-3">
-                  {featuredCommunities.map((community, index) => (
-                    <div key={index} className="group p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{community.icon}</span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm group-hover:text-green-600 transition-colors">
-                                {community.name}
-                              </span>
-                              {community.trending
-                                // && (
-                                //   <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5">
-                                //     <Flame className="w-3 h-3 mr-1" />
-                                //     Hot
-                                //   </Badge>
-                                // )
-                              }
-                            </div>
-                            {/* <div className="text-xs text-gray-500 mt-0.5">
-                              {community.members} thành viên • {community.posts} bài viết
-                            </div> */}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-600 ml-11">{community.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Trending Topics */}
-            {/* <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-orange-500" />
-                  Trending
-                </h3>
-                <div className="space-y-2">
-                  {trendingTopics.map((topic, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-700 hover:text-green-600">
-                          #{topic.tag}
-                        </span>
-                        {topic.trending && (
-                          <Badge className="bg-orange-100 text-orange-600 text-xs px-1 py-0.5">
-                            🔥
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-500">{topic.count} bài</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card> */}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-8">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Cộng đồng sân bóng</h1>
+            <p className="text-slate-600">Tìm các bài viết liên quan đến các sân bóng trên khắp đất nước</p>
           </div>
+          <Link href="/community/create">
+            <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+              <Plus className="w-5 h-5" />
+              Tạo bài viết
+            </Button>
+          </Link>
+        </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Enhanced Search Filters */}
-            <CommunitySearchBar
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-              selectedFilters={selectedFilters}
-              onFiltersChange={handleFiltersChange}
-              totalResults={totalFilteredItems}
-              hasActiveFilters={hasActiveFilters}
-            />
+        {/* Search Filters */}
+        <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
+          <PostSearchFilters onSearch={handleFiltersChange} onClear={handleClearFilters} isLoading={isLoading} />
+        </div>
 
-            {/* Posts loading state */}
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-300 rounded w-32"></div>
-                          <div className="h-3 bg-gray-300 rounded w-24"></div>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="h-6 bg-gray-300 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-300 rounded w-full"></div>
-                        <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+        {/* Status Info */}
+        {hasFilters && (
+          <div className="mb-4 text-sm text-slate-600">
+            Tổng: <span className="font-semibold">{totalPosts}</span> bài viết
+          </div>
+        )}
+
+        {/* Loading Overlay on First Load */}
+        {isLoading && posts.length === 0 && (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && posts.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-slate-600 text-lg">Không tìm thấy bài viết nào</p>
+          </div>
+        )}
+
+        {/* Posts Grid - hiển thị data ngay, không chờ loading (optimistic UI) */}
+        {posts.length > 0 && (
+          <div className="relative">
+            {/* Loading indicator trên grid - không block interaction */}
+            {isLoading && posts.length > 0 && (
+              <div className="absolute top-0 right-0 flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang tải...</span>
               </div>
-            ) : (
-              <>
-                {/* Results header */}
-                <CommunityResultsHeader
-                  filteredPosts={filteredPosts}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  startIndex={startIndex}
-                  endIndex={endIndex}
-                  itemsPerPage={itemsPerPage}
-                />
+            )}
 
-                {/* Posts list */}
-                <div className="space-y-4">
-                  {paginatedPosts.map((post) => (
-                    <CommunityPostCard
-                      key={post.id}
-                      post={post}
-                      onLike={handleLike}
-                      onComment={handleComment}
-                      onJoin={handleJoin}
-                    />
-                  ))}
+            <div className="space-y-4 mb-8">
+              {posts.map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={post}
+                  onJoin={handleJoinPost}
+                  onComment={() => {
+                    // TODO: Implement comment functionality
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Info */}
+            {hasFilters && (
+              <div className="flex justify-between items-center mt-8 pt-8 border-t border-slate-200">
+                <div className="text-sm text-slate-600">
+                  Trang <span className="font-semibold">{currentPage}</span> trên{' '}
+                  <span className="font-semibold">{totalPages}</span>
                 </div>
 
-                {/* Pagination */}
-                <CommunityPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalFilteredItems}
-                  itemsPerPage={itemsPerPage}
-                  onPageChange={handlePageChange}
-                  onPrevPage={prevPage}
-                  onNextPage={nextPage}
-                />
-
-                {/* Empty state */}
-                {filteredPosts.length === 0 && <CommunityEmptyState />}
-              </>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage((p) => (p < totalPages ? p + 1 : p))}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Tiếp
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Floating create button for mobile */}
-      <div className="fixed bottom-6 right-6 lg:hidden">
-        <Link href="/community/create">
-          <Button className="bg-green-600 hover:bg-green-700 rounded-full w-16 h-16 shadow-xl">
-            <Plus className="w-6 h-6" />
-          </Button>
-        </Link>
+        {/* Post Apply Dialog */}
+        <PostApplyDialog
+          post={selectedPostForApply}
+          open={applyDialogOpen}
+          onOpenChange={setApplyDialogOpen}
+          onSubmit={handleApplySubmit}
+          isLoading={isApplying}
+        />
       </div>
     </div>
   )

@@ -309,10 +309,10 @@ export default function PaymentSuccessContent() {
                     </div>
 
                     {/* Payment Method */}
-                    <div className="bg-blue-50 rounded-lg p-6 mb-8">
+                    {/* <div className="bg-blue-50 rounded-lg p-6 mb-8">
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">Phương Thức Thanh Toán</h3>
                         <p className="text-gray-700">Thẻ ngân hàng / Ví điện tử</p>
-                    </div>
+                    </div> */}
 
                     {/* Footer Note */}
                     <div className="border-t pt-6 text-center text-gray-600 text-sm">
@@ -324,7 +324,7 @@ export default function PaymentSuccessContent() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-4 justify-center mb-8 print:hidden">
+                {/* <div className="flex gap-4 justify-center mb-8 print:hidden">
                     <button
                         onClick={handlePrint}
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -339,7 +339,7 @@ export default function PaymentSuccessContent() {
                         <Download className="w-5 h-5" />
                         Tải xuống
                     </button>
-                </div>
+                </div> */}
 
                 {/* Navigation Links */}
                 <div className="grid grid-cols-2 gap-4 print:hidden">

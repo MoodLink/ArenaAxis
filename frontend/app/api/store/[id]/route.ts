@@ -18,11 +18,14 @@ export async function GET(
             'Accept': 'application/json',
         };
 
-        //  Không gửi token cho endpoint public này
-        // Store detail endpoint không cần authentication
+        // Gửi token nếu có (cho store view history tracking)
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+
         console.log(`[API Proxy] GET /stores/detail/${id}`, {
             hasAuth: !!authHeader,
-            willSendAuth: false  // Không gửi auth header
+            willSendAuth: !!authHeader  // Gửi auth header nếu có token
         });
 
         const url = `${API_BASE_URL}/stores/detail/${id}`;
