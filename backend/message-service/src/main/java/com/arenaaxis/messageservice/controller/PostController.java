@@ -41,4 +41,11 @@ public class PostController {
       .collectList()
       .map(ResponseEntity::ok);
   }
+
+  @GetMapping("/poster/{posterId}")
+  public Mono<ResponseEntity<List<PostSearchItemResponse>>> getPost(@PathVariable("posterId") String posterId) {
+    return postService.getPostByPoster(posterId)
+      .collectList()
+      .map(ResponseEntity::ok);
+  }
 }
