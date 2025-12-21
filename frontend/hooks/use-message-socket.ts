@@ -89,8 +89,7 @@ export function useMessageSocket(options: UseMessageSocketOptions = {}) {
 
             // Xác định URL WebSocket - luôn dùng backend domain
             const backendDomain = 'www.executexan.store'
-            // Dùng wss (secure) cho production/HTTPS, ws cho development
-            const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+            const protocol = 'wss:'  // Backend sử dụng wss không có https
             const wsUrl = `${protocol}//${backendDomain}/ws/messages?token=${token}`
 
             console.log('Connecting to WebSocket:', wsUrl)

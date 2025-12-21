@@ -2309,15 +2309,11 @@ export async function createRating(request: {
     // Create FormData for multipart upload
     const formData = new FormData();
 
-    // Append rating request as JSON blob (backend expects @RequestPart("ratingRequest"))
-    const ratingRequestBlob = new Blob([JSON.stringify({
-      storeId: request.storeId,
-      sportId: request.sportId,
-      star: request.star,
-      comment: request.comment
-    })], { type: 'application/json' });
-
-    formData.append('ratingRequest', ratingRequestBlob, 'ratingRequest.json');
+    // Append form fields directly (backend expects these as form parameters)
+    formData.append('storeId', request.storeId);
+    formData.append('sportId', request.sportId);
+    formData.append('star', request.star.toString());
+    formData.append('comment', request.comment);
 
     // Append media files if any
     if (request.mediaFiles && request.mediaFiles.length > 0) {

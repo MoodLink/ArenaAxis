@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_BASE_URL = process.env.USER_SERVICE_DOMAIN || 'http://www.executexan.store'
+const API_BASE_URL = process.env.USER_SERVICE_DOMAIN || 'https://www.executexan.store'
 
 /**
  * GET /api/messages/messages
