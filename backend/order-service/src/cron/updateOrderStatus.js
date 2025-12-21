@@ -13,7 +13,7 @@ cron.schedule("*/10 * * * * *", async () => {
       { $set: { statusPayment: "FAILED" } }
     );
 
-    console.log("Cron cập nhật: " + new Date().toISOString());
+    // console.log("Cron cập nhật: " + new Date().toISOString());
 
     if (result.modifiedCount > 0) {
       console.log(
