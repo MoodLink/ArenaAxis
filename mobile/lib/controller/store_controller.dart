@@ -46,8 +46,7 @@ class StoreController extends GetxController {
     
     for (var store in allStores) {
       // So sánh province của store với province của user
-      if (store.province?.name.toLowerCase() == userProvince.value.toLowerCase()) {
-        log('Store ${store.province?.name.toLowerCase()} is in user province ${userProvince.value.toLowerCase()}');
+      if (store.province.name.toLowerCase() == userProvince.value.toLowerCase()) {
         storesInCity.add(store);
       } else {
         storesOutsideCity.add(store);

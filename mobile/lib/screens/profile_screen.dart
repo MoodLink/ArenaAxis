@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-import 'package:mobile/controller/home_controller.dart';
 import 'package:mobile/models/user.dart';
 import 'package:mobile/screens/home_screen.dart';
 import 'package:mobile/screens/login_screen.dart';

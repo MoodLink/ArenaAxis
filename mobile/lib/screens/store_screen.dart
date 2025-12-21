@@ -6,7 +6,6 @@ import 'package:mobile/controller/field_search_controller.dart';
 import 'package:mobile/controller/sport_category_controller.dart';
 import 'package:mobile/models/Store.dart';
 import 'package:mobile/screens/store_detail_screen.dart';
-import 'package:mobile/utilities/local_storage.dart';
 import 'package:mobile/widgets/field_card.dart';
 import 'package:mobile/widgets/loading.dart';
 import 'package:mobile/widgets/search_widget.dart';

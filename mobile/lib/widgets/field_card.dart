@@ -3,10 +3,7 @@ import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:mobile/screens/store_detail_screen.dart';
 import 'package:mobile/services/store_service.dart';
-import 'package:mobile/widgets/loading.dart';
 import 'package:mobile/widgets/store_quick_view.dart';
-import 'package:mobile/models/Store.dart';
-
 class FieldCard extends StatelessWidget {
   final dynamic store;
   final ThemeData theme;

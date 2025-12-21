@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
-import 'package:lottie/lottie.dart';
 
 class myBottomNav extends StatelessWidget {
   void Function(int)? onTabChange;

@@ -17,8 +17,6 @@ class OrderDetailDialog extends StatelessWidget {
     final Size screenSize = MediaQuery.of(context).size;
     final theme = Theme.of(context);
 
-    // Lấy thông tin gốc từ order đã được chia nhỏ
-    final originalOrderId = order['_id'] as String?;
     final storeId = order['storeId'] as String?;
     final orderCode = order['originalOrderCode'] ?? order['orderCode'];
     final statusPayment = order['statusPayment'] as String?;

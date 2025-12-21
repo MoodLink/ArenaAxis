@@ -1,7 +1,5 @@
-import 'dart:developer';
 
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:mobile/services/post_service.dart';
 import 'package:mobile/utilities/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

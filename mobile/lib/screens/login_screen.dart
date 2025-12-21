@@ -15,7 +15,6 @@ import 'package:mobile/controller/post_controller.dart';
 import 'package:mobile/controller/post_search_controller.dart';
 import 'package:mobile/controller/sport_category_controller.dart';
 import 'package:mobile/controller/store_controller.dart';
-import 'package:mobile/models/Authentiacate.dart';
 import 'package:mobile/screens/home_screen.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/location_service.dart';

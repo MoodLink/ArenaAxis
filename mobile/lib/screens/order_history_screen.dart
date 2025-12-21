@@ -207,7 +207,7 @@ class OrderHistoryPage extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final order = orders[index];
-        final orderDetails = order['orderDetails'] as List<dynamic>? ?? [];
+   
 
         final earliestStart = controller.getEarliestStartTime(order);
         final latestEnd = controller.getLatestEndTime(order);

@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/post_controller.dart';
 import 'package:mobile/screens/home_screen.dart';
-import 'package:mobile/screens/order_history_screen.dart';
-import 'package:mobile/widgets/loading.dart';
 
 class CreatePostPage extends StatefulWidget {
   const CreatePostPage({super.key});

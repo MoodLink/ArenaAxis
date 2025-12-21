@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/controller/field_search_controller.dart';
 import 'package:mobile/models/sport_category.dart';
 import 'package:mobile/controller/store_controller.dart';
-import 'package:mobile/utilities/local_storage.dart';
 
 class SportCategoryController extends GetxController {
   final Rx<String?> selectedCategory = Rx<String?>(null);

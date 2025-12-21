@@ -1,7 +1,5 @@
 // chat_page.dart
 
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/chat_controller.dart';
