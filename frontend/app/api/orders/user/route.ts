@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'http://www.executexan.store/api/v1'
+        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'https://www.executexan.store/api/v1'
         const url = `${BACKEND_URL}/orders/user/${userId}`
 
         console.log(' [API Proxy] Fetching user orders from backend:', url)
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader,
                 },
-                signal: AbortSignal.timeout(5000), // 5 second timeout
+                signal: AbortSignal.timeout(15000), // 15 second timeout for slow backend
             })
 
             if (!response.ok) {

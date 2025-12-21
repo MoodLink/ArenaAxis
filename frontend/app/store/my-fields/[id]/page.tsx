@@ -142,76 +142,104 @@ export default function FieldDetailPage() {
                 bookingMap[subcourt] = {}
             })
 
-            // Process each field's statusField array
+            // Find ONLY the field we're currently viewing
             const fieldsData = fieldsResponse.data || []
-            console.log(`Processing ${fieldsData.length} fields for date ${selectedDate}`)
+            console.log(`🔍 Looking for field ${fieldId} among ${fieldsData.length} fields`)
+            const currentFieldData = fieldsData.find((f: any) => f._id === fieldId)
 
-            fieldsData.forEach((fieldData: any) => {
-                const fieldId = fieldData._id
-                console.log(` Processing field ${fieldId}`)
+            if (!currentFieldData) {
+                console.warn(`⚠️ Field ${fieldId} not found in API response`)
+                setBookingData(bookingMap)
+                setBookingDataWithCustomer(bookingWithCustomerMap)
+                return
+            }
 
-                if (!fieldData.statusField || fieldData.statusField.length === 0) {
-                    console.log(`   No statusField data for field ${fieldId}`)
+            console.log(`✅ Found field: ${currentFieldData.name}`)
+            console.log(`📋 Processing field ${currentFieldData._id}`)
+
+            console.log(`✅ Found field: ${currentFieldData.name}`)
+            console.log(`📋 Processing field ${currentFieldData._id}`)
+
+            if (!currentFieldData.statusField || currentFieldData.statusField.length === 0) {
+                console.log(`   No statusField data for this field`)
+                setBookingData(bookingMap)
+                setBookingDataWithCustomer(bookingWithCustomerMap)
+                return
+            }
+
+            console.log(`  Found ${currentFieldData.statusField.length} status entries`)
+
+            // Filter PAID status only and extract booked slots
+            const paidStatuses = currentFieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
+            console.log(`   Found ${paidStatuses.length} PAID bookings`)
+
+            paidStatuses.forEach((status: any) => {
+                const startTime = status.startTime
+                const endTime = status.endTime
+
+                console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
+                console.log(`     Booking details:`, status)
+
+                // Parse ISO datetime to extract time part WITHOUT timezone conversion
+                const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
+                const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
+
+                if (!startTimeMatch || !endTimeMatch) {
+                    console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
                     return
                 }
 
-                console.log(`  Found ${fieldData.statusField.length} status entries`)
+                const startHours = startTimeMatch[1]
+                const startMins = startTimeMatch[2]
+                const endHours = endTimeMatch[1]
+                const endMins = endTimeMatch[2]
 
-                // Filter PAID status only and extract booked slots
-                const paidStatuses = fieldData.statusField.filter((status: any) => status.statusPayment === 'PAID')
-                console.log(`   Found ${paidStatuses.length} PAID bookings`)
+                const startTimeStr = `${startHours}:${startMins}`
+                const endTimeStr = `${endHours}:${endMins}`
 
-                paidStatuses.forEach((status: any) => {
-                    const startTime = status.startTime
-                    const endTime = status.endTime
+                console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
 
-                    console.log(`    🕐 Booking: ${startTime} to ${endTime}`)
+                // Generate all 30-minute slots between start and end time
+                const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
+                const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
 
-                    // Parse ISO datetime to extract time part
-                    const startTimeMatch = startTime.match(/T(\d{2}):(\d{2}):/)
-                    const endTimeMatch = endTime.match(/T(\d{2}):(\d{2}):/)
+                if (!bookingMap[selectedCourt]) {
+                    bookingMap[selectedCourt] = {}
+                }
 
-                    if (!startTimeMatch || !endTimeMatch) {
-                        console.warn(`     Could not parse time from: ${startTime} to ${endTime}`)
-                        return
+                for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+                    const hours = Math.floor(minutes / 60)
+                    const mins = minutes % 60
+                    const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+
+                    bookingMap[selectedCourt][slotTime] = 'booked'
+                    console.log(`       Marked slot ${slotTime} as booked`)
+
+                    // Extract customer info from status.user
+                    const bookingKey = `${selectedCourt}-${slotTime}`
+                    bookingWithCustomerMap[bookingKey] = {
+                        id: status._id || `booking-${slotTime}`,
+                        courtId: selectedCourt,
+                        timeSlot: slotTime,
+                        customerName: status.user?.name || 'N/A',
+                        customerPhone: status.user?.phone || 'N/A',
+                        customerEmail: status.user?.email || 'N/A',
+                        customerAddress: status.user?.address || 'N/A',
+                        bookingTime: new Date(startTime).toLocaleString('vi-VN'),
+                        price: status.price || parseInt(field?.defaultPrice || '0')
                     }
-
-                    const startHours = startTimeMatch[1]
-                    const startMins = startTimeMatch[2]
-                    const endHours = endTimeMatch[1]
-                    const endMins = endTimeMatch[2]
-
-                    const startTimeStr = `${startHours}:${startMins}`
-                    const endTimeStr = `${endHours}:${endMins}`
-
-                    console.log(`     Parsed time: ${startTimeStr} to ${endTimeStr}`)
-
-                    // Generate all 30-minute slots between start and end time
-                    const startMinutes = parseInt(startHours) * 60 + parseInt(startMins)
-                    const endMinutes = parseInt(endHours) * 60 + parseInt(endMins)
-
-                    for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
-                        const hours = Math.floor(minutes / 60)
-                        const mins = minutes % 60
-                        const slotTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
-
-                        const targetSubcourt = 'subcourt-001' // Default subcourt
-                        if (!bookingMap[targetSubcourt]) {
-                            bookingMap[targetSubcourt] = {}
-                        }
-                        bookingMap[targetSubcourt][slotTime] = 'booked'
-                        console.log(`       Marked as booked: ${slotTime}`)
-                    }
-                })
+                    console.log(`       Saved customer info for ${slotTime}:`, bookingWithCustomerMap[bookingKey])
+                }
             })
 
             setBookingData(bookingMap)
             setBookingDataWithCustomer(bookingWithCustomerMap)
-            console.log(' Final booking data:', bookingMap)
+            console.log('✅ Final booking data:', bookingMap)
+            console.log('✅ Final booking with customer:', bookingWithCustomerMap)
         } catch (error) {
             console.error(' Error processing fields data:', error)
         }
-    }, [fieldsResponse, selectedDate])
+    }, [fieldsResponse, selectedDate, selectedCourt, field, fieldId])
 
     // Update loading state when hooks finish loading
     useEffect(() => {
@@ -289,27 +317,7 @@ export default function FieldDetailPage() {
                 }
 
                 setBookingData(bookingStatus)
-
-                // Set default booked slot for demo - 10:00 on subcourt-001
-                const defaultBookedSlot = '10:00'
-                bookingStatus['subcourt-001'][defaultBookedSlot] = 'booked'
-                setBookingData(bookingStatus)
-
-                // Set default customer booking info
-                const defaultBookingInfo: BookingInfo = {
-                    id: 'booking-001',
-                    courtId: 'subcourt-001',
-                    timeSlot: defaultBookedSlot,
-                    customerName: 'Nguyễn Văn A',
-                    customerPhone: '0909123456',
-                    customerEmail: 'customer@example.com',
-                    customerAddress: 'Hà Nội, Việt Nam',
-                    bookingTime: new Date().toLocaleString('vi-VN'),
-                    price: parseInt(field?.defaultPrice || '100000')
-                }
-
-                const bookingKey = `subcourt-001-${defaultBookedSlot}`
-                setBookingDataWithCustomer({ [bookingKey]: defaultBookingInfo })
+                setBookingDataWithCustomer({})
             } catch (error) {
                 console.error('Error initializing field page:', error)
             } finally {
@@ -949,12 +957,6 @@ export default function FieldDetailPage() {
                                                                         <div className="relative group">
                                                                             <button
                                                                                 disabled={status === 'locked'}
-                                                                                onClick={() => {
-                                                                                    if (status === 'booked' && bookingInfo) {
-                                                                                        setSelectedBooking(bookingInfo)
-                                                                                        setShowBookingModal(true)
-                                                                                    }
-                                                                                }}
                                                                                 className={`w-14 h-14 rounded-xl ${getSlotColor(status)} transition-all duration-300 transform ${status === 'available'
                                                                                     ? 'cursor-pointer hover:scale-110 hover:shadow-lg active:scale-95'
                                                                                     : status === 'booked'
@@ -972,19 +974,39 @@ export default function FieldDetailPage() {
                                                                                 <div className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap shadow-lg ${isSpecialPrice ? 'bg-yellow-500 text-white' : 'bg-gray-800 text-white'
                                                                                     }`}>
                                                                                     {slotPrice.toLocaleString()}đ
-                                                                                    {isSpecialPrice && <span className="ml-1">⭐</span>}
+                                                                                    {isSpecialPrice && <span className="block text-white">(Giá đặc biệt)</span>}
                                                                                 </div>
                                                                             </div>
 
-                                                                            {/* Customer info tooltip */}
+                                                                            {/* Customer info tooltip for booked slots */}
                                                                             {status === 'booked' && bookingInfo && (
-                                                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                                                                                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-lg shadow-xl px-3 py-2 text-xs whitespace-nowrap border border-blue-400">
-                                                                                        <div className="font-bold">{bookingInfo.customerName}</div>
-                                                                                        <div className="text-blue-100 text-xs">{bookingInfo.customerPhone}</div>
+                                                                                <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[9999]" style={{ pointerEvents: 'none' }}>
+                                                                                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-lg shadow-2xl px-4 py-3 text-xs border border-blue-400 whitespace-nowrap">
+                                                                                        <div className="font-bold mb-1">📋 Chi tiết đặt sân</div>
+                                                                                        <div className="text-blue-100 text-xs mb-2">
+                                                                                            <div>Khung giờ: <span className="font-semibold">{slot}</span></div>
+                                                                                        </div>
+                                                                                        <div className="border-t border-blue-400 pt-2 space-y-1">
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">👤 Khách:</span>
+                                                                                                <span className="font-semibold text-white">{bookingInfo.customerName}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">📱 ĐT:</span>
+                                                                                                <span className="font-semibold text-white">{bookingInfo.customerPhone}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">✉️ Email:</span>
+                                                                                                <span className="font-semibold text-white text-xs">{bookingInfo.customerEmail}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1 pt-1 border-t border-blue-400">
+                                                                                                <span className="text-yellow-300 min-w-fit">💰 Giá:</span>
+                                                                                                <span className="font-bold text-yellow-300">{bookingInfo.price.toLocaleString()}đ</span>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    {/* Arrow */}
-                                                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-blue-800"></div>
+                                                                                    {/* Arrow pointing left */}
+                                                                                    <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-8 border-transparent border-r-blue-800"></div>
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -1001,31 +1023,7 @@ export default function FieldDetailPage() {
                             </Card>
 
                             {/* Additional Info */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Thông tin chi tiết</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-sm text-gray-600">Tên sân</p>
-                                            <p className="font-medium">{field.name || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Địa chỉ</p>
-                                            <p className="font-medium">{field.address || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Loại sân</p>
-                                            <p className="font-medium">{field.sport_name || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">ID</p>
-                                            <p className="font-medium text-xs text-gray-500">{field._id}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+
                         </div>
 
                         {/* Right Sidebar - 25% */}
@@ -1179,54 +1177,6 @@ export default function FieldDetailPage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Booking Info Modal */}
-                    <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Thông tin người đặt sân</DialogTitle>
-                                <DialogDescription>
-                                    Chi tiết đặt sân tại khung giờ: {selectedBooking?.timeSlot}
-                                </DialogDescription>
-                            </DialogHeader>
-                            {selectedBooking && (
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700">Họ tên</label>
-                                        <p className="text-gray-900 font-semibold">{selectedBooking.customerName}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                            <Phone className="w-4 h-4" /> Số điện thoại
-                                        </label>
-                                        <p className="text-gray-900 font-semibold">{selectedBooking.customerPhone}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                            <Mail className="w-4 h-4" /> Email
-                                        </label>
-                                        <p className="text-gray-900 font-semibold">{selectedBooking.customerEmail}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" /> Địa chỉ
-                                        </label>
-                                        <p className="text-gray-900 font-semibold">{selectedBooking.customerAddress}</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-700">Thời gian đặt</label>
-                                            <p className="text-gray-900 font-semibold">{selectedBooking.bookingTime}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-700">Giá tiền</label>
-                                            <p className="text-gray-900 font-semibold text-emerald-600">{selectedBooking.price.toLocaleString()}đ</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </DialogContent>
-                    </Dialog>
 
                     {/* Maintenance Modal */}
                     <Dialog open={showMaintenanceModal} onOpenChange={setShowMaintenanceModal}>

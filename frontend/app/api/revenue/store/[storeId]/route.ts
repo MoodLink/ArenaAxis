@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ORDER_SERVICE_DOMAIN = 'http://www.executexan.store/api/v1'
+const ORDER_SERVICE_DOMAIN = 'https://www.executexan.store/api/v1'
 
 export async function GET(
     request: NextRequest,

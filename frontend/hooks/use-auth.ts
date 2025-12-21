@@ -30,7 +30,7 @@ export function useAuth() {
                     return
                 }
 
-                const response = await fetch('http://www.executexan.store/users/profile', {
+                const response = await fetch('https://www.executexan.store/users/profile', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',

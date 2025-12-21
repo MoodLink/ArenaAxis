@@ -27,15 +27,59 @@ export interface SuspendStoreRecord {
     operator: SuspendOperator;
     startAt: string;
     endAt?: string;
+    reason?: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface OrderDetail {
+    fieldId: string;
+    startTime: string; // ISO format
+    endTime: string;   // ISO format
+}
+
+export interface OrderUser {
+    id: string;
+    email: string;
+    name: string;
+    phone: string;
+    active: boolean;
+    role: string;
+}
+
+export interface OrderStore {
+    id: string;
+    name: string;
+    address: string;
+    avatarUrl?: string;
+    coverUrl?: string;
+    startTime?: string;
+    endTime?: string;
+    averageRating?: number;
+    orderCount?: number;
+    viewCount?: number;
+    ward?: { id: string; name: string; nameEn: string };
+    province?: { id: string; name: string; nameEn: string };
+}
+
+export interface OrderConflict {
+    _id: string;
+    orderCode: string;
+    cost: number;
+    isRated: boolean;
+    createdAt: string;
+    updatedAt: string;
+    statusPayment: string;
+    orderDetails: OrderDetail[];
+    user: OrderUser;
+    store: OrderStore;
 }
 
 export interface SuspendErrorResponse {
     status: number;
     code: number;
     message: string;
-    data: SuspendStoreRecord[];
+    data: SuspendStoreRecord[] | OrderConflict[];
 }
 
 /**

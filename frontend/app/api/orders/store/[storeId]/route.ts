@@ -24,7 +24,7 @@ export async function GET(
             )
         }
 
-        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'http://www.executexan.store/api/v1'
+        const BACKEND_URL = process.env.ORDER_SERVICE_DOMAIN || 'https://www.executexan.store/api/v1'
         const url = `${BACKEND_URL}/orders/store/${storeId}?start_time=${startTime}&end_time=${endTime}`
 
         console.log(' Fetching orders from backend:', url)

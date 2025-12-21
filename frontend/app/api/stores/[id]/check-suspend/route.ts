@@ -15,7 +15,7 @@ export async function GET(
             )
         }
 
-        const backendUrl = `${process.env.USER_SERVICE_DOMAIN || 'http://www.executexan.store'}/stores/${storeId}/check-suspend?date=${date}`
+        const backendUrl = `${process.env.USER_SERVICE_DOMAIN || 'https://www.executexan.store'}/stores/${storeId}/check-suspend?date=${date}`
 
         console.log('[API Proxy] GET', backendUrl)
 

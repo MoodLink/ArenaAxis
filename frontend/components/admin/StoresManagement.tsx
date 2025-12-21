@@ -16,7 +16,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import SuspendDialog from '@/components/store/SuspendDialog'
 import SuspendConflictDialog from '@/components/store/SuspendConflictDialog'
-import type { SuspendStoreRecord } from '@/services/suspend.service'
+import type { SuspendStoreRecord, OrderConflict } from '@/services/suspend.service'
 
 export default function StoresManagement() {
     const router = useRouter()
@@ -32,7 +32,7 @@ export default function StoresManagement() {
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false)
     const [suspendingStoreId, setSuspendingStoreId] = useState<string | null>(null)
     const [suspendingStoreName, setSuspendingStoreName] = useState<string>('')
-    const [suspendConflicts, setSuspendConflicts] = useState<SuspendStoreRecord[]>([])
+    const [suspendConflicts, setSuspendConflicts] = useState<(SuspendStoreRecord | OrderConflict)[]>([])
     const [isSuspendConflictOpen, setIsSuspendConflictOpen] = useState(false)
 
     // Fetch ALL stores with React Query for filtering (no pagination at API level)
@@ -157,7 +157,7 @@ export default function StoresManagement() {
         })
     }
 
-    const handleSuspendConflict = (conflicts: SuspendStoreRecord[]) => {
+    const handleSuspendConflict = (conflicts: (SuspendStoreRecord | OrderConflict)[]) => {
         setSuspendConflicts(conflicts)
         setIsSuspendConflictOpen(true)
     }
