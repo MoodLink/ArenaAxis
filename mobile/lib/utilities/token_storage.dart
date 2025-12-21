@@ -17,6 +17,7 @@ class TokenStorage {
 
   Future<User?> getUserData() async {
     final userJsonString = await _storage.read(key: USER_KEY);
+
     log('Retrieved user data: $userJsonString');
     if (userJsonString != null && userJsonString.isNotEmpty) {
       try {
@@ -46,6 +47,7 @@ class TokenStorage {
     await _storage.delete(key: ACCESS_TOKEN_KEY);
     await _storage.delete(key: REFRESH_TOKEN_KEY);
     await _storage.delete(key: USER_KEY);
+    await getUserData();
   }
 
   Future<String?> getAccessToken() async {

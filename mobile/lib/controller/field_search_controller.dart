@@ -41,7 +41,6 @@ class FieldSearchController extends GetxController {
       final data = await locationService.fetchProvinces();
       provinces.value = data;
     } catch (e) {
-      print('Error: $e');
       Get.snackbar('Lỗi', 'Không thể tải danh sách tỉnh/thành phố');
     } finally {
       isLoadingProvinces.value = false;
@@ -64,7 +63,6 @@ class FieldSearchController extends GetxController {
       final data = await locationService.fetchWards(provinceId);
       wards.value = data;
     } catch (e) {
-      print('Error: $e');
       Get.snackbar('Lỗi', 'Không thể tải danh sách quận/huyện');
     } finally {
       isLoadingWards.value = false;

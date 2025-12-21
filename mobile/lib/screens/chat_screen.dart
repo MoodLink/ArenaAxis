@@ -1,5 +1,7 @@
 // chat_page.dart
 
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/chat_controller.dart';
@@ -133,13 +135,13 @@ class ChatPage extends StatelessWidget {
 
               // Messages
               return ListView.builder(
+                controller: controller.scrollController, // ✅ Attach scroll controller
                 padding: EdgeInsets.all(screenSize.width * 0.04),
-                reverse: false,
+                reverse: false, // ✅ Normal order (old to new)
                 itemCount: controller.messages.length,
                 itemBuilder: (context, index) {
                   final message = controller.messages[index];
                   final isMyMessage = controller.isMyMessage(message);
-
                   return _buildMessageBubble(
                     message,
                     isMyMessage,
@@ -261,9 +263,17 @@ class ChatPage extends StatelessWidget {
                 vertical: screenSize.height * 0.012,
               ),
               decoration: BoxDecoration(
-                color: isMyMessage
-                    ? Theme.of(Get.context!).colorScheme.primary
-                    : Colors.grey[200],
+                gradient: isMyMessage
+                    ? const LinearGradient(
+                        colors: [
+                          Color(0xFF4CAF50), // Xanh lá
+                          Color(0xFF2196F3), // Xanh dương
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isMyMessage ? null : Colors.grey[200],
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -288,7 +298,7 @@ class ChatPage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        controller.formatMessageTime(message.timestamp),
+                        controller.formatMessageTime(message.timestamp ),
                         style: TextStyle(
                           fontSize: screenSize.width * 0.028,
                           color: isMyMessage

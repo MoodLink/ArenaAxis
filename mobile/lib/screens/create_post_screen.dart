@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/post_controller.dart';
+import 'package:mobile/screens/home_screen.dart';
+import 'package:mobile/screens/order_history_screen.dart';
 import 'package:mobile/widgets/loading.dart';
 
 class CreatePostPage extends StatefulWidget {
@@ -349,7 +351,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
       );
 
       // Quay về trang order history
-      Get.until((route) => route.settings.name == '/order-history');
+      Get.offAll(() =>  HomeScreen());
     } else if (controller.errorMessage.value != null) {
       Get.snackbar(
         'Lỗi',

@@ -7,7 +7,7 @@ import '../models/user.dart';
 class AuthService {
   final String baseUrl;
 
-  AuthService({this.baseUrl = 'http://www.executexan.store'});
+  AuthService({this.baseUrl = 'https://www.executexan.store'});
 
   // ---------------------- LOGIN ----------------------
   Future<AuthResponse?> login(String email, String password) async {

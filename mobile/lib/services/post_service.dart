@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class PostService {
-  static const String baseUrl = 'http://www.executexan.store';
+  static const String baseUrl = 'https://www.executexan.store';
 
   /// Lấy danh sách sports/categories
   Future<dynamic> getSports() async {
@@ -38,7 +38,7 @@ class PostService {
       log('url: ${'$baseUrl/matches/order/$orderId'}');
       
       if (response.statusCode == 200) {
-        // API trả về trực tiếp là List, không có wrapper
+
         return json.decode(response.body);
       } else {
         try {
@@ -66,7 +66,7 @@ class PostService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/posts'),
+        Uri.parse('$baseUrl/posts'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -97,7 +97,7 @@ class PostService {
     }
   }
 
-  /// Tìm kiếm posts
+  /// Tìm kiếm posts từ cộng đồng (không bao gồm posts của user hiện tại)
   Future<Map<String, dynamic>> searchPosts({
     int page = 0,
     int perPage = 12,
@@ -141,10 +141,8 @@ class PostService {
         body: json.encode(body),
       );
 
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
         return {
           'data': data,
           'page': page,
@@ -164,11 +162,49 @@ class PostService {
     }
   }
 
+  /// Lấy danh sách posts của user hiện tại
+  Future<Map<String, dynamic>> getMyPosts({
+    required String userId,
+    int page = 0,
+    int perPage = 12,
+    String? token,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/posts/poster/$userId?page=$page&perPage=$perPage'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        return {
+          'data': data,
+          'page': page,
+          'perPage': perPage,
+        };
+      } else {
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody.containsKey('message')) {
+            throw Exception('Lỗi tải bài đăng: ${errorBody['message']}');
+          }
+        } catch (_) {}
+        throw Exception('Lỗi tải bài đăng: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
+
   /// Lấy chi tiết một post
   Future<Map<String, dynamic>> getPostById(String postId, {String? token}) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/v1/posts/$postId'),
+        Uri.parse('$baseUrl/posts/$postId'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -179,6 +215,38 @@ class PostService {
         return json.decode(response.body);
       } else {
         throw Exception('Lỗi tải chi tiết bài đăng');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
+
+  /// Tham gia một post
+  Future<void> joinPost({
+    required String postId,
+    required String userId,
+    String? token,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/posts/$postId/join'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'userId': userId,
+        }),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody.containsKey('message')) {
+            throw Exception('Lỗi tham gia: ${errorBody['message']}');
+          }
+        } catch (_) {}
+        throw Exception('Lỗi tham gia: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Lỗi kết nối: $e');

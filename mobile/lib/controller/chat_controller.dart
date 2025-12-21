@@ -30,12 +30,11 @@ class ChatController extends GetxController {
   String? otherUserAvatar;
 
   final TextEditingController messageController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
 
   @override
   void onInit() {
     super.onInit();
-    // Don't call _initializeChat here if using direct data setting
-    // It will be called manually via initializeChatWithData()
   }
 
   /// Initialize chat with data already set (called from outside)
@@ -49,13 +48,7 @@ class ChatController extends GetxController {
         return;
       }
       currentUserId = user.id;
-      dev.log('✅ Current user ID: $currentUserId');
 
-      // Data already set from outside
-      dev.log('👤 Other user info (from direct setting):');
-      dev.log('  - ID: $otherUserId');
-      dev.log('  - Name: $otherUserName');
-      dev.log('  - Avatar: $otherUserAvatar');
 
       if (otherUserId == null || otherUserId!.isEmpty) {
         errorMessage.value = 'Thiếu ID người nhận';
@@ -107,8 +100,6 @@ class ChatController extends GetxController {
     }
   }
 
-
-
   /// Load messages
   Future<void> _loadMessages() async {
     if (conversationId == null) return;
@@ -130,6 +121,9 @@ class ChatController extends GetxController {
             .toList();
 
         dev.log('✅ Loaded ${messages.length} messages');
+        
+        // Scroll to bottom after loading messages
+        _scrollToBottom();
       } else {
         errorMessage.value = result['error'] as String?;
         dev.log('❌ Load messages failed: ${result['error']}');
@@ -150,6 +144,9 @@ class ChatController extends GetxController {
       if (!messages.any((m) => m.id == message.id)) {
         messages.add(message);
         dev.log('✅ New message added: ${message.content}');
+        
+        // Scroll to bottom when new message arrives
+        _scrollToBottom();
       }
     }
   }
@@ -197,6 +194,9 @@ class ChatController extends GetxController {
 
       messages.add(tempMessage);
       messageController.clear();
+      
+      // Scroll to bottom after adding message
+      _scrollToBottom();
 
       // Gửi qua WebSocket
       final success = _wsService.sendMessage(
@@ -244,43 +244,61 @@ class ChatController extends GetxController {
     }
   }
 
+  /// Scroll to bottom of the list
+  void _scrollToBottom() {
+    // Delay để đảm bảo UI đã render xong
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   /// Format thời gian - Xử lý cả 2 format: "HH:mm:ss dd/MM/yyyy" và ISO 8601
-  String formatMessageTime(String timestamp) {
-    try {
-      DateTime dateTime;
-      
-      // Thử parse format từ API: "08:36:20 13/12/2025"
-      if (timestamp.contains(' ') && timestamp.contains(':')) {
-        try {
-          final formatter = DateFormat('HH:mm:ss dd/MM/yyyy');
-          dateTime = formatter.parse(timestamp);
-        } catch (e) {
-          // Nếu không parse được, thử ISO 8601
-          dateTime = DateTime.parse(timestamp);
-        }
-      } else {
-        // Format ISO 8601
+String formatMessageTime(String timestamp) {
+  try {
+    DateTime dateTime;
+
+    // Parse format: "08:36:20 13/12/2025"
+    if (timestamp.contains(' ') && timestamp.contains(':')) {
+      try {
+        final formatter = DateFormat('HH:mm:ss dd/MM/yyyy');
+        dateTime = formatter.parse(timestamp);
+      } catch (_) {
         dateTime = DateTime.parse(timestamp);
       }
-      
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-
-      if (difference.inDays == 0) {
-        // Hôm nay - chỉ hiển thị giờ
-        return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-      } else if (difference.inDays == 1) {
-        return 'Hôm qua';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays} ngày trước';
-      } else {
-        return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-      }
-    } catch (e) {
-      dev.log('❌ Error parsing timestamp "$timestamp": $e');
-      return '';
+    } else {
+      dateTime = DateTime.parse(timestamp);
     }
+
+    // 👉 CHỈ cộng +7h nếu KHÔNG phải tin của mình
+
+      dateTime = dateTime.add(const Duration(hours: 7));
+
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays == 0) {
+      return '${dateTime.hour.toString().padLeft(2, '0')}:'
+             '${dateTime.minute.toString().padLeft(2, '0')}';
+    } else if (difference.inDays == 1) {
+      return 'Hôm qua';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} ngày trước';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
+  } catch (e) {
+    dev.log('❌ Error parsing timestamp "$timestamp": $e');
+    return '';
   }
+}
+
 
   /// Kiểm tra xem tin nhắn có phải của mình không
   bool isMyMessage(ChatMessage message) {
@@ -290,6 +308,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     messageController.dispose();
+    scrollController.dispose();
     // Không disconnect WebSocket ở đây để có thể nhận tin nhắn ở background
     super.onClose();
   }

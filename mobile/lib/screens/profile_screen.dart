@@ -19,7 +19,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
   late final TokenStorage tokenStorage;
   late final FlutterSecureStorage secureStorage;
   late final AuthService authService;
@@ -35,16 +36,16 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     secureStorage = const FlutterSecureStorage();
     tokenStorage = TokenStorage(storage: secureStorage);
     authService = AuthService();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    
+
     _checkLoginStatus();
   }
 
@@ -105,9 +106,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     if (isLoggedIn == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (!isLoggedIn!) {
@@ -115,9 +114,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     }
 
     if (currentUser == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return _buildLoggedInScreen();
@@ -133,10 +130,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.blue.shade600,
-              Colors.blue.shade400,
-            ],
+            colors: [Colors.blue.shade600, Colors.blue.shade400],
           ),
         ),
         child: SafeArea(
@@ -168,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           ),
                         ),
                         SizedBox(height: constraints.maxHeight * 0.05),
-                        
+
                         Text(
                           'Chào mừng!',
                           style: TextStyle(
@@ -179,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: 12),
-                        
+
                         Text(
                           'Đăng nhập để đặt sân thể thao',
                           style: TextStyle(
@@ -188,16 +182,18 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        
+
                         SizedBox(height: constraints.maxHeight * 0.08),
-                        
+
                         // Login Button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: ElevatedButton(
                             onPressed: () {
-                              Get.to(() => const LoginScreen())?.then((_) => _checkLoginStatus());
+                              Get.to(
+                                () => const LoginScreen(),
+                              )?.then((_) => _checkLoginStatus());
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -216,18 +212,22 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 14),
-                        
+
                         // Register Button
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: OutlinedButton(
-                            onPressed: () => Get.to(() => const RegisterScreen()),
+                            onPressed: () =>
+                                Get.to(() => const RegisterScreen()),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white, width: 2),
+                              side: const BorderSide(
+                                color: Colors.white,
+                                width: 2,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -266,7 +266,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         child: LayoutBuilder(
           builder: (context, constraints) {
             final headerHeight = constraints.maxHeight * 0.25;
-            
+
             return CustomScrollView(
               slivers: [
                 // Header với Avatar
@@ -302,7 +302,9 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                   ),
                                   child: Center(
                                     child: Text(
-                                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                      user.name.isNotEmpty
+                                          ? user.name[0].toUpperCase()
+                                          : 'U',
                                       style: TextStyle(
                                         fontSize: constraints.maxWidth * 0.08,
                                         fontWeight: FontWeight.bold,
@@ -312,11 +314,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                                   ),
                                 ),
                                 SizedBox(width: constraints.maxWidth * 0.04),
-                                
+
                                 // Tên và Email
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         user.name,
@@ -358,18 +361,19 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         Icons.person_outline,
                         'Thông tin cá nhân',
                         Colors.blue,
-                        subtitle: user.phone?.isNotEmpty == true ? user.phone : 'Chưa cập nhật số điện thoại',
+                        subtitle: user.phone?.isNotEmpty == true
+                            ? user.phone
+                            : 'Chưa cập nhật số điện thoại',
                       ),
                       const SizedBox(height: 12),
-                      
-                      
+
                       _menuItem(
                         Icons.favorite_border,
                         'Sân yêu thích',
                         Colors.green,
                       ),
                       const SizedBox(height: 12),
-                      
+
                       // Cài đặt
                       _menuItem(
                         Icons.settings_outlined,
@@ -377,15 +381,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
                         Colors.grey,
                       ),
                       const SizedBox(height: 12),
-                      
+
                       // Trợ giúp
-                      _menuItem(
-                        Icons.help_outline,
-                        'Trợ giúp',
-                        Colors.orange,
-                      ),
+                      _menuItem(Icons.help_outline, 'Trợ giúp', Colors.orange),
                       const SizedBox(height: 24),
-                      
+
                       // Nút Đăng xuất
                       _logoutButton(),
                       const SizedBox(height: 40),
@@ -400,7 +400,12 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _menuItem(IconData icon, String title, Color color, {String? subtitle}) {
+  Widget _menuItem(
+    IconData icon,
+    String title,
+    Color color, {
+    String? subtitle,
+  }) {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
@@ -498,12 +503,14 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Đăng xuất'),
         content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
-         actionsAlignment: MainAxisAlignment.spaceBetween,
+        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white60,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Get.back(),
             child: const Text('Hủy'),
@@ -511,28 +518,32 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () {
               Get.back();
               _logout();
             },
-            child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _logout() async {
-    await tokenStorage.clear();
+Future<void> _logout() async {
+  await tokenStorage.clear();
 
-    if (Get.isRegistered<HomeController>()) {
-      Get.find<HomeController>().selectedIndex.value = 0;
-    }
+  Get.deleteAll(force: true);
 
-    Get.offAll(() => HomeScreen());
-  }
+  Get.offAll(() => HomeScreen());
+}
+
 
   @override
   void dispose() {

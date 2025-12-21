@@ -41,7 +41,7 @@ class StoreDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FieldController controller = Get.put(FieldController());
+    final FieldController controller = Get.find<FieldController>();
     final theme = Theme.of(context);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

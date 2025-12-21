@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobile/models/field.dart';
 class FieldService {
-  static const String baseUrl = "http://www.executexan.store";
+  static const String baseUrl = "https://www.executexan.store";
 
   Future<List<FieldModel>> getFields(String storeId, String sportId, DateTime date) async {
     String formattedDate = DateFormat('yyyy-MM-dd').format(date);

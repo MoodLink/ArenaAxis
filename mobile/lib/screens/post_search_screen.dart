@@ -1,11 +1,11 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile/controller/post_search_controller.dart';
 import 'package:mobile/controller/chat_controller.dart';
 import 'package:mobile/screens/chat_screen.dart';
 import 'package:mobile/screens/chat_list_screen.dart';
+import 'package:mobile/screens/my_post_screen.dart';
+import 'package:mobile/widgets/build_infor_row.dart';
 import 'package:mobile/widgets/loading.dart';
 import 'package:intl/intl.dart';
 
@@ -14,36 +14,70 @@ class PostSearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<PostSearchController>();  
+    final controller = Get.find<PostSearchController>();
     final Size screenSize = MediaQuery.of(context).size;
     controller.loadInitialData();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tìm người chơi'),
+        title: const Text('Cộng đồng'),
         centerTitle: true,
         elevation: 0,
+        leading: IconButton(
+          onPressed: () {
+            // Navigate to My Posts page
+            Get.to(() => const MyPostsPage());
+          },
+          icon: Stack(
+            children: [
+              const Icon(Icons.person_outline),
+              Obx(() {
+                final myPostsCount = controller.myPostsCount.value;
+                if (myPostsCount > 0) {
+                  return Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF00C17C), Color(0xFF2196F3)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$myPostsCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ],
+          ),
+          tooltip: 'Bài đăng của tôi',
+        ),
         actions: [
           // Chat list button
           IconButton(
             onPressed: () {
               Get.to(() => const ChatListScreen());
             },
-            icon: Stack(
-              children: [
-                const Icon(Icons.chat_bubble_outline),
-              ],
-            ),
+            icon: Stack(children: [const Icon(Icons.chat_bubble_outline)]),
             tooltip: 'Tin nhắn',
           ),
-          // Notification button
-          IconButton(
-            onPressed: () {
-              // TODO: Navigate to notifications page
-            },
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Thông báo',
-          ),
-          // Filter badge with count
+
           Obx(() {
             final filterCount = controller.activeFiltersCount;
             return Stack(
@@ -89,7 +123,6 @@ class PostSearchPage extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Active filters chips with gradient
           Obx(() {
             if (controller.hasActiveFilters) {
               return Container(
@@ -123,7 +156,10 @@ class PostSearchPage extends StatelessWidget {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF00C17C), Color(0xFF2196F3)],
+                                  colors: [
+                                    Color(0xFF00C17C),
+                                    Color(0xFF2196F3),
+                                  ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
@@ -260,7 +296,8 @@ class PostSearchPage extends StatelessWidget {
                 onRefresh: controller.refreshPosts,
                 child: ListView.builder(
                   padding: EdgeInsets.all(screenSize.width * 0.04),
-                  itemCount: controller.posts.length +
+                  itemCount:
+                      controller.posts.length +
                       (controller.hasMore.value ? 1 : 0),
                   itemBuilder: (context, index) {
                     // Load more indicator
@@ -268,9 +305,7 @@ class PostSearchPage extends StatelessWidget {
                       if (controller.isLoadingMore.value) {
                         return const Padding(
                           padding: EdgeInsets.all(16.0),
-                          child: Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          child: Center(child: CircularProgressIndicator()),
                         );
                       } else {
                         // Trigger load more
@@ -343,11 +378,7 @@ class PostSearchPage extends StatelessWidget {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.close,
-                    size: 14,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
                 ),
               ],
             ),
@@ -372,9 +403,7 @@ class PostSearchPage extends StatelessWidget {
 
     return Card(
       margin: EdgeInsets.only(bottom: screenSize.height * 0.015),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -432,7 +461,7 @@ class PostSearchPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      controller.getSportName(sport),
+                      sport?['name'] ?? 'N/A',
                       style: TextStyle(
                         fontSize: screenSize.width * 0.032,
                         color: Colors.blue.shade700,
@@ -477,30 +506,32 @@ class PostSearchPage extends StatelessWidget {
 
               // Match details
               if (matches.isNotEmpty) ...[
-                _buildInfoRow(
-                  Icons.store,
-                  controller.getStoreName(store),
+                buildInfoRow(Icons.store, store?['name'] ?? 'N/A', screenSize),
+                const SizedBox(height: 8),
+                buildInfoRow(
+                  Icons.location_city,
+                  store?['address'] ?? 'N/A',
                   screenSize,
                 ),
                 const SizedBox(height: 8),
-                _buildInfoRow(
+                buildInfoRow(
                   Icons.calendar_today,
-                  controller.getMatchDate(matches),
+                  _getMatchDate(matches),
                   screenSize,
                 ),
                 const SizedBox(height: 8),
-                _buildInfoRow(
+                buildInfoRow(
                   Icons.access_time,
-                  controller.getTimeRange(matches),
+                  _getTimeRange(matches),
                   screenSize,
                 ),
                 const SizedBox(height: 8),
               ],
 
               // Price per person
-              _buildInfoRow(
+              buildInfoRow(
                 Icons.attach_money,
-                '${controller.formatPrice(post['pricePerPerson'])} / người',
+                '${_formatPrice(post['pricePerPerson'])} / người',
                 screenSize,
               ),
 
@@ -520,8 +551,8 @@ class PostSearchPage extends StatelessWidget {
                         children: List.generate(
                           participants.length > 3 ? 3 : participants.length,
                           (index) {
-                            final participant = participants[index]
-                                as Map<String, dynamic>;
+                            final participant =
+                                participants[index] as Map<String, dynamic>;
                             return Positioned(
                               left: index * 20.0,
                               child: CircleAvatar(
@@ -532,9 +563,8 @@ class PostSearchPage extends StatelessWidget {
                                   backgroundColor: Colors.grey[300],
                                   backgroundImage:
                                       participant['avatarUrl'] != null
-                                          ? NetworkImage(
-                                              participant['avatarUrl'])
-                                          : null,
+                                      ? NetworkImage(participant['avatarUrl'])
+                                      : null,
                                   child: participant['avatarUrl'] == null
                                       ? Icon(
                                           Icons.person,
@@ -659,9 +689,7 @@ class PostSearchPage extends StatelessWidget {
 
     Get.dialog(
       AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Tham gia bài đăng'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -692,24 +720,22 @@ class PostSearchPage extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Còn $availableSlots chỗ trống',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.attach_money, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.attach_money,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
-                        '${controller.formatPrice(post['pricePerPerson'])} / người',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                        ),
+                        '${_formatPrice(post['pricePerPerson'])} / người',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       ),
                     ],
                   ),
@@ -719,21 +745,11 @@ class PostSearchPage extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Hủy'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Hủy')),
           ElevatedButton(
             onPressed: () {
               Get.back();
-              // TODO: Call API to join post
-              Get.snackbar(
-                'Thành công',
-                'Đã gửi yêu cầu tham gia',
-                snackPosition: SnackPosition.BOTTOM,
-                backgroundColor: Colors.green,
-                colorText: Colors.white,
-              );
+              controller.applyToPost(post['id'],1);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green.shade600,
@@ -746,28 +762,8 @@ class PostSearchPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text, Size screenSize) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: screenSize.width * 0.036,
-              color: Colors.grey[700],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState(
-    PostSearchController controller,
-    Size screenSize,
-  ) {
+  
+  Widget _buildEmptyState(PostSearchController controller, Size screenSize) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -801,10 +797,7 @@ class PostSearchPage extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(
-    PostSearchController controller,
-    Size screenSize,
-  ) {
+  Widget _buildErrorState(PostSearchController controller, Size screenSize) {
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: screenSize.width * 0.1),
@@ -845,6 +838,59 @@ class PostSearchPage extends StatelessWidget {
     );
   }
 
+  // Helper functions for formatting data directly from post
+  String _formatPrice(int? price) {
+    if (price == null) return 'N/A';
+    return '${price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'N/A';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null) return 'N/A';
+    try {
+      final parts = timeStr.split(':');
+      return '${parts[0]}:${parts[1]}';
+    } catch (e) {
+      return timeStr;
+    }
+  }
+
+  String _getTimeRange(List<dynamic>? matches) {
+    if (matches == null || matches.isEmpty) return 'N/A';
+
+    try {
+      final firstMatch = matches.first as Map<String, dynamic>;
+      final lastMatch = matches.last as Map<String, dynamic>;
+
+      final startTime = _formatTime(firstMatch['startTime']);
+      final endTime = _formatTime(lastMatch['endTime']);
+
+      return '$startTime - $endTime';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  String _getMatchDate(List<dynamic>? matches) {
+    if (matches == null || matches.isEmpty) return 'N/A';
+
+    try {
+      final firstMatch = matches.first as Map<String, dynamic>;
+      return _formatDate(firstMatch['date']);
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
   void _showFilterBottomSheet(
     BuildContext context,
     PostSearchController controller,
@@ -860,9 +906,7 @@ class PostSearchPage extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// FILTER BOTTOM SHEET - HOÀN CHỈNH
-// ============================================================================
+// Filter Bottom Sheet (giữ nguyên như code cũ)
 class _FilterBottomSheet extends StatefulWidget {
   final PostSearchController controller;
 
@@ -947,7 +991,11 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                         _storeNameController.clear();
                         setState(() {});
                       },
-                      icon: const Icon(Icons.clear_all, color: Colors.white, size: 18),
+                      icon: const Icon(
+                        Icons.clear_all,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                       label: const Text(
                         'Xóa tất cả',
                         style: TextStyle(color: Colors.white),
@@ -1014,23 +1062,27 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                     Row(
                       children: [
                         Expanded(
-                          child: Obx(() => _buildDateSelector(
-                                context,
-                                'Từ ngày',
-                                widget.controller.fromDate.value,
-                                (date) => widget.controller.setFromDate(date),
-                                screenSize,
-                              )),
+                          child: Obx(
+                            () => _buildDateSelector(
+                              context,
+                              'Từ ngày',
+                              widget.controller.fromDate.value,
+                              (date) => widget.controller.setFromDate(date),
+                              screenSize,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Obx(() => _buildDateSelector(
-                                context,
-                                'Đến ngày',
-                                widget.controller.toDate.value,
-                                (date) => widget.controller.setToDate(date),
-                                screenSize,
-                              )),
+                          child: Obx(
+                            () => _buildDateSelector(
+                              context,
+                              'Đến ngày',
+                              widget.controller.toDate.value,
+                              (date) => widget.controller.setToDate(date),
+                              screenSize,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -1095,7 +1147,9 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          widget.controller.setStoreName(_storeNameController.text);
+                          widget.controller.setStoreName(
+                            _storeNameController.text,
+                          );
                           widget.controller.applyFilters();
                           Navigator.pop(context);
                         },
@@ -1235,10 +1289,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       value: widget.controller.selectedSportId.value,
       decoration: InputDecoration(
         hintText: 'Chọn môn thể thao',
-        prefixIcon: const Icon(
-          Icons.sports_soccer,
-          color: Color(0xFF00C17C),
-        ),
+        prefixIcon: const Icon(Icons.sports_soccer, color: Color(0xFF00C17C)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1249,18 +1300,15 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF00C17C),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF00C17C), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       items: [
-        const DropdownMenuItem<String>(
-          value: null,
-          child: Text('Tất cả'),
-        ),
+        const DropdownMenuItem<String>(value: null, child: Text('Tất cả')),
         ...widget.controller.sports.map((sport) {
           return DropdownMenuItem<String>(
             value: sport['id'] as String,
@@ -1283,10 +1331,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       value: widget.controller.selectedProvinceId.value,
       decoration: InputDecoration(
         hintText: 'Chọn tỉnh/thành phố',
-        prefixIcon: const Icon(
-          Icons.location_city,
-          color: Color(0xFF00C17C),
-        ),
+        prefixIcon: const Icon(Icons.location_city, color: Color(0xFF00C17C)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1297,18 +1342,15 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF00C17C),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF00C17C), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       items: [
-        const DropdownMenuItem<String>(
-          value: null,
-          child: Text('Tất cả'),
-        ),
+        const DropdownMenuItem<String>(value: null, child: Text('Tất cả')),
         ...widget.controller.provinces.map((province) {
           return DropdownMenuItem<String>(
             value: province.id,
@@ -1335,10 +1377,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       value: widget.controller.selectedWardId.value,
       decoration: InputDecoration(
         hintText: 'Chọn quận/huyện',
-        prefixIcon: const Icon(
-          Icons.location_on,
-          color: Color(0xFF2196F3),
-        ),
+        prefixIcon: const Icon(Icons.location_on, color: Color(0xFF2196F3)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1349,18 +1388,15 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF2196F3),
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       items: [
-        const DropdownMenuItem<String>(
-          value: null,
-          child: Text('Tất cả'),
-        ),
+        const DropdownMenuItem<String>(value: null, child: Text('Tất cả')),
         ...widget.controller.wards.map((ward) {
           return DropdownMenuItem<String>(
             value: ward.id,

@@ -12,9 +12,9 @@ class ChatListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ChatListController());
+    final controller = Get.find<ChatListController>();
     final Size screenSize = MediaQuery.of(context).size;
-
+    controller.loadConversations();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tin nhắn'),

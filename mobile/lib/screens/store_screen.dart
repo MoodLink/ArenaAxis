@@ -35,7 +35,7 @@ class StorePage extends StatelessWidget {
     final searchController = Get.put(FieldSearchController());
     final sportCategoryController = Get.find<SportCategoryController>();
     final homeController = Get.find<HomeController>();
-
+    storeController.fetchStores();
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Obx(() {

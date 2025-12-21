@@ -3,6 +3,7 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mobile/models/user.dart';
 import 'package:mobile/services/chat_service.dart';
 import 'package:mobile/utilities/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -56,6 +57,8 @@ class ChatListController extends GetxController {
 
   /// Load conversations
   Future<void> loadConversations({String? receiverName}) async {
+    User? user = await tokenStorage.getUserData();
+    currentUserId = user?.id;
     if (currentUserId == null) {
       errorMessage.value = 'Chưa đăng nhập';
       return;

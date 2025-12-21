@@ -1,5 +1,3 @@
-// chat_websocket_service.dart
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
@@ -26,11 +24,13 @@ class ChatWebSocketService {
   final _messageStreamController = StreamController<ChatMessage>.broadcast();
   final _connectionStreamController = StreamController<bool>.broadcast();
   final _ackStreamController = StreamController<Map<String, dynamic>>.broadcast();
+  final _applyNotificationController = StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters
   Stream<ChatMessage> get messageStream => _messageStreamController.stream;
   Stream<bool> get connectionStream => _connectionStreamController.stream;
   Stream<Map<String, dynamic>> get ackStream => _ackStreamController.stream;
+  Stream<Map<String, dynamic>> get applyNotificationStream => _applyNotificationController.stream;
   bool get isConnected => _isConnected;
 
   /// Kết nối WebSocket
@@ -43,7 +43,7 @@ class ChatWebSocketService {
     _userId = userId;
     
     try {
-      final wsUrl = Uri.parse('ws://www.executexan.store/ws/messages?token=$token');
+      final wsUrl = Uri.parse('wss://www.executexan.store/ws/messages?token=$token');
       dev.log('Connecting to WebSocket: $wsUrl');
 
       _channel = WebSocketChannel.connect(wsUrl);
@@ -92,17 +92,23 @@ class ChatWebSocketService {
           break;
 
         case WebSocketMessageType.messageApply:
-        case WebSocketMessageType.postApply:
-          // TODO: Handle post apply notifications
+          // Handle post apply notification
           dev.log('🎯 Post apply notification received');
+          _applyNotificationController.add(wsMessage.data);
+          break;
+
+        case WebSocketMessageType.postApply:
+          // Handle post apply acknowledgment
+          dev.log('🎯 Post apply ACK received');
+          _applyNotificationController.add(wsMessage.data);
           break;
 
         case WebSocketMessageType.pong:
-          dev.log('💓 Pong received');
+          // Heartbeat pong received
           break;
 
         case WebSocketMessageType.ping:
-          dev.log('💓 Ping received, sending pong');
+          // Server ping - send pong back
           _sendPong();
           break;
 
@@ -138,7 +144,6 @@ class ChatWebSocketService {
         sender: sender,
       );
 
-      dev.log('📩 [message.receive] From: ${sender.name}');
       _messageStreamController.add(message);
     } catch (e) {
       dev.log('❌ Error handling incoming message: $e');
@@ -204,7 +209,6 @@ class ChatWebSocketService {
     _reconnectTimer = Timer(Duration(milliseconds: _reconnectDelay), () {
       if (_userId != null) {
         // Note: Need to get token again from storage
-        // This is a simplified version
         dev.log('🔄 Attempting to reconnect...');
         // connect(_userId!, token); // TODO: Get token from storage
       }
@@ -231,7 +235,6 @@ class ChatWebSocketService {
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (_isConnected && _channel != null) {
         _sendRaw({'type': 'ping'});
-
       }
     });
   }
@@ -277,6 +280,31 @@ class ChatWebSocketService {
     }
   }
 
+  /// Gửi apply post request
+  bool sendApplyPost(String postId, int numberOfPlayers) {
+    if (!_isConnected || _channel == null) {
+      dev.log('❌ Cannot apply to post: WebSocket not connected');
+      return false;
+    }
+
+    try {
+      final message = {
+        'type': 'post.apply',
+        'data': {
+          'postId': postId,
+          'number': numberOfPlayers,
+        }
+      };
+
+      _sendRaw(message);
+      dev.log('🎯 Apply post request sent: postId=$postId, number=$numberOfPlayers');
+      return true;
+    } catch (e) {
+      dev.log('❌ Error sending apply post: $e');
+      return false;
+    }
+  }
+
   /// Gửi dữ liệu raw
   void _sendRaw(Map<String, dynamic> data) {
     if (_channel != null && _isConnected) {
@@ -304,5 +332,6 @@ class ChatWebSocketService {
     _messageStreamController.close();
     _connectionStreamController.close();
     _ackStreamController.close();
+    _applyNotificationController.close();
   }
 }

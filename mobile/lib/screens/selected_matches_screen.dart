@@ -88,7 +88,7 @@ class SelectMatchesPage extends StatelessWidget {
                 ),
                 SizedBox(height: screenSize.height * 0.03),
                 Text(
-                  'Không có trận đấu nào',
+                  'Các trận đấu đã được đăng tuyển',
                   style: TextStyle(
                     fontSize: screenSize.width * 0.045,
                     color: Colors.grey[600],

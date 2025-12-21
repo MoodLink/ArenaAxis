@@ -8,7 +8,7 @@ import 'package:mobile/utilities/token_storage.dart';
 
 
 class ChatService {
-  static const String baseUrl = 'http://www.executexan.store';
+  static const String baseUrl = 'https://www.executexan.store';
   final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
 
   /// Lấy danh sách conversations
@@ -42,8 +42,7 @@ class ChatService {
         },
       );
 
-      log('Response status: ${response.statusCode}');
-      log('Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

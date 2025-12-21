@@ -2,8 +2,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class BookingsService {
-  static const String baseUrl = 'http://www.executexan.store';
-  static const String userServiceUrl = 'http://www.executexan.store';
+  static const String baseUrl = 'https://www.executexan.store';
+
 
 Future<Map<String, dynamic>> getOrderById(String orderId) async {
   try {
@@ -60,7 +60,7 @@ Future<Map<String, dynamic>> getOrderById(String orderId) async {
   Future<Map<String, dynamic>> getStoreDetail(String storeId) async {
     try {
       final response = await http.get(
-        Uri.parse('$userServiceUrl/stores/detail/$storeId'),
+        Uri.parse('$baseUrl/stores/detail/$storeId'),
         headers: {
           'Content-Type': 'application/json',
         },

@@ -1,13 +1,11 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/models/user.dart';
 import 'package:mobile/models/cart_item.dart';
 import 'package:mobile/models/field.dart';
-import 'package:mobile/screens/login_screen.dart';
 import 'package:mobile/services/field_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/utilities/token_storage.dart';
@@ -35,7 +33,7 @@ class FieldController extends GetxController {
       }
     });
   }
-
+  
   Future<void> loadData(String storeId, String sportId) async {
     currentStoreId = storeId;
     currentSportId = sportId;
@@ -53,6 +51,27 @@ class FieldController extends GetxController {
       isLoading.value = false;
     }
   }
+  bool isPastTimeSlot(DateTime selectedDate, String time) {
+  final now = DateTime.now();
+
+  // Nếu KHÔNG phải hôm nay → không khóa
+  if (selectedDate.year != now.year ||
+      selectedDate.month != now.month ||
+      selectedDate.day != now.day) {
+    return false;
+  }
+
+  final parts = time.split(':'); // "08:30"
+  final slotTime = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    int.parse(parts[0]),
+    int.parse(parts[1]),
+  );
+
+  return slotTime.isBefore(now);
+}
 
   bool isSlotSelected(String fieldId, String timeSlot) {
     String date = DateFormat("yyyy-MM-dd").format(selectedDate.value);
@@ -177,7 +196,7 @@ class FieldController extends GetxController {
         return null;
       }
 
-      final url = "http://www.executexan.store/api/v1/orders/create-payment";
+      final url = "https://www.executexan.store/api/v1/orders/create-payment";
       final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
 
       dynamic userData = await tokenStorage.getUserData();

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:mobile/models/Store.dart';
 
 class StoreService {
-  final String _baseUrl = 'http://www.executexan.store';
+  final String _baseUrl = 'https://www.executexan.store';
 
   /// Search stores with filters - POST to /stores/search
   Future<List<Store>> searchStores({
@@ -90,10 +90,6 @@ class StoreService {
       final url = Uri.parse('$_baseUrl/recommends/near-by');
 
       final body = {
-        // // 'latitude': latitude ?? 0.0,
-        // // 'longitude': longitude ?? 0.0,
-        // // 'distance': distance,
-        // 'wardName': wardName ?? '',
         'provinceName': provinceName ?? '',
       };
 

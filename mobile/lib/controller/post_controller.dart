@@ -30,7 +30,9 @@ class PostController extends GetxController {
       // Lấy token và user info
       _token = await tokenStorage.getAccessToken();
       _user = await tokenStorage.getUserData();
-      log('Loaded token: $_token, user: $_user');
+      log('Loaded token: $_token');
+      log('Loaded user: ${_user?.id}');
+
       if (_token == null) {
         throw Exception('Vui lòng đăng nhập lại');
       }
@@ -40,23 +42,21 @@ class PostController extends GetxController {
       }
 
       final response = await _service.getMatchesByOrder(orderId, _token!);
-      
+
       // API trả về trực tiếp là List các matches
       if (response is List) {
         matches.assignAll(
-          response.map((e) => e as Map<String, dynamic>).toList()
+          response.map((e) => e as Map<String, dynamic>).toList(),
         );
       } else {
-        // Trường hợp backup nếu format thay đổi
+
         matches.assignAll([]);
       }
 
-      // Clear selection
-      selectedMatchIds.clear();
-
-      isLoading.value = false;
     } catch (e) {
       errorMessage.value = e.toString().replaceAll('Exception: ', '');
+      log('Load matches error: $e');
+    } finally {
       isLoading.value = false;
     }
   }
@@ -68,6 +68,7 @@ class PostController extends GetxController {
     } else {
       selectedMatchIds.add(matchId);
     }
+    log('Selected matches: ${selectedMatchIds.length}');
   }
 
   /// Check xem match có được chọn không
@@ -84,17 +85,32 @@ class PostController extends GetxController {
   }) async {
     try {
       if (selectedMatchIds.isEmpty) {
-        throw Exception('Vui lòng chọn ít nhất một trận đấu');
-      }
-
-      if (_token == null || _user == null) {
-        throw Exception('Vui lòng đăng nhập lại');
+        errorMessage.value = 'Vui lòng chọn ít nhất một trận đấu';
+        return false;
       }
 
       isLoading.value = true;
       errorMessage.value = null;
 
-      await _service.createPost(
+      // Lấy lại token và user nếu null (phòng trường hợp user chưa load matches)
+      if (_token == null || _user == null) {
+        _token = await tokenStorage.getAccessToken();
+        _user = await tokenStorage.getUserData();
+
+        if (_token == null) {
+          errorMessage.value = 'Vui lòng đăng nhập lại';
+          return false;
+        }
+
+        if (_user == null) {
+          errorMessage.value = 'Không tìm thấy thông tin người dùng';
+          return false;
+        }
+      }
+
+
+
+      final result = await _service.createPost(
         matchIds: selectedMatchIds.toList(),
         title: title,
         description: description,
@@ -104,20 +120,36 @@ class PostController extends GetxController {
         token: _token!,
       );
 
-      isLoading.value = false;
+      log('Create post result: $result');
+
+      // ✅ FIX: CHỈ CLEAR DATA SAU KHI TẠO POST THÀNH CÔNG
+      selectedMatchIds.clear();
+      matches.clear();
+
       return true;
     } catch (e) {
       errorMessage.value = e.toString().replaceAll('Exception: ', '');
-      isLoading.value = false;
+      log('Create post error: $e');
       return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  /// Clear data khi dispose
   @override
   void onClose() {
+    log('PostController onClose called');
+
+    super.onClose();
+  }
+
+  void reset() {
+    log('PostController reset called');
     matches.clear();
     selectedMatchIds.clear();
-    super.onClose();
+    errorMessage.value = null;
+    _token = null;
+    _user = null;
+    _currentOrderId = null;
   }
 }
