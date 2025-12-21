@@ -270,7 +270,7 @@ public class PostServiceImpl implements PostService {
   ) {
     PostSearchItemResponse resp = postMapper.toSearchItemResponse(post);
 
-    resp.setStore(storeMapper.toResponse(storeMap.get(post.getSportId())));
+    resp.setStore(storeMapper.toResponse(storeMap.get(post.getStoreId())));
     resp.setSport(Objects.requireNonNull(Sport.getById(post.getSportId())).toResponse());
     resp.setPoster(participantMap.get(post.getPosterId()));
     resp.setParticipants(post.getParticipantIds().stream().map(participantMap::get).toList());
