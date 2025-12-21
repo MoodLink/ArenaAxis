@@ -13,5 +13,6 @@ public interface PostService {
   Mono<PostResponse> createPost(PostCreateRequest request);
   Mono<ApplyResponse> applyPost(ApplyPostRequest request);
   Flux<PostSearchItemResponse> searchPost(SearchPostRequest request, int page, int perPage);
+  Flux<PostSearchItemResponse> getPostByPoster(String posterId);
   Mono<PostResponse> updatePost(PostCreateRequest request);
 }

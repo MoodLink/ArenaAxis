@@ -116,6 +116,13 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override
+  public Flux<PostSearchItemResponse> getPostByPoster(String posterId) {
+    return postRepository.findByPosterId(posterId)
+      .collectList()
+      .flatMapMany(this::toSearchItemResponses);
+  }
+
+  @Override
   public Mono<PostResponse> updatePost(PostCreateRequest request) {
     return null;
   }
