@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader,
                 },
-                signal: AbortSignal.timeout(5000), // 5 second timeout
+                signal: AbortSignal.timeout(15000), // 15 second timeout for slow backend
             })
 
             if (!response.ok) {

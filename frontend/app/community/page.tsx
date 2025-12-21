@@ -177,8 +177,8 @@ export default function CommunityPage() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Cộng đồng sân bóng</h1>
-            <p className="text-slate-600">Tìm các bài viết liên quan đến các sân bóng trên khắp đất nước</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Cộng đồng thể thao</h1>
+            <p className="text-slate-600">Tìm các bài viết liên quan đến các sân thể thao trên khắp đất nước</p>
           </div>
           <Link href="/community/create">
             <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">

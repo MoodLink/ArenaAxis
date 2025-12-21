@@ -73,6 +73,8 @@ export default function StoreBookingsContent() {
         }
     }>({});
 
+    const [bookingWithCustomerMap, setBookingWithCustomerMap] = useState<Record<string, BookingInfo>>({});
+
     // Modal states
     const [selectedBooking, setSelectedBooking] = useState<BookingInfo | null>(null);
     const [showBookingModal, setShowBookingModal] = useState(false);
@@ -223,10 +225,10 @@ export default function StoreBookingsContent() {
                                                         fieldId: fieldId,
                                                         timeSlot: slotTime,
                                                         // Try to get user info from order or use fallback
-                                                        customerName: status.userId?.name || order.userId || 'N/A',
-                                                        customerPhone: status.userId?.phone || 'N/A',
-                                                        customerEmail: status.userId?.email || 'N/A',
-                                                        customerAddress: order.address || status.userId?.address || 'N/A',
+                                                        customerName: status.user?.name || order.userId || 'N/A',
+                                                        customerPhone: status.user?.phone || 'N/A',
+                                                        customerEmail: status.user?.email || 'N/A',
+                                                        customerAddress: order.address || status.user?.address || 'N/A',
                                                         bookingTime: new Date(order.createdAt).toLocaleString('vi-VN'),
                                                         price: detail.price || parseInt(field?.defaultPrice || '0')
                                                     }
@@ -246,10 +248,10 @@ export default function StoreBookingsContent() {
                                 id: status._id || `booking-${slotTime}`,
                                 fieldId: fieldId,
                                 timeSlot: slotTime,
-                                customerName: status.userId?.name || 'N/A',
-                                customerPhone: status.userId?.phone || 'N/A',
-                                customerEmail: status.userId?.email || 'N/A',
-                                customerAddress: status.userId?.address || 'N/A',
+                                customerName: status.user?.name || 'N/A',
+                                customerPhone: status.user?.phone || 'N/A',
+                                customerEmail: status.user?.email || 'N/A',
+                                customerAddress: status.user?.address || 'N/A',
                                 bookingTime: new Date(status.createdAt).toLocaleString('vi-VN'),
                                 price: status.price || parseInt(field?.defaultPrice || '0')
                             }
@@ -263,7 +265,9 @@ export default function StoreBookingsContent() {
             })
 
             setBookingData(bookingMap)
+            setBookingWithCustomerMap(bookingWithCustomerMap)
             console.log(' Final booking data:', bookingMap)
+            console.log(' Final booking with customer info:', bookingWithCustomerMap)
             Object.entries(bookingMap).forEach(([fieldId, slots]) => {
                 const bookedCount = Object.values(slots).filter((s: string) => s === 'booked').length
                 console.log(`  Field ${fieldId}: ${bookedCount} booked slots`)
@@ -1103,14 +1107,14 @@ export default function StoreBookingsContent() {
                                         {/* Scrollable Time Grid Section - INDEPENDENT SCROLL */}
                                         <div
                                             id="booking-grid-main"
-                                            className="flex-1 overflow-x-auto pb-2"
+                                            className="flex-1 overflow-x-auto pb-2 overflow-y-visible"
                                             style={{
                                                 scrollbarWidth: 'thin',
                                                 scrollbarColor: '#10b981 #f3f4f6',
                                                 WebkitOverflowScrolling: 'touch'
                                             }}
                                         >
-                                            <div className="inline-block min-w-full">
+                                            <div className="inline-block min-w-full overflow-visible">
                                                 {/* Time Header */}
                                                 <div className="flex bg-gradient-to-r from-emerald-100 to-blue-100 border-b-2 border-emerald-200">
                                                     {timeSlots.map((slot, index) => (
@@ -1134,7 +1138,7 @@ export default function StoreBookingsContent() {
                                                 {/* Field Rows */}
                                                 {fields.length > 0 ? (
                                                     fields.map((field: APIField, fieldIdx: number) => (
-                                                        <div key={field._id} className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30" style={{ height: '86px' }}>
+                                                        <div key={field._id} className="flex border-b border-gray-100 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-blue-50/30 transition-all duration-300 bg-gray-50/30 overflow-visible" style={{ height: '86px' }}>
                                                             {/* Offset spacer */}
                                                             <div className="flex-shrink-0 w-10 border-r border-gray-100/50"></div>
                                                             {timeSlots.slice(0, -1).map((slot, slotIndex) => {
@@ -1176,14 +1180,34 @@ export default function StoreBookingsContent() {
                                                                             </div>
 
                                                                             {/* Customer info tooltip for booked slots */}
-                                                                            {status === 'booked' && (
-                                                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
-                                                                                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-lg shadow-xl px-3 py-2 text-xs whitespace-nowrap border border-blue-400">
-                                                                                        <div className="font-bold">Chi tiết đặt sân</div>
-                                                                                        <div className="text-blue-100 text-xs">Khung giờ: {slot}</div>
+                                                                            {status === 'booked' && bookingWithCustomerMap[bookingKey] && (
+                                                                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50" style={{ pointerEvents: 'none' }}>
+                                                                                    <div className="bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-lg shadow-2xl px-4 py-3 text-xs border border-blue-400 max-w-sm">
+                                                                                        <div className="font-bold mb-1">📋 Chi tiết đặt sân</div>
+                                                                                        <div className="text-blue-100 text-xs mb-2">
+                                                                                            <div>Khung giờ: <span className="font-semibold">{slot}</span></div>
+                                                                                        </div>
+                                                                                        <div className="border-t border-blue-400 pt-2 space-y-1">
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">👤 Khách:</span>
+                                                                                                <span className="font-semibold text-white">{bookingWithCustomerMap[bookingKey].customerName}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">📱 ĐT:</span>
+                                                                                                <span className="font-semibold text-white">{bookingWithCustomerMap[bookingKey].customerPhone}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1">
+                                                                                                <span className="text-blue-300 min-w-fit">✉️ Email:</span>
+                                                                                                <span className="font-semibold text-white text-xs truncate">{bookingWithCustomerMap[bookingKey].customerEmail}</span>
+                                                                                            </div>
+                                                                                            <div className="flex items-start gap-1 pt-1 border-t border-blue-400">
+                                                                                                <span className="text-yellow-300 min-w-fit">💰 Giá:</span>
+                                                                                                <span className="font-bold text-yellow-300">{formatPrice(String(bookingWithCustomerMap[bookingKey].price))}</span>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
-                                                                                    {/* Arrow */}
-                                                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 border-4 border-transparent border-t-blue-800"></div>
+                                                                                    {/* Arrow pointing up */}
+                                                                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mt-1 border-4 border-transparent border-b-blue-800"></div>
                                                                                 </div>
                                                                             )}
                                                                         </div>
