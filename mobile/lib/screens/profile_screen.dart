@@ -538,8 +538,6 @@ class _ProfilePageState extends State<ProfilePage>
 Future<void> _logout() async {
   await tokenStorage.clear();
 
-  Get.deleteAll(force: true);
-
   Get.offAll(() => HomeScreen());
 }
 

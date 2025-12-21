@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:mobile/controller/home_controller.dart';
 import 'package:mobile/controller/post_controller.dart';
 import 'package:mobile/screens/home_screen.dart';
 
@@ -347,9 +348,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
         backgroundColor: Get.theme.colorScheme.primary,
         colorText: Colors.white,
       );
-
+      final HomeController homeController = Get.find<HomeController>();
+      homeController.selectedIndex.value = 2;
       // Quay về trang order history
-      Get.offAll(() =>  HomeScreen());
+      Get.offAll(() => HomeScreen());
+      
     } else if (controller.errorMessage.value != null) {
       Get.snackbar(
         'Lỗi',

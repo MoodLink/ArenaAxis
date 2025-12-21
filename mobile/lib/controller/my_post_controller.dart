@@ -1,8 +1,8 @@
-
 import 'package:get/get.dart';
 import 'package:mobile/services/post_service.dart';
 import 'package:mobile/utilities/token_storage.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile/models/user.dart';
 
 class MyPostsController extends GetxController {
   final PostService _postService = PostService();
@@ -32,8 +32,9 @@ class MyPostsController extends GetxController {
   Future<void> loadInitialData() async {
     // Load token và userId
     _token = await tokenStorage.getAccessToken();
-    _currentUserId = await tokenStorage.getUserData().then((user) => user?.id);
-    
+    User? currentUser = await tokenStorage.getUserData();
+    _currentUserId = currentUser?.id;
+
     // Load posts của user
     await loadMyPosts(isRefresh: true);
   }
@@ -48,7 +49,8 @@ class MyPostsController extends GetxController {
       } else {
         isLoadingMore.value = true;
       }
-
+      User? currentUser = await tokenStorage.getUserData();
+      _currentUserId = currentUser?.id;
       errorMessage.value = null;
 
       if (_currentUserId == null) {
@@ -66,12 +68,10 @@ class MyPostsController extends GetxController {
 
       if (isRefresh) {
         posts.assignAll(
-          newPosts.map((e) => e as Map<String, dynamic>).toList()
+          newPosts.map((e) => e as Map<String, dynamic>).toList(),
         );
       } else {
-        posts.addAll(
-          newPosts.map((e) => e as Map<String, dynamic>).toList()
-        );
+        posts.addAll(newPosts.map((e) => e as Map<String, dynamic>).toList());
       }
 
       // Check if there are more posts
@@ -88,7 +88,7 @@ class MyPostsController extends GetxController {
   /// Load more posts (pagination)
   Future<void> loadMore() async {
     if (!hasMore.value || isLoadingMore.value) return;
-    
+
     currentPage.value++;
     await loadMyPosts(isRefresh: false);
   }
@@ -125,23 +125,20 @@ class MyPostsController extends GetxController {
   /// Format giá
   String formatPrice(int? price) {
     if (price == null) return 'N/A';
-    return '${price.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    )}đ';
+    return '${price.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ';
   }
 
   /// Get time range từ matches
   String getTimeRange(List<dynamic>? matches) {
     if (matches == null || matches.isEmpty) return 'N/A';
-    
+
     try {
       final firstMatch = matches.first as Map<String, dynamic>;
       final lastMatch = matches.last as Map<String, dynamic>;
-      
+
       final startTime = formatTime(firstMatch['startTime']);
       final endTime = formatTime(lastMatch['endTime']);
-      
+
       return '$startTime - $endTime';
     } catch (e) {
       return 'N/A';
@@ -151,7 +148,7 @@ class MyPostsController extends GetxController {
   /// Get date từ matches
   String getMatchDate(List<dynamic>? matches) {
     if (matches == null || matches.isEmpty) return 'N/A';
-    
+
     try {
       final firstMatch = matches.first as Map<String, dynamic>;
       return formatDate(firstMatch['date']);

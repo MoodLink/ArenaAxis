@@ -296,7 +296,7 @@ class ChatPage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        controller.formatMessageTime(message.timestamp ),
+                        controller.formatMessageTime(message.timestamp),
                         style: TextStyle(
                           fontSize: screenSize.width * 0.028,
                           color: isMyMessage
