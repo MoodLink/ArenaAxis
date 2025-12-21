@@ -3,7 +3,7 @@ import { Order } from "../models/order.model.js";
 
 cron.schedule("*/10 * * * * *", async () => {
   try {
-    const fiveMinutesAgo = new Date(Date.now() - 1 * 60 * 1000);
+    const fiveMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
     const result = await Order.updateMany(
       {
