@@ -42,7 +42,7 @@ services:
       - MYSQL_URL=${MYSQL_URL}
       - MYSQL_USERNAME=${MYSQL_USERNAME}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - ORDER_SERVICE_URL=http://order-service:3000
+      - ORDER_SERVICE_URL=http://order-service:3000/api/v1
       - SMTP_EMAIL=${SMTP_EMAIL}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
     networks:

@@ -3,7 +3,6 @@ package com.arenaaxis.userservice.controller;
 import java.util.List;
 
 import com.arenaaxis.userservice.dto.request.RatingUpdateRequest;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

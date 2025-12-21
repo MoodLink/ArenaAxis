@@ -25,7 +25,7 @@ public interface StoreService {
   StoreAdminDetailResponse fullInfo(String storeId);
   StoreAdminDetailResponse approveStore(String storeId, User currentUser);
   StoreAdminDetailResponse toggleActiveStatus(String storeId);
-  List<StoreSearchItemResponse> getInPagination(int page, int perPage);
+  List<StoreSearchItemResponse> getInPagination(User current, int page, int perPage);
   List<StoreSearchItemResponse> searchInPagination(SearchStoreRequest request, int page, int perPage);
   List<StoreAdminDetailResponse> getStoresByOwnerId(String ownerId, User currentUser);
   List<StoreAdminSearchItemResponse> adminSearch(SearchStoreAdminRequest request, int page, int perPage);
