@@ -297,12 +297,7 @@ export default function UsersManagement() {
         description="Quản lý tài khoản và hoạt động của người dùng"
         actionButton={
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4" />
-                Thêm người dùng
-              </Button>
-            </DialogTrigger>
+
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Tạo người dùng mới</DialogTitle>

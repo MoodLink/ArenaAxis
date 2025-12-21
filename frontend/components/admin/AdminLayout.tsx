@@ -34,12 +34,12 @@ interface AdminLayoutProps {
 }
 
 const sidebarItems = [
-  {
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/admin',
+  // {
+  //   title: 'Dashboard',
+  //   icon: LayoutDashboard,
+  //   href: '/admin',
 
-  },
+  // },
   {
     title: 'Quản lý Users',
     icon: Users,
@@ -186,10 +186,7 @@ function AdminProfileMenu() {
           <span>Admin</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <SettingsIcon className="h-4 w-4 mr-2" />
-          <span>Cài đặt</span>
-        </DropdownMenuItem>
+
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
           <LogOut className="h-4 w-4 mr-2" />
@@ -249,13 +246,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Notifications and Profile */}
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
-                  3
-                </Badge>
-              </Button>
-
               <AdminProfileMenu />
             </div>
           </div>

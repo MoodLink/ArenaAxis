@@ -97,7 +97,7 @@ export default function BankAccountPage() {
                 console.log("Fetching current bank account...")
                 try {
                     const accountData = await getMyBankAccount()
-                    console.log(" Bank account data:", accountData)
+                    console.log("✓ Bank account data:", accountData)
 
                     if (accountData) {
                         setBankAccount(accountData)
@@ -107,13 +107,13 @@ export default function BankAccountPage() {
                             bankId: accountData.bank?.id || ""
                         })
                     } else {
-                        console.log(" No bank account found, user can create one")
+                        console.log("✓ No bank account found, user can create one")
                         setIsEditing(true) // Auto switch to create mode
                     }
                 } catch (error: any) {
                     // If 404, user doesn't have bank account yet
-                    if (error?.status === 404) {
-                        console.log(" No bank account found (404), user can create one")
+                    if (error?.status === 404 || error?.message?.includes('not found')) {
+                        console.log("✓ No bank account found (404), user can create one")
                         setIsEditing(true)
                     } else {
                         throw error

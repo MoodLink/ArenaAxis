@@ -29,6 +29,7 @@ export default function StoreRegistrationPage() {
     const router = useRouter()
     const [currentStep, setCurrentStep] = useState<RegistrationStep>(1)
     const [storeId, setStoreId] = useState<string | null>(null)
+    const [newToken, setNewToken] = useState<string | null>(null)  // ✅ NEW: Store newToken from backend
 
     const [formData, setFormData] = useState<{
         name: string;
@@ -254,22 +255,26 @@ export default function StoreRegistrationPage() {
                 setStoreId(response.storeId)
             }
 
-            // 🔑 QUAN TRỌNG: Refresh token vì backend đã chuyển role USER → CLIENT
-            // Token cũ vẫn có role USER, cần token mới với role CLIENT để upload ảnh
-            console.log('Store created! Refreshing token to get new role (CLIENT)...')
-            const oldToken = localStorage.getItem('token')
-            if (oldToken) {
-                try {
-                    const { refreshToken } = await import('@/services/api-new')
-                    const refreshResponse = await refreshToken(oldToken)
-                    if (refreshResponse && refreshResponse.token) {
-                        localStorage.setItem('token', refreshResponse.token)
-                        console.log(' Token refreshed! Now has CLIENT role')
-                    }
-                } catch (refreshError) {
-                    console.warn(' Failed to refresh token:', refreshError)
-                    // Tiếp tục anyway - có thể vẫn work
-                }
+            // 🔑 QUAN TRỌNG: Backend đã trả về token mới với role CLIENT
+            // Token cũ có role USER, token mới có role CLIENT để upload ảnh
+            if (response.newToken) {
+                console.log('✅ Store created! Got new token with CLIENT role')
+                const oldToken = localStorage.getItem('token')
+                localStorage.setItem('token', response.newToken)
+                setNewToken(response.newToken)  // ✅ Save to state for use in next steps
+
+                // ✅ Dispatch storage event to notify other components/hooks
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'token',
+                    oldValue: oldToken,
+                    newValue: response.newToken,
+                    url: window.location.href,
+                    storageArea: localStorage
+                }))
+
+                console.log('✅ Token saved! Will use this token for image upload and plan registration')
+            } else {
+                console.warn('⚠️ Backend did not return newToken, continuing with old token...')
             }
 
             // Move to step 2
@@ -290,13 +295,17 @@ export default function StoreRegistrationPage() {
         try {
             // Bước 2: Upload ảnh nếu có (sau khi tạo store thành công)
             if (storeId && !skipImages && (files.avatar || files.coverImage || files.businessLicense || files.medias?.length)) {
-                console.log(' Starting image upload...')
-                const uploadResult = await updateStoreImages(storeId, {
-                    avatar: files.avatar,
-                    coverImage: files.coverImage,
-                    businessLicenseImage: files.businessLicense,
-                    medias: files.medias
-                })
+                console.log('🖼️ Starting image upload with CLIENT token...')
+                const uploadResult = await updateStoreImages(
+                    storeId,
+                    {
+                        avatar: files.avatar,
+                        coverImage: files.coverImage,
+                        businessLicenseImage: files.businessLicense,
+                        medias: files.medias
+                    },
+                    newToken || undefined  // ✅ Use newToken from state (CLIENT role)
+                )
 
                 if (!uploadResult.success) {
                     setError(uploadResult.message)
@@ -331,7 +340,11 @@ export default function StoreRegistrationPage() {
                 console.log(` Registering plan: ${selectedPlanData?.name} for store: ${storeId}`)
 
                 const { purchaseMainPlan } = await import('@/services/api-new')
-                const planResult = await purchaseMainPlan(storeId, selectedPlanId)
+                const planResult = await purchaseMainPlan(
+                    storeId,
+                    selectedPlanId,
+                    newToken || undefined  // ✅ Use newToken from state (CLIENT role)
+                )
 
                 if (!planResult.success) {
                     setError(planResult.message)

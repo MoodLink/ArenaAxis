@@ -97,7 +97,7 @@ export default function DashboardStats() {
       loading
     },
     {
-      title: 'Booking trong tháng',
+      title: 'Tổng lượt đặt',
       value: '2,358',
 
       icon: Calendar,
@@ -105,7 +105,7 @@ export default function DashboardStats() {
       loading: false
     },
     {
-      title: 'Doanh thu tháng',
+      title: 'Tổng doanh thu',
       value: '₫125M',
 
       icon: DollarSign,
@@ -113,7 +113,7 @@ export default function DashboardStats() {
       loading: false
     },
     {
-      title: 'Đánh giá trung bình',
+      title: 'Số lượt đánh giá',
       value: '4.8',
 
       icon: Star,

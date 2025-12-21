@@ -23,7 +23,27 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        const data = await response.json();
+        // Get response text first
+        const text = await response.text();
+
+        // Check if response is empty
+        if (!text || text.trim() === '') {
+            if (!response.ok) {
+                console.error(`[API Proxy] Backend error (${response.status}): Empty response`);
+                return NextResponse.json({ error: true, message: 'Empty response from backend', status: response.status }, { status: 200 });
+            }
+            console.log(`[API Proxy]  Empty response - no bank account found`);
+            return NextResponse.json({ error: true, message: 'Bank account not found', status: 404 }, { status: 200 });
+        }
+
+        // Try to parse JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error(`[API Proxy] Failed to parse JSON response:`, text);
+            return NextResponse.json({ error: true, message: 'Invalid JSON response from backend', status: 500 }, { status: 200 });
+        }
 
         if (!response.ok) {
             console.error(`[API Proxy] Backend error (${response.status}):`, data);
@@ -66,7 +86,27 @@ export async function PUT(request: NextRequest) {
             body: JSON.stringify(body)
         });
 
-        const data = await response.json();
+        // Get response text first
+        const text = await response.text();
+
+        // Check if response is empty
+        if (!text || text.trim() === '') {
+            if (!response.ok) {
+                console.error(`[API Proxy] Backend error (${response.status}): Empty response`);
+                return NextResponse.json({ error: true, message: 'Empty response from backend', status: response.status }, { status: 200 });
+            }
+            console.log(`[API Proxy]  Bank account updated (empty response)`);
+            return NextResponse.json({ message: 'Bank account updated successfully' }, { status: 200 });
+        }
+
+        // Try to parse JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            console.error(`[API Proxy] Failed to parse JSON response:`, text);
+            return NextResponse.json({ error: true, message: 'Invalid JSON response from backend', status: 500 }, { status: 200 });
+        }
 
         if (!response.ok) {
             console.error(`[API Proxy] Backend error (${response.status}):`, data);
@@ -106,8 +146,40 @@ export async function DELETE(request: NextRequest) {
             }
         });
 
+        // Get response text first
+        const text = await response.text();
+
+        // Check if response is empty or if it's ok to proceed
+        if (!text || text.trim() === '') {
+            if (!response.ok) {
+                console.error(`[API Proxy] Backend error (${response.status}): Empty response`);
+                return NextResponse.json({ error: true, message: 'Failed to delete bank account', status: response.status }, { status: 200 });
+            }
+            console.log(`[API Proxy]  Bank account deleted (empty response)`);
+            return NextResponse.json(
+                { message: 'My bank account deleted successfully' },
+                { status: 200 }
+            );
+        }
+
+        // Try to parse JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            // If parsing fails but response was ok, still consider it success
+            if (response.ok) {
+                console.log(`[API Proxy]  Bank account deleted (invalid JSON but OK status)`);
+                return NextResponse.json(
+                    { message: 'My bank account deleted successfully' },
+                    { status: 200 }
+                );
+            }
+            console.error(`[API Proxy] Failed to parse JSON response:`, text);
+            return NextResponse.json({ error: true, message: 'Invalid response from backend', status: 500 }, { status: 200 });
+        }
+
         if (!response.ok) {
-            const data = await response.json();
             console.error(`[API Proxy] Backend error (${response.status}):`, data);
             return NextResponse.json({ ...data, error: true, status: response.status }, { status: 200 });
         }

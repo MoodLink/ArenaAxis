@@ -38,26 +38,6 @@ export default function UserTable({ users, onUserAction }: UserTableProps) {
             key: 'phone',
             label: 'Điện thoại',
             render: (phone) => <span className="text-sm text-gray-600">{phone}</span>
-        },
-        {
-            key: 'location',
-            label: 'Khu vực',
-            render: (location) => <span className="text-sm text-gray-600">{location || 'Chưa cập nhật'}</span>
-        },
-        {
-            key: 'status',
-            label: 'Trạng thái',
-            render: (status) => renderBadge(statusLabelMap[status as keyof typeof statusLabelMap], statusColorMap)
-        },
-        {
-            key: 'totalBookings',
-            label: 'Tổng booking',
-            render: (_, user) => <span className="font-medium">{user.stats.totalBookings}</span>
-        },
-        {
-            key: 'joinDate',
-            label: 'Ngày tham gia',
-            render: (joinDate) => <span className="text-sm text-gray-600">{new Date(joinDate).toLocaleDateString('vi-VN')}</span>
         }
     ]
 

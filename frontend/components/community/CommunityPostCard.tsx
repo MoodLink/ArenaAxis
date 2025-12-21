@@ -87,7 +87,11 @@ export default function CommunityPostCard({
     // Get first match info
     const firstMatch = post.matches && post.matches.length > 0 ? post.matches[0] : null
     const matchDate = firstMatch?.date ? new Date(firstMatch.date).toLocaleDateString('vi-VN') : "Chưa xác định"
-    const matchTime = firstMatch?.startTime || "Chưa xác định"
+    const matchStartTime = firstMatch?.startTime || "Chưa xác định"
+    const matchEndTime = firstMatch?.endTime || "Chưa xác định"
+    const matchTime = matchStartTime === "Chưa xác định" || matchEndTime === "Chưa xác định"
+        ? matchStartTime === "Chưa xác định" ? "Chưa xác định" : matchStartTime
+        : `${matchStartTime} - ${matchEndTime}`
     const location = post.store?.address || "Chưa xác định"
     const sportName = post.sport?.name || "Chưa xác định"
     const participants = post.currentNumber || 0
