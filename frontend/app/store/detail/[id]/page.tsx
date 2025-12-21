@@ -336,12 +336,12 @@ export default function StoreOwnerDetailPage() {
 
                             {/* Edit Button - Quick Actions */}
                             <div className="w-full md:w-auto flex gap-2">
-                                <Button
+                                {/* <Button
                                     variant="outline"
                                     onClick={handleEditClick}
                                 >
                                     Chỉnh sửa thông tin
-                                </Button>
+                                </Button> */}
                                 <Button
                                     variant="destructive"
                                     onClick={handleSuspendClick}
@@ -540,10 +540,10 @@ export default function StoreOwnerDetailPage() {
                         )}
 
                         {/* Block 6: Suspend History */}
-                        <SuspendList
+                        {/* <SuspendList
                             storeId={storeId}
                             refreshTrigger={suspendRefreshTrigger}
-                        />
+                        /> */}
                     </div>
 
                     {/* Right Column - Sidebar */}

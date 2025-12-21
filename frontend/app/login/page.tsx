@@ -48,7 +48,7 @@ function LoginForm() {
 
             router.push(redirectUrl)
           } else if (successRole === "ADMIN") {
-            router.push("/admin");
+            router.push("/admin/users");
           } else if (successRole === "CLIENT") {
             router.push("/store");
           } else {

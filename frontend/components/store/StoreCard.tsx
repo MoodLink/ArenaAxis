@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Star, Eye, ShoppingCart, Heart, Share2, Phone } from 'lucide-react';
 import type { StoreSearchItemResponse } from '@/types';
 import { toggleFavourite, isFavourite } from '@/services/api-new';
+import { isNotAuthenticatedError } from '@/lib/errors';
 import { useToast } from '@/hooks/use-toast';
 import { emitFavouriteChange, useFavouriteSync } from '@/hooks/use-favourite-sync';
+import { LoginPromptDialog } from '@/components/common/LoginPromptDialog';
 
 interface StoreCardProps {
   store: StoreSearchItemResponse;
@@ -20,6 +22,7 @@ interface StoreCardProps {
 export function StoreCard({ store, selectedSportId, isFav: initialIsFav }: StoreCardProps) {
   const [isFav, setIsFav] = useState(initialIsFav || false);
   const [isLoadingFav, setIsLoadingFav] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -59,11 +62,16 @@ export function StoreCard({ store, selectedSportId, isFav: initialIsFav }: Store
         description: `"${store.name}"`,
       });
     } catch (error: any) {
-      toast({
-        title: ' Lỗi',
-        description: error?.message || 'Không thể cập nhật yêu thích',
-        variant: 'destructive',
-      });
+      // Kiểm tra nếu là lỗi không đăng nhập
+      if (isNotAuthenticatedError(error)) {
+        setShowLoginDialog(true);
+      } else {
+        toast({
+          title: ' Lỗi',
+          description: error?.message || 'Không thể cập nhật yêu thích',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoadingFav(false);
     }
@@ -244,6 +252,15 @@ export function StoreCard({ store, selectedSportId, isFav: initialIsFav }: Store
           </button>
         </CardContent>
       </Card>
+
+      {/* Login Prompt Dialog */}
+      <LoginPromptDialog
+        open={showLoginDialog}
+        onOpenChange={setShowLoginDialog}
+        title="Yêu cầu đăng nhập"
+        description="Bạn cần đăng nhập để sử dụng chức năng yêu thích."
+        action="Đăng nhập"
+      />
     </div>
   );
 }

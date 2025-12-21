@@ -844,6 +844,7 @@ export interface StoreRegistrationResponse {
     message: string;
     storeId?: string;
     status?: "pending" | "approved" | "rejected";
+    newToken?: string; // Token mới với role CLIENT sau khi tạo store thành công
 }
 
 // Interface cho Optional Plan Purchase Request
