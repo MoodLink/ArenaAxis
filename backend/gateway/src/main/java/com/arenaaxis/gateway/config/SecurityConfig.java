@@ -59,6 +59,7 @@ public class SecurityConfig {
     "/auth/**",
     "/stores/search",
     "/favourites",
+    "/posts/search",
     "/recommends/**",
     "/api/v1/orders/create-payment",
     "/api/v1/fields",

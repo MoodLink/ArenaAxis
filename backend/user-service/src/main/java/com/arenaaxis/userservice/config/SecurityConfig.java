@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -75,10 +77,14 @@ public class SecurityConfig {
           .forEach((method, paths) -> paths.forEach(path -> auth.requestMatchers(method, path).permitAll()));
         auth.anyRequest().permitAll();
       })
-      .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
-        .decoder(customJwtDecoder)
-        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-        .authenticationEntryPoint(new JwtAuthenticationEntry()));
+      .oauth2ResourceServer(oauth2 -> oauth2
+        .bearerTokenResolver(bearerTokenResolver())
+        .jwt(jwtConfigurer -> jwtConfigurer
+          .decoder(customJwtDecoder)
+          .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+          .authenticationEntryPoint(new JwtAuthenticationEntry()
+        )
+      );
 
     return http.build();
   }
@@ -105,5 +111,13 @@ public class SecurityConfig {
     jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
 
     return jwtAuthenticationConverter;
+  }
+
+  @Bean
+  public BearerTokenResolver bearerTokenResolver() {
+    DefaultBearerTokenResolver resolver = new DefaultBearerTokenResolver();
+    resolver.setAllowUriQueryParameter(false);
+    resolver.setAllowFormEncodedBodyParameter(false);
+    return resolver;
   }
 }

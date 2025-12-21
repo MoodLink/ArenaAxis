@@ -26,13 +26,13 @@ public class RatingController {
   CurrentUserService currentUserService;
   RatingService ratingService;
 
-  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping
   public ResponseEntity<RatingResponse> create(
     @RequestParam("comment") String comment,
     @RequestParam("storeId") String storeId,
     @RequestParam("sportId") String sportId,
     @RequestParam("star") Integer star,
-    @RequestPart(value = "medias", required = false) List<MultipartFile> medias
+    @RequestParam(value = "medias", required = false) MultipartFile[] medias
   ) {
     User current = currentUserService.getCurrentUser();
     RatingRequest ratingRequest = RatingRequest.builder()
@@ -41,8 +41,8 @@ public class RatingController {
       .sportId(sportId)
       .star(star)
       .build();
-
-    return ResponseEntity.ok(ratingService.create(ratingRequest, medias, current));
+    List<MultipartFile> files = List.of(medias);
+    return ResponseEntity.ok(ratingService.create(ratingRequest, files, current));
   }
 
   @GetMapping("/{id}")
