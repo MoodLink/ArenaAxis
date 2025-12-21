@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import StoreLayout from '@/components/store/StoreLayout'
 import { useAuth } from '@/hooks/use-auth'
 import { useConversations } from '@/hooks/use-message-api'
@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader, X, Send, Plus, Search } from 'lucide-react'
 
-export default function StoreChatPage() {
+function StoreChatPageContent() {
     // Auth state
     const { user: currentUser, loading: authLoading } = useAuth()
 
@@ -816,5 +816,13 @@ export default function StoreChatPage() {
                 )}
             </div>
         </StoreLayout>
+    )
+}
+
+export default function StoreChatPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <StoreChatPageContent />
+        </Suspense>
     )
 }
