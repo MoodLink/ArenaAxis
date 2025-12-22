@@ -3,8 +3,35 @@ import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:mobile/models/field.dart';
+
 class FieldService {
   static const String baseUrl = "https://www.executexan.store";
+
+  /// Kiểm tra xem store có bị suspend vào ngày cụ thể không
+  Future<bool> checkStoreSuspended(String storeId, DateTime date) async {
+    String formattedDate = DateFormat('yyyy/MM/dd').format(date);
+    String url = "$baseUrl/stores/$storeId/check-suspend?date=$formattedDate";
+
+    try {
+      log("Checking store suspend: $url");
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        bool isSuspended = body['suspended'] ?? false;
+        log("Store suspended status: $isSuspended");
+        return isSuspended;
+      } else {
+        log("Error checking suspend: ${response.statusCode} - ${response.body}");
+        // Nếu lỗi, coi như không bị suspend để không block user
+        return false;
+      }
+    } catch (e) {
+      log("Exception checking suspend: $e");
+      // Nếu exception, coi như không bị suspend
+      return false;
+    }
+  }
 
   Future<List<FieldModel>> getFields(String storeId, String sportId, DateTime date) async {
     String formattedDate = DateFormat('yyyy-MM-dd').format(date);

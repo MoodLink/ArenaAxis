@@ -1,22 +1,22 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile/models/user.dart';
 import 'package:mobile/models/cart_item.dart';
 import 'package:mobile/models/field.dart';
+import 'package:mobile/services/bill_service.dart';
 import 'package:mobile/services/field_service.dart';
-import 'package:http/http.dart' as http;
 import 'package:mobile/utilities/token_storage.dart';
 import 'package:mobile/widgets/payment_web.dart';
 import 'package:mobile/widgets/show_login_required_dialog.dart';
 
 class FieldController extends GetxController {
   final FieldService _service = FieldService();
+  final BookingsService _bookingsService = BookingsService();
 
   var fields = <FieldModel>[].obs;
   var isLoading = true.obs;
+  var isSuspended = false.obs; // Thêm biến theo dõi trạng thái suspend
   var selectedSlotKeys = <String>{}.obs;
   var selectedSlotsDetail = <String, SelectedSlot>{}.obs;
   var selectedDate = DateTime.now().obs;
@@ -33,12 +33,29 @@ class FieldController extends GetxController {
       }
     });
   }
-  
+
   Future<void> loadData(String storeId, String sportId) async {
     currentStoreId = storeId;
     currentSportId = sportId;
     isLoading.value = true;
+    isSuspended.value = false;
+    
     try {
+      // Bước 1: Kiểm tra xem store có bị suspend không
+      bool suspended = await _service.checkStoreSuspended(
+        storeId,
+        selectedDate.value,
+      );
+
+      if (suspended) {
+        // Nếu bị suspend, set flag và dừng lại
+        isSuspended.value = true;
+        fields.value = [];
+        log("Store is suspended on ${DateFormat('yyyy-MM-dd').format(selectedDate.value)}");
+        return;
+      }
+
+      // Bước 2: Nếu không bị suspend, load fields như bình thường
       var fetchedFields = await _service.getFields(
         storeId,
         sportId,
@@ -51,27 +68,28 @@ class FieldController extends GetxController {
       isLoading.value = false;
     }
   }
+
   bool isPastTimeSlot(DateTime selectedDate, String time) {
-  final now = DateTime.now();
+    final now = DateTime.now();
 
-  // Nếu KHÔNG phải hôm nay → không khóa
-  if (selectedDate.year != now.year ||
-      selectedDate.month != now.month ||
-      selectedDate.day != now.day) {
-    return false;
+    // Nếu KHÔNG phải hôm nay → không khóa
+    if (selectedDate.year != now.year ||
+        selectedDate.month != now.month ||
+        selectedDate.day != now.day) {
+      return false;
+    }
+
+    final parts = time.split(':'); // "08:30"
+    final slotTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+
+    return slotTime.isBefore(now);
   }
-
-  final parts = time.split(':'); // "08:30"
-  final slotTime = DateTime(
-    now.year,
-    now.month,
-    now.day,
-    int.parse(parts[0]),
-    int.parse(parts[1]),
-  );
-
-  return slotTime.isBefore(now);
-}
 
   bool isSlotSelected(String fieldId, String timeSlot) {
     String date = DateFormat("yyyy-MM-dd").format(selectedDate.value);
@@ -188,79 +206,56 @@ class FieldController extends GetxController {
     return slots;
   }
 
-  /// TRẢ VỀ 'success' | 'failed' | 'cancel' | null
   Future<String?> createPaymentOrder() async {
-    {
-      if (selectedSlotsDetail.isEmpty) {
-        Get.snackbar("Cảnh báo", "Vui lòng chọn ít nhất một khung giờ");
-        return null;
-      }
+    if (selectedSlotsDetail.isEmpty) {
+      Get.snackbar("Cảnh báo", "Vui lòng chọn ít nhất một khung giờ");
+      return null;
+    }
 
-      final url = "https://www.executexan.store/api/v1/orders/create-payment";
-      final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
+    final tokenStorage = TokenStorage(storage: const FlutterSecureStorage());
+    final user = await tokenStorage.getUserData();
 
-      dynamic userData = await tokenStorage.getUserData();
+    if (user == null) {
+      showLoginRequiredDialog(Get.context!);
+      return null;
+    }
 
-      if (userData == null) {
-        showLoginRequiredDialog(Get.context!);
-        return null;
-      }
-      User user = await tokenStorage.getUserData() as User;
-      List<Map<String, dynamic>> items = [];
-      for (var slot in selectedSlotsDetail.values) {
-        DateTime t = DateFormat("HH:mm").parse(slot.startTime);
-        String endTime = DateFormat(
-          "HH:mm",
-        ).format(t.add(const Duration(minutes: 30)));
+    List<Map<String, dynamic>> items = selectedSlotsDetail.values.map((slot) {
+      final start = DateFormat("HH:mm").parse(slot.startTime);
+      final end = DateFormat(
+        "HH:mm",
+      ).format(start.add(const Duration(minutes: 30)));
 
-        items.add({
-          "field_id": slot.fieldId,
-          "start_time": slot.startTime,
-          "end_time": endTime,
-          "date": slot.date,
-          "name": slot.fieldName,
-          "quantity": 1,
-          "price": slot.price.round(),
-        });
-      }
-
-      Map<String, dynamic> body = {
-        "store_id": currentStoreId,
-        "user_id": user.id,
-        "amount": totalPrice.round(),
-        "description": "Đặt ${items.length} slot sân $currentSportId",
-        "items": items,
+      return {
+        "field_id": slot.fieldId,
+        "start_time": slot.startTime,
+        "end_time": end,
+        "date": slot.date,
+        "name": slot.fieldName,
+        "quantity": 1,
+        "price": slot.price.round(),
       };
+    }).toList();
 
-      try {
-        final response = await http.post(
-          Uri.parse(url),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body),
-        );
+    try {
+      final result = await _bookingsService.createPaymentOrder(
+        storeId: currentStoreId!,
+        userId: user.id,
+        amount: totalPrice.round(),
+        description: "Đặt ${items.length} slot sân $currentSportId",
+        items: items,
+      );
 
-        var data = jsonDecode(response.body);
-
-        if (response.statusCode == 200 &&
-            data["data"]?["checkoutUrl"] != null) {
-          String checkoutUrl = data["data"]["checkoutUrl"];
-
-          // Đợi kết quả từ WebView
-          final result = await Get.to<String>(
-            () => PaymentWebView(url: checkoutUrl),
-          );
-
-          return result; // 'success', 'failed', 'cancel'
-        } else {
-          String msg = data['message'] ?? "Lỗi tạo đơn hàng";
-          Get.snackbar("Thất bại", msg);
-          return null;
-        }
-      } catch (e) {
-        log("Payment error: $e");
-        Get.snackbar("Lỗi", "Không kết nối được máy chủ");
+      final checkoutUrl = result["data"]?["checkoutUrl"];
+      if (checkoutUrl == null) {
+        Get.snackbar("Thất bại", "Không tạo được link thanh toán");
         return null;
       }
+
+      return await Get.to<String>(() => PaymentWebView(url: checkoutUrl));
+    } catch (e) {
+      Get.snackbar("Lỗi", e.toString());
+      return null;
     }
   }
 

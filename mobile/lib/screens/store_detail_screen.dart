@@ -91,6 +91,11 @@ class StoreDetailScreen extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
 
+              // Kiểm tra nếu store bị suspend
+              if (controller.isSuspended.value) {
+                return _buildSuspendedMessage(controller);
+              }
+
               if (controller.fields.isEmpty) {
                 return const Center(child: Text("Không tìm thấy sân nào"));
               }
@@ -108,6 +113,76 @@ class StoreDetailScreen extends StatelessWidget {
       ),
 
       bottomNavigationBar: _buildBottomSummary(controller, theme),
+    );
+  }
+
+  // ----------------- SUSPENDED MESSAGE -----------------
+  Widget _buildSuspendedMessage(FieldController controller) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.lock_outline,
+                size: 64,
+                color: Colors.orange.shade700,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "Cửa hàng đã tạm khóa",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Cửa hàng này đã tạm thời khóa đặt sân vào ngày ${DateFormat('dd/MM/yyyy').format(controller.selectedDate.value)}",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Chọn ngày khác
+                showDatePicker(
+                  context: Get.context!,
+                  initialDate: controller.selectedDate.value,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
+                ).then((picked) {
+                  if (picked != null) {
+                    controller.selectedDate.value = picked;
+                  }
+                });
+              },
+              icon: const Icon(Icons.calendar_today),
+              label: const Text("Chọn ngày khác"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00C17C),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

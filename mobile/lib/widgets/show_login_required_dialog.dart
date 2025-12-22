@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/route_manager.dart';
+import 'package:mobile/screens/login_screen.dart';
 
 void showLoginRequiredDialog(BuildContext context) {
   final theme = Theme.of(context);
@@ -89,7 +90,7 @@ void showLoginRequiredDialog(BuildContext context) {
                     child: ElevatedButton(
                       onPressed: () {
                         Get.back();
-                        Get.toNamed('/login'); // Hoặc route login của bạn
+                        Get.offAll(() => const LoginScreen()); // Hoặc route login của bạn
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,

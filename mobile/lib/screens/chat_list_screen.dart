@@ -7,8 +7,8 @@ import 'package:mobile/controller/chat_controller.dart';
 import 'package:mobile/screens/chat_screen.dart';
 import 'package:mobile/widgets/loading.dart';
 
-class ChatListScreen extends StatelessWidget {
-  const ChatListScreen({super.key});
+class chatListPage extends StatelessWidget {
+  const chatListPage({super.key});
 
   @override
   Widget build(BuildContext context) {

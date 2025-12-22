@@ -72,7 +72,7 @@ class PostSearchPage extends StatelessWidget {
           // Chat list button
           IconButton(
             onPressed: () {
-              Get.to(() => const ChatListScreen());
+              Get.to(() => const chatListPage());
             },
             icon: Stack(children: [const Icon(Icons.chat_bubble_outline)]),
             tooltip: 'Tin nhắn',
